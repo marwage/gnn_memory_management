@@ -67,6 +67,12 @@ int main(int argc, char **argv) {
         std::cout << "cublasSetMatrix gpu_C failed\n";
     }
 
+    // use tensor cores
+    status = cublasSetMathMode(handle, CUBLAS_TENSOR_OP_MATH);
+    if (status != CUBLAS_STATUS_SUCCESS) {
+        std::cout << "cublasSetMathMode failed\n";
+    }
+
     // cublasStatus_t cublasSgemm(cublasHandle_t handle,
     //                            cublasOperation_t transa, cublasOperation_t transb,
     //                            int m, int n, int k,
