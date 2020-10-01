@@ -1,13 +1,25 @@
+set( CMAKE_VERBOSE_MAKEFILE on )
+
 cmake_minimum_required(VERSION 3.17)
 
-project(Alzheimer VERSION 0.1)
+project(alzheimer VERSION 0.1
+    LANGUAGES CXX CUDA)
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+add_executable(${PROJECT_NAME}
+    src/read_tensors.cpp
+    src/mmio_wrapper.cpp
+    src/mmio.c)
 
-add_executable(alzheimer read_tensors.cpp)
+# include_directories(${PROJECT_NAME}
+    # PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer)
 
-target_include_directories(alzheimer PUBLIC /usr/local/include)
-target_link_directories(alzheimer PUBLIC /usr/local/lib)
-target_link_libraries(alzheimer PUBLIC cnpy)
+target_include_directories(${PROJECT_NAME}
+    PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
+    PRIVATE /usr/local/cuda/include)
+
+find_package(CUDA 10.2 REQUIRED)
+
+target_link_libraries(${PROJECT_NAME}
+    cnpy
+    ${CUDA_LIBRARIES})
 

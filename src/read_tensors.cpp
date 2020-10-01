@@ -68,5 +68,14 @@ int main() {
         std::cout << "test_mask wrong data type" << std::endl;
     }
     // print_vector<bool>(test_mask, arr.shape[0]);
+
+    path = dir_path + "/adjacency.mtx";
+    char *path_char = &*path.begin();
+    int adjacency_rows, adjacency_cols, adjacency_nnz;
+    float *adjacency_csr_val;
+    int *adjacency_csr_row_ptr, *adjacency_csr_col_ind;
+    loadMMSparseMatrix<float>(path_char, 'f', true, &adjacency_rows,
+        &adjacency_cols, &adjacency_nnz, &adjacency_csr_val, &adjacency_csr_row_ptr,
+        &adjacency_csr_col_ind, true);
 }
 
