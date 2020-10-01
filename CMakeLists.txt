@@ -3,15 +3,15 @@ set( CMAKE_VERBOSE_MAKEFILE on )
 cmake_minimum_required(VERSION 3.17)
 
 project(alzheimer VERSION 0.1
-    LANGUAGES CXX CUDA)
+    LANGUAGES CXX CUDA  C)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_executable(${PROJECT_NAME}
     src/read_tensors.cpp
     src/mmio_wrapper.cpp
     src/mmio.c)
-
-# include_directories(${PROJECT_NAME}
-    # PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
