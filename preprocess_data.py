@@ -1,7 +1,7 @@
 import json
 import numpy as np
 import scipy.sparse as sp
-import scipy.io.harwell_boeing as hb
+import scipy.io
 import os
 
 home = os.getenv("HOME")
@@ -11,8 +11,8 @@ path = dir_path + "/adj_full.npz"
 f = np.load(path)
 adj = sp.csr_matrix((f["data"], f["indices"], f["indptr"]), f["shape"])
 adj = adj.astype(np.float32)
-path = dir_path + "/adjacency.hb"
-hb.hb_write(path, adj)
+path = dir_path + "/adjacency.mtx"
+scipy.io.mmwrite(path, adj)
 
 path = dir_path + "/feats.npy"
 features = np.load(path)
