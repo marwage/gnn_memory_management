@@ -7,6 +7,8 @@
 
 #include <cusolverDn.h>
 
+#include "mmio_wrapper.h"
+
 /* avoid Windows warnings (for example: strcpy, fscanf, etc.) */
 #if defined(_WIN32)  
 #define _CRT_SECURE_NO_WARNINGS
