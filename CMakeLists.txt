@@ -1,11 +1,11 @@
-set( CMAKE_VERBOSE_MAKEFILE on )
+set(CMAKE_VERBOSE_MAKEFILE on)
 
 cmake_minimum_required(VERSION 3.17)
 
 project(alzheimer VERSION 0.1
     LANGUAGES CXX CUDA C)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_executable(${PROJECT_NAME}
@@ -24,5 +24,6 @@ find_package(CUDA 10.2 REQUIRED)
 
 target_link_libraries(${PROJECT_NAME}
     cnpy
-    ${CUDA_LIBRARIES})
+    ${CUDA_LIBRARIES}
+    ${CUDA_cusparse_LIBRARY})
 
