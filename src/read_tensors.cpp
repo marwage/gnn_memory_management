@@ -108,6 +108,16 @@ int main() {
         std::cout << "loadMMSparseMatrix failed" << std::endl;
     }
 
+    // std::cout << "rows " << adjacency_rows << std::endl;
+    // std::cout << "columns " << adjacency_cols << std::endl;
+    // std::cout << "nnz " << adjacency_nnz << std::endl;
+    // for (int i = 0; i < adjacency_nnz; ++i) {
+        // std::cout << "val " << adjacency_csr_val[i] << std::endl;
+    // }
+    // for (int i = 0; i < adjacency_nnz; ++i) {
+        // std::cout << "col " << adjacency_csr_col_ind[i] << std::endl;
+    // }
+
 
     // compute graph convolution
     cudaError_t error = cudaSuccess;
@@ -159,12 +169,18 @@ int main() {
             CUDA_R_32F, CUSPARSE_ORDER_COL);
     check_cusparse(sparse_status);
 
+    float *result = (float*) malloc(adjacency_rows * features_M * sizeof(float));
+    for (int i = 0; i < adjacency_rows * features_M; ++i) {
+        result[i] = 0.0f;   
+    }
     float *d_result;
-    error = cudaMalloc((void**) &d_result, features_N * features_M * sizeof(float));
+    error = cudaMalloc((void**) &d_result, adjacency_rows * features_M * sizeof(float));
     check_cuda(error);
+    error = cudaMemcpy(d_result, result, adjacency_rows * features_M * sizeof(float),
+            cudaMemcpyHostToDevice);
 
     cusparseDnMatDescr_t result_descr;
-    sparse_status = cusparseCreateDnMat(&result_descr, features_N, features_M,
+    sparse_status = cusparseCreateDnMat(&result_descr, adjacency_rows, features_M,
             features_N, d_features,
             CUDA_R_32F, CUSPARSE_ORDER_COL);
     check_cusparse(sparse_status);
@@ -191,12 +207,13 @@ int main() {
             d_buffer);
     check_cusparse(sparse_status);
 
-    float* result = (float *) malloc(features_N * features_M * sizeof(float));
-    error = cudaMemcpy(result, d_result, features_N * features_M * sizeof(float),
+    error = cudaMemcpy(result, d_result, adjacency_rows * features_M * sizeof(float),
             cudaMemcpyDeviceToHost);
     check_cuda(error);
 
-    print_matrix(result, features_N, features_M);
+    path = dir_path + "/result.npy";
+    std::vector<size_t> shape = {(size_t) features_N, (size_t) features_M};
+    cnpy::npy_save<float>(path, result, shape);
 
     error = cudaFree(d_adjacency_csr_val);
     check_cuda(error);
@@ -214,6 +231,7 @@ int main() {
     free(train_mask);
     free(val_mask);
     free(test_mask);
+    free(result);
 
     sparse_status = cusparseDestroy(sparse_handle);
     check_cusparse(sparse_status);
