@@ -13,13 +13,22 @@ adj = scipy.io.mmread(path)
 path = dir_path + "/features.npy"
 features = np.load(path)
 
+print("features")
+for i in range(10):
+    print(features[i, 0:10])
+
 path = dir_path + "/result.npy"
 result = np.load(path)
 
 true_result = adj.dot(features)
 
-print("Number of non zero elements: {}".format(np.count_nonzero(result)))
+print("true_result")
+for i in range(10):
+    print(true_result[i, 0:10])
+
+print("Result number of elements: {}".format(result.size))
+print("Result number of non zero elements: {}".format(np.count_nonzero(result)))
 assert(result.shape == true_result.shape)
-percentage_equal = (result.shape[0] * result.shape[1]) / ((result == true_result).sum())
+percentage_equal = result.size / ((result == true_result).sum())
 print("Percentage of equal elements: {}".format(percentage_equal))
 

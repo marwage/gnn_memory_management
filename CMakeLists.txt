@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_executable(${PROJECT_NAME}
-    src/read_tensors.cpp
+    src/alzheimer.cpp
     src/mmio_wrapper.cpp
     src/mmio.c)
 
