@@ -89,7 +89,7 @@ struct sparse_matrix {
     int *csr_col_ind;
 };
 
-void graph_convolution(sparse_matrix<float> A, matrix<float> B, matrix<float> C) {
+matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B) {
 
     cudaError_t error = cudaSuccess;
     cusparseStatus_t sparse_status = CUSPARSE_STATUS_SUCCESS;
@@ -131,7 +131,7 @@ void graph_convolution(sparse_matrix<float> A, matrix<float> B, matrix<float> C)
     matrix<float> B_col;
     B_col.rows = B.columns;
     B_col.columns = B.rows;
-    B_col.values = (float*) malloc(B.rows * B.columns * sizeof(float));
+    B_col.values = (float*) malloc(B_col.rows * B_col.columns * sizeof(float));
     transpose<float>(B_col.values, B.values, B.rows, B.columns);
     // create cusparse features
     float *d_B;
@@ -147,29 +147,30 @@ void graph_convolution(sparse_matrix<float> A, matrix<float> B, matrix<float> C)
     check_cusparse(sparse_status);
 
     // create result
-    C.rows = A.rows;
-    C.columns = B.columns;
-    C.values = (float*) malloc(C.rows * C.columns * sizeof(float));
-    for (int i = 0; i < C.rows * C.columns; ++i) {
-        C.values[i] = 0.0f;
+    matrix<float> result;
+    result.rows = A.rows;
+    result.columns = B.columns;
+    result.values = (float*) malloc(result.rows * result.columns * sizeof(float));
+    for (int i = 0; i < result.rows * result.columns; ++i) {
+        result.values[i] = 0.0f;
     }
     // result to column-major
     matrix<float> result_col;
-    result_col.rows = C.columns;
-    result_col.columns = C.rows;
-    result_col.values = (float*) malloc(C.rows * C.columns * sizeof(float));
-    transpose<float>(result_col.values, C.values, C.rows, C.columns);
+    result_col.rows = result.columns;
+    result_col.columns = result.rows;
+    result_col.values = (float*) malloc(result_col.rows * result_col.columns * sizeof(float));
+    transpose<float>(result_col.values, result.values, result.rows, result.columns);
 
     // create cusparse result
     float *d_result;
-    error = cudaMalloc((void**) &d_result, C.rows * C.columns * sizeof(float));
+    error = cudaMalloc((void**) &d_result, result.rows * result.columns * sizeof(float));
     check_cuda(error);
-    error = cudaMemcpy(d_result, result_col.values, C.rows * C.columns * sizeof(float),
+    error = cudaMemcpy(d_result, result_col.values, result_col.rows * result_col.columns * sizeof(float),
             cudaMemcpyHostToDevice);
     check_cuda(error);
     cusparseDnMatDescr_t result_descr;
-    sparse_status = cusparseCreateDnMat(&result_descr, C.rows, C.columns,
-            C.rows, d_result,
+    sparse_status = cusparseCreateDnMat(&result_descr, result.rows, result.columns,
+            result.rows, d_result,
             CUDA_R_32F, CUSPARSE_ORDER_COL);
     check_cusparse(sparse_status);
 
@@ -198,12 +199,12 @@ void graph_convolution(sparse_matrix<float> A, matrix<float> B, matrix<float> C)
     check_cusparse(sparse_status);
 
     // move result_col to CPU memory
-    error = cudaMemcpy(result_col.values, d_result, C.rows * C.columns * sizeof(float),
+    error = cudaMemcpy(result_col.values, d_result, result_col.rows * result_col.columns * sizeof(float),
             cudaMemcpyDeviceToHost);
     check_cuda(error);
 
     // result to row-major
-    transpose<float>(C.values, result_col.values, result_col.rows, result_col.columns);
+    transpose<float>(result.values, result_col.values, result_col.rows, result_col.columns);
 
     // free memory
     error = cudaFree(d_A_csr_val);
@@ -221,6 +222,8 @@ void graph_convolution(sparse_matrix<float> A, matrix<float> B, matrix<float> C)
 
     sparse_status = cusparseDestroy(sparse_handle);
     check_cusparse(sparse_status);
+
+    return result;
 
 }
 
@@ -307,8 +310,7 @@ int main() {
     one_to_zero_index(adjacency.csr_col_ind, adjacency.nnz);
 
     // graph convolution
-    matrix<float> result;
-    graph_convolution(adjacency, features, result);
+    matrix<float> result = graph_convolution(adjacency, features);
 
     // print result
     std::cout << "result" << std::endl;
