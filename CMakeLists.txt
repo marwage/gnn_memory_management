@@ -25,5 +25,6 @@ find_package(CUDA 10.2 REQUIRED)
 target_link_libraries(${PROJECT_NAME}
     cnpy
     ${CUDA_LIBRARIES}
-    ${CUDA_cusparse_LIBRARY})
+    ${CUDA_cusparse_LIBRARY}
+    cudnn)
 
