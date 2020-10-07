@@ -1,9 +1,14 @@
+#include <random>
+#include <math.h>
+#include <limits>
+
 #include "cnpy.h"
 #include "mmio_wrapper.h"
 
 #include <cuda_runtime.h>
 #include "cusparse.h"
 #include <cudnn.h>
+#include <cublas_v2.h>
 
 
 void check_cuda(cudaError_t status) {
@@ -24,6 +29,27 @@ void check_cudnn(cudnnStatus_t status) {
     if (status != CUDNN_STATUS_SUCCESS) {
         printf("CUDNN API failed at line %d with error: %s (%d)\n",
                 __LINE__, cudnnGetErrorString(status), status);
+    }
+}
+
+const char* cublasGetErrorString(cublasStatus_t status) {
+    switch(status) {
+        case CUBLAS_STATUS_SUCCESS: return "CUBLAS_STATUS_SUCCESS";
+        case CUBLAS_STATUS_NOT_INITIALIZED: return "CUBLAS_STATUS_NOT_INITIALIZED";
+        case CUBLAS_STATUS_ALLOC_FAILED: return "CUBLAS_STATUS_ALLOC_FAILED";
+        case CUBLAS_STATUS_INVALID_VALUE: return "CUBLAS_STATUS_INVALID_VALUE";
+        case CUBLAS_STATUS_ARCH_MISMATCH: return "CUBLAS_STATUS_ARCH_MISMATCH";
+        case CUBLAS_STATUS_MAPPING_ERROR: return "CUBLAS_STATUS_MAPPING_ERROR";
+        case CUBLAS_STATUS_EXECUTION_FAILED: return "CUBLAS_STATUS_EXECUTION_FAILED";
+        case CUBLAS_STATUS_INTERNAL_ERROR: return "CUBLAS_STATUS_INTERNAL_ERROR";
+    }
+    return "unknown error";
+}
+
+void check_cublas(cublasStatus_t status) {
+    if (status != CUBLAS_STATUS_SUCCESS) {
+        printf("CUBLAS API failed at line %d with error: %s (%d)\n",
+                __LINE__, cublasGetErrorString(status), status);
     }
 }
 
@@ -315,6 +341,213 @@ matrix<float> dropout(matrix<float> X) {
 }
 
 
+matrix<float> linear(matrix<float> X) {
+    int num_hidden_channels = 256;
+    matrix<float> weight;
+    weight.rows = X.columns;
+    weight.columns = num_hidden_channels;
+    weight.values = (float *) malloc(weight.rows * weight.columns * sizeof(float));
+    vector<float> bias;
+    bias.size = num_hidden_channels;
+    bias.values = (float *) malloc(bias.size * sizeof(float));
+
+    // init weight and bias
+    double k = 1.0 / (double) X.columns;
+    k = sqrt(k);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> distr(-k, k);
+    for (int i = 0; i < weight.rows * weight.columns; ++i) {
+        weight.values[i] = distr(gen);
+    }
+    for (int i = 0; i < bias.size; ++i) {
+        bias.values[i] = distr(gen);
+    }
+
+    cudaError_t cuda_error;
+    cublasStatus_t cublas_status;
+    cublasHandle_t cublas_handle;
+    cublas_status = cublasCreate(&cublas_handle);
+    check_cublas(cublas_status);
+
+    float *d_X, *d_weight, *d_bias;
+    matrix<float> X_col;
+    X_col.rows = X.columns;
+    X_col.columns = X.rows;
+    X_col.values = (float *) malloc(X_col.rows * X_col.columns * sizeof(float));
+    transpose(X_col.values, X.values, X.rows, X.columns);
+    cuda_error = cudaMalloc((void **) &d_X, X.rows * X.columns * sizeof(float));
+    check_cuda(cuda_error);
+    cuda_error = cudaMemcpy(d_X, X_col.values, X_col.rows * X_col.columns * sizeof(float),
+            cudaMemcpyHostToDevice);
+    matrix<float> weight_col;
+    weight_col.rows = weight.columns;
+    weight_col.columns = weight.rows;
+    weight_col.values = (float *) malloc(weight_col.rows * weight_col.columns * sizeof(float));
+    transpose(weight_col.values, weight.values, weight.rows, weight.columns);
+    cuda_error = cudaMalloc(&d_weight, weight_col.rows * weight_col.columns * sizeof(float));
+    check_cuda(cuda_error);
+    cuda_error = cudaMemcpy(d_weight, weight_col.values,
+            weight_col.rows * weight_col.columns * sizeof(float),
+            cudaMemcpyHostToDevice);
+    check_cuda(cuda_error);
+    matrix<float> bias_expanded;
+    bias_expanded.rows = X.rows;
+    bias_expanded.columns = bias.size;
+    bias_expanded.values = (float *) malloc(bias_expanded.rows * bias_expanded.columns * sizeof(float));
+    for (int i = 0; i < X.rows; ++i) {
+        std::memcpy(&bias_expanded.values[i * bias.size],
+                bias.values,
+                bias.size * sizeof(float));
+    }
+    matrix<float> bias_expanded_col;
+    bias_expanded_col.rows = bias_expanded.columns;
+    bias_expanded_col.columns = bias_expanded.rows;
+    bias_expanded_col.values = (float *) malloc(bias_expanded_col.rows * bias_expanded_col.columns * sizeof(float));
+    transpose(bias_expanded_col.values, bias_expanded.values,
+            bias_expanded.rows, bias_expanded.columns);
+    cuda_error = cudaMalloc(&d_bias,
+            bias_expanded_col.rows * bias_expanded_col.columns * sizeof(float));
+    check_cuda(cuda_error);
+    cuda_error = cudaMemcpy(d_bias, bias_expanded_col.values,
+            bias_expanded_col.rows * bias_expanded_col.columns * sizeof(float),
+            cudaMemcpyHostToDevice);
+    check_cuda(cuda_error);
+    
+    float alpha = 1.0;
+    float beta = 1.0;
+    // PyTorch uses GEMM too
+    cublas_status = cublasSgemm(cublas_handle,
+            CUBLAS_OP_N, CUBLAS_OP_N,
+            X.rows, num_hidden_channels, X.columns,
+            &alpha,
+            d_X, X.rows,
+            d_weight, weight.rows,
+            &beta,
+            d_bias, X.rows);
+    check_cublas(cublas_status);
+
+    // get result of linear
+    matrix<float> result_col;
+    result_col.rows = bias_expanded_col.rows;
+    result_col.columns = bias_expanded_col.columns;
+    result_col.values = (float *) malloc(result_col.rows * result_col.columns * sizeof(float));
+    cuda_error = cudaMemcpy(result_col.values, d_bias,
+            result_col.rows * result_col.columns * sizeof(float),
+            cudaMemcpyDeviceToHost);
+    check_cuda(cuda_error);
+    matrix<float> result;
+    result.rows = result_col.columns;
+    result.columns = result_col.rows;
+    result.values = (float *) malloc(result.rows * result.columns * sizeof(float));
+    transpose(result.values, result_col.values, result_col.rows, result_col.columns);
+
+    // free GPU memory
+    cuda_error = cudaFree(d_X);
+    check_cuda(cuda_error);
+    cuda_error = cudaFree(d_weight);
+    check_cuda(cuda_error);
+    cuda_error = cudaFree(d_bias);
+    check_cuda(cuda_error);
+
+    // free CPU memory
+    free(weight.values);
+    free(bias.values);
+    free(X_col.values);
+    free(weight_col.values);
+    free(bias_expanded.values);
+    free(bias_expanded_col.values);
+    free(result_col.values);
+    
+    // clean cuBLAS
+    cublas_status = cublasDestroy(cublas_handle);
+
+    return result;
+}
+
+matrix<float> relu(matrix<float> X) {
+    cudaError_t cuda_error;
+    cudnnStatus_t cudnn_status;
+    cudnnHandle_t cudnn_handle;
+    cudnn_status = cudnnCreate(&cudnn_handle);
+    check_cudnn(cudnn_status);
+
+    float *d_X;
+    cuda_error = cudaMalloc(&d_X, X.rows * X.columns * sizeof(float));
+    check_cuda(cuda_error);
+    cuda_error = cudaMemcpy(d_X, X.values,
+            X.rows * X.columns * sizeof(float),
+            cudaMemcpyHostToDevice);
+    check_cuda(cuda_error);
+    cudnnTensorDescriptor_t x_desc;
+    cudnn_status = cudnnCreateTensorDescriptor(&x_desc);
+    check_cudnn(cudnn_status);
+    cudnn_status = cudnnSetTensor4dDescriptor(x_desc,
+            CUDNN_TENSOR_NCHW,
+            CUDNN_DATA_FLOAT,
+            1, 1, X.rows, X.columns);
+    check_cudnn(cudnn_status);
+    
+    matrix<float> result;
+    result.rows = X.rows;
+    result.columns = X.columns;
+    result.values = (float *) malloc(result.rows * result.columns * sizeof(float));
+    for (int i = 0; i < result.rows * result.columns; ++i) {
+        result.values[i] = 0.0;
+    }
+    float *d_result;
+    cuda_error = cudaMalloc(&d_result, result.rows * result.columns * sizeof(float));
+    check_cuda(cuda_error);
+    cuda_error = cudaMemcpy(d_result, result.values,
+            result.rows * result.columns * sizeof(float),
+            cudaMemcpyHostToDevice);
+    check_cuda(cuda_error);
+    cudnnTensorDescriptor_t result_desc;
+    cudnn_status = cudnnCreateTensorDescriptor(&result_desc);
+    check_cudnn(cudnn_status);
+    cudnn_status = cudnnSetTensor4dDescriptor(result_desc,
+            CUDNN_TENSOR_NCHW,
+            CUDNN_DATA_FLOAT,
+            1, 1, result.rows, result.columns);
+    check_cudnn(cudnn_status);
+
+    cudnnActivationDescriptor_t relu_desc;
+    cudnn_status = cudnnCreateActivationDescriptor(&relu_desc);
+    check_cudnn(cudnn_status);
+    double coef = std::numeric_limits<double>::max();
+    cudnn_status = cudnnSetActivationDescriptor(relu_desc,
+            CUDNN_ACTIVATION_RELU,
+            CUDNN_PROPAGATE_NAN,
+            coef);
+    
+    float alpha = 1.0;
+    float beta = 1.0;
+    cudnn_status = cudnnActivationForward(cudnn_handle,
+            relu_desc,
+            &alpha, x_desc, d_X,
+            &beta, result_desc, d_result);
+
+    cuda_error = cudaMemcpy(result.values, d_result,
+            result.rows * result.columns * sizeof(float),
+            cudaMemcpyDeviceToHost);
+    check_cuda(cuda_error);
+
+    // free GPU memory
+    cuda_error = cudaFree(d_X);
+    check_cuda(cuda_error);
+    cuda_error = cudaFree(d_result);
+    check_cuda(cuda_error);
+
+    return result;
+
+
+    // clean cudnn
+    cudnn_status = cudnnDestroy(cudnn_handle);
+    check_cudnn(cudnn_status);
+
+    return result;
+}
+
 
 int main() {
     // read tensors
@@ -380,7 +613,7 @@ int main() {
     arr_data_b = arr.data<bool>();
     vector<bool> test_mask;
     test_mask.size = arr.shape[0];
-    test_mask.values = (bool*) malloc(test_mask.size * sizeof(bool)); 
+    test_mask.values = reinterpret_cast<bool*>(malloc(test_mask.size * sizeof(bool)));
     std::memcpy(test_mask.values, arr_data_b, test_mask.size * sizeof(bool));
 
     // read adjacency
@@ -412,6 +645,19 @@ int main() {
     path = dir_path + "/dropout_result.npy";
     shape = {(size_t) dropout_result.rows, (size_t) dropout_result.columns};
     cnpy::npy_save<float>(path, dropout_result.values, shape);
+
+    // linear layer
+    matrix<float> linear_result = linear(features);
+
+    // write linear layer result to npy file
+    path = dir_path + "/linear_result.npy";
+    shape = {(size_t) linear_result.rows, (size_t) linear_result.columns};
+    cnpy::npy_save<float>(path, linear_result.values, shape);
+
+    // ReLU
+    matrix<float> relu_result = relu(features);
+
+    print_matrix<float>(relu_result.values, relu_result.rows, relu_result.columns);
 
     // free memory
     free(features.values);

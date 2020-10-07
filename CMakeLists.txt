@@ -26,5 +26,6 @@ target_link_libraries(${PROJECT_NAME}
     cnpy
     ${CUDA_LIBRARIES}
     ${CUDA_cusparse_LIBRARY}
-    cudnn)
+    cudnn
+    ${CUDA_CUBLAS_LIBRARIES})
 
