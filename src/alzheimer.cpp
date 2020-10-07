@@ -400,23 +400,18 @@ int main() {
     // graph convolution
     matrix<float> result = graph_convolution(adjacency, features);
 
-    // print result
-    std::cout << "result" << std::endl;
-    print_matrix(result.values, result.rows, result.columns);
-
     // write result to npy file
-    path = dir_path + "/result.npy";
+    path = dir_path + "/graph_convolution_result.npy";
     std::vector<size_t> shape = {(size_t) result.rows, (size_t) result.columns};
     cnpy::npy_save<float>(path, result.values, shape);
 
     // dropout
     matrix<float> dropout_result = dropout(features);
 
-    // print droupout result
-    std::cout << "features" << std::endl;
-    print_matrix<float>(features.values, features.rows, features.columns);
-    std::cout << "dropout" << std::endl;
-    print_matrix<float>(dropout_result.values, dropout_result.rows, dropout_result.columns);
+    // write dropout result to npy file
+    path = dir_path + "/dropout_result.npy";
+    shape = {(size_t) dropout_result.rows, (size_t) dropout_result.columns};
+    cnpy::npy_save<float>(path, dropout_result.values, shape);
 
     // free memory
     free(features.values);
