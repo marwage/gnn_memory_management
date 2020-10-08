@@ -31,5 +31,35 @@ matrix<float> SageLinear::forward(matrix<float> features,
             cudaMemcpyHostToDevice);
     check_cuda(cuda_error);
 
+    float *d_neigh;
+    cuda_error = cudaMalloc((void **) &d_neigh,
+            neigh_result.rows * neigh_result.columns * sizeof(float));
+    check_cuda(cuda_error);
+    cuda_error = cudaMemcpy(d_neigh, neigh_result.values,
+            neigh_result.rows * neigh_result.columns * sizeof(float),
+            cudaMemcpyHostToDevice);
+    check_cuda(cuda_error);
+
+    float alpha = 1.0;
+    cublas_status = cublasSaxpy(cublas_handle,
+            self_result.rows * self_result.columns, &alpha,
+            d_neigh, 1,
+            d_self, 1);
+    check_cublas(cublas_status);
+
+    cuda_error = cudaMemcpy(self_result.values, d_self,
+            self_result.rows * self_result.columns * sizeof(float),
+            cudaMemcpyDeviceToHost);
+    check_cuda(cuda_error);
+
+    cuda_error = cudaFree(d_self);
+    check_cuda(cuda_error);
+    cuda_error = cudaFree(d_neigh);
+    check_cuda(cuda_error);
+
+    cublas_status = cublasDestroy(cublas_handle);
+    check_cublas(cublas_status);
+
+    return self_result;
 }
 
