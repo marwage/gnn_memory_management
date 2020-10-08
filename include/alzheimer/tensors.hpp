@@ -50,4 +50,7 @@ matrix<T> load_npy_matrix(std::string path);
 template <typename T>
 sparse_matrix<T> load_mtx_matrix(std::string path);
 
+template <typename T>
+void save_npy_matrix(matrix<T> mat, std::string path);
+
 #endif

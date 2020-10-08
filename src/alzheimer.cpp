@@ -41,41 +41,43 @@ int main() {
     path = dir_path + "/adjacency.mtx";
     sparse_matrix<float> adjacency = load_mtx_matrix<float>(path);
 
-    // graph convolution
-    matrix<float> result = graph_convolution(adjacency, features, "sum");
-    
-    matrix<float> graph_conv_result_mean = graph_convolution(adjacency, features, "mean");
 
-    // write result to npy file
-    path = dir_path + "/graph_convolution_result.npy";
-    std::vector<size_t> shape = {(size_t) result.rows, (size_t) result.columns};
-    cnpy::npy_save<float>(path, result.values, shape);
+    // FORWARD PASS
+    // dropout 0
+    matrix<float> dropout_result_0 = dropout(features);
 
-    // dropout
-    matrix<float> dropout_result = dropout(features);
+    // graph convolution 0
+    matrix<float> graph_conv_result_0 = graph_convolution(adjacency, dropout_result_0, "mean");
 
-    // write dropout result to npy file
-    path = dir_path + "/dropout_result.npy";
-    shape = {(size_t) dropout_result.rows, (size_t) dropout_result.columns};
-    cnpy::npy_save<float>(path, dropout_result.values, shape);
+    // linear layer 0
+    matrix<float> linear_result_0 = linear(graph_conv_result_0 );
 
-    // linear layer
-    matrix<float> linear_result = linear(features);
+    // ReLU 0
+    matrix<float> relu_result_0 = relu(linear_result_0);
 
-    // write linear layer result to npy file
-    path = dir_path + "/linear_result.npy";
-    shape = {(size_t) linear_result.rows, (size_t) linear_result.columns};
-    cnpy::npy_save<float>(path, linear_result.values, shape);
+    // dropout 1
+    matrix<float> dropout_result_1 = dropout(relu_result_0);
 
-    // ReLU
-    matrix<float> relu_result = relu(features);
+    // graph convolution 1
+    matrix<float> graph_conv_result_1 = graph_convolution(adjacency, dropout_result_1, "mean");
+
+    // linear layer 1
+    matrix<float> linear_result_1 = linear(graph_conv_result_1);
+
+    // dropout 2
+    matrix<float> dropout_result_2 = dropout(linear_result_1);
+
+    // graph convolution 2
+    matrix<float> graph_conv_result_2 = graph_convolution(adjacency, dropout_result_2, "mean");
+
+    // linear layer 2
+    matrix<float> linear_result_2 = linear(graph_conv_result_2);
 
     // softmax
-    matrix<float> softmax_result = softmax(linear_result);
+    matrix<float> softmax_result = softmax(linear_result_2);
 
     // loss
     float loss = negative_log_likelihood_loss(softmax_result, classes);
-
     std::cout << "loss " << loss << std::endl;
 
     // free memory

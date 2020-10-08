@@ -135,3 +135,14 @@ sparse_matrix<T> load_mtx_matrix(std::string path) {
 }
 
 template sparse_matrix<float> load_mtx_matrix<float>(std::string path);
+
+
+template <typename T>
+void save_npy_matrix(matrix<T> mat, std::string path) {
+    std::vector<size_t> shape = {(size_t) mat.rows, (size_t) mat.columns};
+    cnpy::npy_save<T>(path, mat.values, shape);
+}
+
+template void save_npy_matrix<float>(matrix<float> mat, std::string path);
+template void save_npy_matrix<int>(matrix<int> mat, std::string path);
+
