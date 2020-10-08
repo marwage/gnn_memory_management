@@ -30,16 +30,13 @@ struct sparse_matrix {
 };
 
 template <typename T>
-void print_matrix(T* a, int rows, int cols);
+void print_matrix(matrix<T> mat);
 
 template <typename T>
-void print_vector(T* a, int num_ele);
+void print_vector(vector<T> vec);
 
 template <typename T>
 void transpose(T *a_T, T *a, int rows, int cols);
-
-template <typename T>
-void one_to_zero_index(T *a, int len);
 
 template <typename T>
 vector<T> load_npy_vector(std::string path);

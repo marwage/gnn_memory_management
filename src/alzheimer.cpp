@@ -41,7 +41,6 @@ int main() {
     path = dir_path + "/adjacency.mtx";
     sparse_matrix<float> adjacency = load_mtx_matrix<float>(path);
 
-
     // FORWARD PASS
     // dropout 0
     matrix<float> dropout_result_0 = dropout(features);
@@ -50,7 +49,9 @@ int main() {
     matrix<float> graph_conv_result_0 = graph_convolution(adjacency, dropout_result_0, "mean");
 
     // linear layer 0
-    matrix<float> linear_result_0 = linear(graph_conv_result_0 );
+    int num_hidden_channels = 128;
+    Linear linear_0(features.columns, num_hidden_channels);
+    matrix<float> linear_result_0 = linear_0.forward(graph_conv_result_0);
 
     // ReLU 0
     matrix<float> relu_result_0 = relu(linear_result_0);
@@ -62,7 +63,8 @@ int main() {
     matrix<float> graph_conv_result_1 = graph_convolution(adjacency, dropout_result_1, "mean");
 
     // linear layer 1
-    matrix<float> linear_result_1 = linear(graph_conv_result_1);
+    Linear linear_1(num_hidden_channels, num_hidden_channels);
+    matrix<float> linear_result_1 = linear_1.forward(graph_conv_result_1);
 
     // dropout 2
     matrix<float> dropout_result_2 = dropout(linear_result_1);
@@ -71,7 +73,9 @@ int main() {
     matrix<float> graph_conv_result_2 = graph_convolution(adjacency, dropout_result_2, "mean");
 
     // linear layer 2
-    matrix<float> linear_result_2 = linear(graph_conv_result_2);
+    int num_classes = 7;
+    Linear linear_2(num_hidden_channels, num_classes);
+    matrix<float> linear_result_2 = linear_2.forward(graph_conv_result_2);
 
     // softmax
     matrix<float> softmax_result = softmax(linear_result_2);

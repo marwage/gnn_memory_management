@@ -10,16 +10,16 @@
 
 
 template <typename T>
-void print_matrix(T* a, int rows, int cols) {
+void print_matrix(matrix<T> mat) {
     int N;
-    if (rows < 10) {
-        N = rows;
+    if (mat.rows < 10) {
+        N = mat.rows;
     } else {
         N = 10;
     }
     int M;
-    if (cols < 10) {
-        M = cols;
+    if (mat.columns < 10) {
+        M = mat.columns;
     } else {
         M = 10;
     }
@@ -28,16 +28,27 @@ void print_matrix(T* a, int rows, int cols) {
     for (int i = 0; i < N; i = i + 1) {
         // for (int j = 0; j < cols; j = j + 1) {
         for (int j = 0; j < M; j = j + 1) {
-            std::cout << a[i * cols + j] << ",";
+            std::cout << mat.values[i * mat.columns + j] << ",";
         }
         std::cout << std::endl;
     }
 }
 
+template void print_matrix<float>(matrix<float> mat);
+template void print_matrix<int>(matrix<int> mat);
+
+
 template <typename T>
-void print_vector(T* a, int num_ele) {
-    print_matrix(a, num_ele, 1);
+void print_vector(vector<T> vec) {
+    struct matrix<T> mat;
+    mat.rows = vec.size;
+    mat.columns = 1;
+    print_matrix(mat);
 }
+
+template void print_vector<float>(vector<float> vec);
+template void print_vector<int>(vector<int> vec);
+
 
 int new_index(int old_idx, int N, int M) {
     int last_idx = M * N - 1;

@@ -11,4 +11,6 @@
 matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
         std::string reduction);
 
+matrix<float> graph_convolution_debug(sparse_matrix<float> A, matrix<float> B);
+
 #endif

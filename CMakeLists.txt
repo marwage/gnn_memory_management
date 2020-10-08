@@ -17,6 +17,7 @@ add_executable(${PROJECT_NAME}
     src/linear.cpp
     src/activation.cpp
     src/loss.cpp
+    src/sage_linear.cpp
     src/mmio_wrapper.cpp
     src/mmio.c)
 
