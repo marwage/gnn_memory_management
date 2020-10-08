@@ -10,6 +10,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_executable(${PROJECT_NAME}
     src/alzheimer.cpp
+    src/tensors.cpp
+    src/cuda_helper.cpp
+    src/graph_convolution.cpp
+    src/dropout.cpp
+    src/linear.cpp
+    src/activation.cpp
+    src/loss.cpp
     src/mmio_wrapper.cpp
     src/mmio.c)
 

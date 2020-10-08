@@ -73,15 +73,6 @@ int main(int argc, char **argv) {
         std::cout << "cublasSetMathMode failed\n";
     }
 
-    // cublasStatus_t cublasSgemm(cublasHandle_t handle,
-    //                            cublasOperation_t transa, cublasOperation_t transb,
-    //                            int m, int n, int k,
-    //                            const float *alpha,
-    //                            const float *A, int lda,
-    //                            const float *B, int ldb,
-    //                            const float *beta,
-    //                            float *C, int ldc)
-
     cublasOperation_t operation_t = CUBLAS_OP_N; 
     status = cublasSgemm(handle, operation_t, operation_t,
                          kM, kN, kK,

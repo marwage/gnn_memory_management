@@ -7,7 +7,7 @@
 
 #include <cusolverDn.h>
 
-#include "mmio_wrapper.h"
+#include "mmio_wrapper.hpp"
 
 /* avoid Windows warnings (for example: strcpy, fscanf, etc.) */
 #if defined(_WIN32)  
