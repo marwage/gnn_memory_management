@@ -55,10 +55,23 @@ void check_cublas(cublasStatus_t status) {
 
 template <typename T>
 void print_matrix(T* a, int rows, int cols) {
+    int N;
+    if (rows < 10) {
+        N = rows;
+    } else {
+        N = 10;
+    }
+    int M;
+    if (cols < 10) {
+        M = cols;
+    } else {
+        M = 10;
+    }
+
     // for (int i = 0; i < rows; i = i + 1) {
-    for (int i = 0; i < 10; i = i + 1) {
+    for (int i = 0; i < N; i = i + 1) {
         // for (int j = 0; j < cols; j = j + 1) {
-        for (int j = 0; j < 10; j = j + 1) {
+        for (int j = 0; j < M; j = j + 1) {
             std::cout << a[i * cols + j] << ",";
         }
         std::cout << std::endl;
@@ -123,9 +136,18 @@ struct sparse_matrix {
     int *csr_col_ind;
 };
 
-matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B) {
+matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
+        std::string reduction) {
+    bool mean;
+    if (reduction.compare("mean")) {
+        mean = true;
+    } else if (reduction.compare("sum")) {
+        mean = false;
+    } else {
+        std::cout << "Reduction not supported" << std::endl;
+    }
 
-    cudaError_t error = cudaSuccess;
+    cudaError_t cuda_error = cudaSuccess;
     cusparseStatus_t sparse_status = CUSPARSE_STATUS_SUCCESS;
     cusparseHandle_t sparse_handle;
     sparse_status = cusparseCreate(&sparse_handle);
@@ -134,24 +156,24 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B) {
 
     float *d_A_csr_val;
     int *d_A_csr_row_offsets, *d_A_col_ind;
-    error = cudaMalloc((void**) &d_A_csr_val, 
+    cuda_error = cudaMalloc((void**) &d_A_csr_val, 
             A.nnz * sizeof(float));
-    check_cuda(error);
-    error = cudaMalloc((void**) &d_A_csr_row_offsets,
+    check_cuda(cuda_error);
+    cuda_error = cudaMalloc((void**) &d_A_csr_row_offsets,
             (A.rows + 1) * sizeof(int));
-    check_cuda(error);
-    error = cudaMalloc((void**) &d_A_col_ind,
+    check_cuda(cuda_error);
+    cuda_error = cudaMalloc((void**) &d_A_col_ind,
             A.nnz * sizeof(int));
-    check_cuda(error);
-    error = cudaMemcpy(d_A_csr_val, A.csr_val,
+    check_cuda(cuda_error);
+    cuda_error = cudaMemcpy(d_A_csr_val, A.csr_val,
             A.nnz * sizeof(float), cudaMemcpyHostToDevice);
-    check_cuda(error);
-    error = cudaMemcpy(d_A_csr_row_offsets, A.csr_row_ptr,
+    check_cuda(cuda_error);
+    cuda_error = cudaMemcpy(d_A_csr_row_offsets, A.csr_row_ptr,
             (A.rows + 1) * sizeof(int), cudaMemcpyHostToDevice);
-    check_cuda(error);
-   error = cudaMemcpy(d_A_col_ind, A.csr_col_ind,
+    check_cuda(cuda_error);
+   cuda_error = cudaMemcpy(d_A_col_ind, A.csr_col_ind,
             A.nnz * sizeof(int), cudaMemcpyHostToDevice);
-    check_cuda(error);
+    check_cuda(cuda_error);
     cusparseSpMatDescr_t A_descr;
     sparse_status = cusparseCreateCsr(&A_descr, A.rows,
             A.columns, A.nnz,
@@ -169,11 +191,11 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B) {
     transpose<float>(B_col.values, B.values, B.rows, B.columns);
     // create cusparse features
     float *d_B;
-    error = cudaMalloc((void**) &d_B, B.rows * B.columns * sizeof(float));
-    check_cuda(error);
-    error = cudaMemcpy(d_B, B_col.values, B.rows * B.columns * sizeof(float),
+    cuda_error = cudaMalloc((void**) &d_B, B.rows * B.columns * sizeof(float));
+    check_cuda(cuda_error);
+    cuda_error = cudaMemcpy(d_B, B_col.values, B.rows * B.columns * sizeof(float),
             cudaMemcpyHostToDevice);
-    check_cuda(error);
+    check_cuda(cuda_error);
     cusparseDnMatDescr_t B_descr;
     sparse_status = cusparseCreateDnMat(&B_descr, B.rows, B.columns,
             B.rows, d_B,
@@ -197,11 +219,11 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B) {
 
     // create cusparse result
     float *d_result;
-    error = cudaMalloc((void**) &d_result, result.rows * result.columns * sizeof(float));
-    check_cuda(error);
-    error = cudaMemcpy(d_result, result_col.values, result_col.rows * result_col.columns * sizeof(float),
+    cuda_error = cudaMalloc((void**) &d_result, result.rows * result.columns * sizeof(float));
+    check_cuda(cuda_error);
+    cuda_error = cudaMemcpy(d_result, result_col.values, result_col.rows * result_col.columns * sizeof(float),
             cudaMemcpyHostToDevice);
-    check_cuda(error);
+    check_cuda(cuda_error);
     cusparseDnMatDescr_t result_descr;
     sparse_status = cusparseCreateDnMat(&result_descr, result.rows, result.columns,
             result.rows, d_result,
@@ -221,8 +243,8 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B) {
             &buffer_size);
     check_cusparse(sparse_status);
     void *d_buffer;
-    error = cudaMalloc(&d_buffer, buffer_size);
-    check_cuda(error);
+    cuda_error = cudaMalloc(&d_buffer, buffer_size);
+    check_cuda(cuda_error);
 
     // compute SpMM
     sparse_status = cusparseSpMM(sparse_handle,
@@ -232,27 +254,105 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B) {
             d_buffer);
     check_cusparse(sparse_status);
 
+    cuda_error = cudaFree(d_buffer);
+    check_cuda(cuda_error);
+
     // move result_col to CPU memory
-    error = cudaMemcpy(result_col.values, d_result, result_col.rows * result_col.columns * sizeof(float),
+    cuda_error = cudaMemcpy(result_col.values, d_result,
+            result_col.rows * result_col.columns * sizeof(float),
             cudaMemcpyDeviceToHost);
-    check_cuda(error);
+    check_cuda(cuda_error);
 
     // result to row-major
     transpose<float>(result.values, result_col.values, result_col.rows, result_col.columns);
 
+    // apply mean
+    if (mean) {
+        vector<float> ones;
+        ones.size = A.rows;
+        ones.values = (float *) malloc(ones.size * sizeof(float));
+        for (int i = 0; i < ones.size; ++i) {
+            ones.values[i] = 1.0;
+        }
+        float *d_ones;
+        cuda_error = cudaMalloc(&d_ones, ones.size * sizeof(float));
+        check_cuda(cuda_error);
+        cuda_error = cudaMemcpy(d_ones, ones.values, ones.size * sizeof(float),
+                cudaMemcpyHostToDevice);
+        check_cuda(cuda_error);
+        cusparseDnVecDescr_t ones_desc;
+        sparse_status = cusparseCreateDnVec(&ones_desc, ones.size,
+                d_ones, CUDA_R_32F);
+        check_cusparse(sparse_status);
+
+        vector<float> sum;
+        sum.size = ones.size;
+        sum.values = (float *) malloc(sum.size * sizeof(float));
+        for (int i = 0; i < sum.size; ++i) {
+            sum.values[0] = 0.0;
+        }
+        float *d_sum;
+        cuda_error = cudaMalloc(&d_sum, sum.size * sizeof(float));
+        check_cuda(cuda_error);
+        cuda_error = cudaMemcpy(d_sum, sum.values, sum.size * sizeof(float),
+                cudaMemcpyHostToDevice);
+        cusparseDnVecDescr_t sum_desc;
+        sparse_status = cusparseCreateDnVec(&sum_desc, sum.size,
+                d_sum, CUDA_R_32F);
+        check_cusparse(sparse_status);
+
+        sparse_status = cusparseSpMV_bufferSize(sparse_handle,
+                CUSPARSE_OPERATION_NON_TRANSPOSE,
+                &alpha, A_descr, ones_desc,
+                &beta, sum_desc,
+                CUDA_R_32F, CUSPARSE_MV_ALG_DEFAULT, &buffer_size);
+        check_cusparse(sparse_status);
+        cuda_error = cudaMalloc(&d_buffer, buffer_size);
+        check_cuda(cuda_error);
+        sparse_status = cusparseSpMV(sparse_handle,
+                CUSPARSE_OPERATION_NON_TRANSPOSE,
+                &alpha, A_descr, ones_desc,
+                &beta, sum_desc,
+                CUDA_R_32F, CUSPARSE_MV_ALG_DEFAULT, d_buffer);
+        check_cusparse(sparse_status);
+
+        cuda_error = cudaMemcpy(sum.values, d_sum,
+                sum.size * sizeof(float),
+                cudaMemcpyDeviceToHost);
+        check_cuda(cuda_error);
+
+        // TODO do the following on GPU
+        // scale by 1 / sum
+        for (int i = 0; i < result.rows; ++i) {
+            for (int j = 0; j < result.columns; ++j) {
+                result.values[i * result.columns + j] = result.values[i * result.columns + j] / sum.values[i];
+            }
+        }
+
+        // free GPU memory
+        cuda_error = cudaFree(d_ones);
+        check_cuda(cuda_error);
+        cuda_error = cudaFree(d_sum);
+        check_cuda(cuda_error);
+
+        // free CPU memory
+        free(ones.values);
+        free(sum.values);
+    }  // end mean
+
     // free memory
-    error = cudaFree(d_A_csr_val);
-    check_cuda(error);
-    error = cudaFree(d_A_col_ind);
-    check_cuda(error);
-    error = cudaFree(d_A_csr_row_offsets);
-    check_cuda(error);
-    error = cudaFree(d_B);
-    check_cuda(error);
-    error = cudaFree(d_buffer);
-    check_cuda(error);
-    error = cudaFree(d_result);
-    check_cuda(error);
+    cuda_error = cudaFree(d_A_csr_val);
+    check_cuda(cuda_error);
+    cuda_error = cudaFree(d_A_col_ind);
+    check_cuda(cuda_error);
+    cuda_error = cudaFree(d_A_csr_row_offsets);
+    check_cuda(cuda_error);
+    cuda_error = cudaFree(d_B);
+    check_cuda(cuda_error);
+    cuda_error = cudaFree(d_buffer);
+    check_cuda(cuda_error);
+    cuda_error = cudaFree(d_result);
+    check_cuda(cuda_error);
 
     sparse_status = cusparseDestroy(sparse_handle);
     check_cusparse(sparse_status);
@@ -342,7 +442,7 @@ matrix<float> dropout(matrix<float> X) {
 
 
 matrix<float> linear(matrix<float> X) {
-    int num_hidden_channels = 256;
+    int num_hidden_channels = 8;
     matrix<float> weight;
     weight.rows = X.columns;
     weight.columns = num_hidden_channels;
@@ -465,7 +565,9 @@ matrix<float> linear(matrix<float> X) {
     return result;
 }
 
-matrix<float> relu(matrix<float> X) {
+matrix<float> cudnn_forward(matrix<float> X, char mode) {
+    char relu_mode = 'r';
+    char softmax_mode = 's';
     cudaError_t cuda_error;
     cudnnStatus_t cudnn_status;
     cudnnHandle_t cudnn_handle;
@@ -482,10 +584,17 @@ matrix<float> relu(matrix<float> X) {
     cudnnTensorDescriptor_t x_desc;
     cudnn_status = cudnnCreateTensorDescriptor(&x_desc);
     check_cudnn(cudnn_status);
-    cudnn_status = cudnnSetTensor4dDescriptor(x_desc,
-            CUDNN_TENSOR_NCHW,
-            CUDNN_DATA_FLOAT,
-            1, 1, X.rows, X.columns);
+    if (mode == relu_mode) {
+        cudnn_status = cudnnSetTensor4dDescriptor(x_desc,
+                CUDNN_TENSOR_NCHW,
+                CUDNN_DATA_FLOAT,
+                1, 1, X.rows, X.columns);
+    } else if (mode == softmax_mode) {
+        cudnn_status = cudnnSetTensor4dDescriptor(x_desc,
+                CUDNN_TENSOR_NCHW,
+                CUDNN_DATA_FLOAT,
+                X.rows, 1, 1, X.columns);
+    }
     check_cudnn(cudnn_status);
     
     matrix<float> result;
@@ -505,27 +614,45 @@ matrix<float> relu(matrix<float> X) {
     cudnnTensorDescriptor_t result_desc;
     cudnn_status = cudnnCreateTensorDescriptor(&result_desc);
     check_cudnn(cudnn_status);
-    cudnn_status = cudnnSetTensor4dDescriptor(result_desc,
-            CUDNN_TENSOR_NCHW,
-            CUDNN_DATA_FLOAT,
-            1, 1, result.rows, result.columns);
+    if (mode == relu_mode) {
+        cudnn_status = cudnnSetTensor4dDescriptor(result_desc,
+                CUDNN_TENSOR_NCHW,
+                CUDNN_DATA_FLOAT,
+                1, 1, result.rows, result.columns);
+    } else if (mode == softmax_mode) {
+        cudnn_status = cudnnSetTensor4dDescriptor(result_desc,
+                CUDNN_TENSOR_NCHW,
+                CUDNN_DATA_FLOAT,
+                result.rows, 1, 1, result.columns);
+    }
     check_cudnn(cudnn_status);
 
-    cudnnActivationDescriptor_t relu_desc;
-    cudnn_status = cudnnCreateActivationDescriptor(&relu_desc);
-    check_cudnn(cudnn_status);
-    double coef = std::numeric_limits<double>::max();
-    cudnn_status = cudnnSetActivationDescriptor(relu_desc,
-            CUDNN_ACTIVATION_RELU,
-            CUDNN_PROPAGATE_NAN,
-            coef);
-    
     float alpha = 1.0;
-    float beta = 1.0;
-    cudnn_status = cudnnActivationForward(cudnn_handle,
-            relu_desc,
-            &alpha, x_desc, d_X,
-            &beta, result_desc, d_result);
+    float beta = 0.0;
+    if (mode == relu_mode) {
+        cudnnActivationDescriptor_t relu_desc;
+        cudnn_status = cudnnCreateActivationDescriptor(&relu_desc);
+        check_cudnn(cudnn_status);
+        double coef = std::numeric_limits<double>::max();
+        cudnn_status = cudnnSetActivationDescriptor(relu_desc,
+                CUDNN_ACTIVATION_RELU,
+                CUDNN_PROPAGATE_NAN,
+                coef);
+        check_cudnn(cudnn_status);
+    
+        cudnn_status = cudnnActivationForward(cudnn_handle,
+                relu_desc,
+                &alpha, x_desc, d_X,
+                &beta, result_desc, d_result);
+        check_cudnn(cudnn_status);
+    } else if (mode == softmax_mode) {
+        cudnn_status = cudnnSoftmaxForward(cudnn_handle,
+                CUDNN_SOFTMAX_ACCURATE,
+                CUDNN_SOFTMAX_MODE_INSTANCE,
+                &alpha, x_desc, d_X,
+                &beta, result_desc, d_result);
+        check_cudnn(cudnn_status);
+    }
 
     cuda_error = cudaMemcpy(result.values, d_result,
             result.rows * result.columns * sizeof(float),
@@ -538,14 +665,29 @@ matrix<float> relu(matrix<float> X) {
     cuda_error = cudaFree(d_result);
     check_cuda(cuda_error);
 
-    return result;
-
-
     // clean cudnn
     cudnn_status = cudnnDestroy(cudnn_handle);
     check_cudnn(cudnn_status);
 
     return result;
+}
+
+matrix<float> relu(matrix<float> X) {
+    return cudnn_forward(X, 'r');
+}
+
+matrix<float> softmax(matrix<float> X) {
+    return cudnn_forward(X, 's');
+}
+
+float negative_log_likelihood_loss(matrix<float> X, vector<int> y) {
+    double loss = 0.0;
+    for (int i = 0; i < X.rows; ++i) {
+        loss = loss + X.values[i * X.columns + y.values[i]];
+    }
+    loss = loss / X.columns;
+    loss = - loss;
+    return static_cast<float>(loss);
 }
 
 
@@ -631,7 +773,9 @@ int main() {
     one_to_zero_index(adjacency.csr_col_ind, adjacency.nnz);
 
     // graph convolution
-    matrix<float> result = graph_convolution(adjacency, features);
+    matrix<float> result = graph_convolution(adjacency, features, "sum");
+    
+    matrix<float> graph_conv_result_mean = graph_convolution(adjacency, features, "mean");
 
     // write result to npy file
     path = dir_path + "/graph_convolution_result.npy";
@@ -657,7 +801,13 @@ int main() {
     // ReLU
     matrix<float> relu_result = relu(features);
 
-    print_matrix<float>(relu_result.values, relu_result.rows, relu_result.columns);
+    // softmax
+    matrix<float> softmax_result = softmax(linear_result);
+
+    // loss
+    float loss = negative_log_likelihood_loss(softmax_result, classes);
+
+    std::cout << "loss " << loss << std::endl;
 
     // free memory
     free(features.values);
