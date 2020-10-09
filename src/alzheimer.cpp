@@ -60,25 +60,6 @@ int main() {
     matrix<float> linear_result_0 = linear_0.forward(dropout_result_0,
                                                      graph_conv_result_0);
 
-    // DEBUG
-    matrix<float> *params = linear_0.get_parameters();
-    path = dir_path + "/self_weight.npy";
-    save_npy_matrix(params[0], path);
-    path = dir_path + "/self_bias.npy";
-    save_npy_matrix(params[1], path);
-    path = dir_path + "/neigh_weight.npy";
-    save_npy_matrix(params[2], path);
-    path = dir_path + "/neigh_bias.npy";
-    save_npy_matrix(params[3], path);
-
-    path = dir_path + "/linear_in_features.npy";
-    save_npy_matrix(dropout_result_0, path);
-    path = dir_path + "/linear_in_aggregate.npy";
-    save_npy_matrix(graph_conv_result_0, path);
-    path = dir_path + "/linear_result.npy";
-    save_npy_matrix(linear_result_0, path);
-    // END DEBUG
-
     // ReLU 0
     Relu relu(&cuda_helper);
     matrix<float> relu_result_0 = relu.forward(linear_result_0);

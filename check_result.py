@@ -99,7 +99,7 @@ if check_graph_conv_mean:
     print("Percentage of equal elements: {}".format(percentage_equal))
 
 # check relu
-check_relu = True
+check_relu = False
 if check_relu:
     path = dir_path + "/relu_result.npy"
     relu_result = np.load(path)
@@ -115,5 +115,32 @@ if check_relu:
     print("ReLU")
     print("Percentage of equal elements: {}".format(percentage_equal))
 
-    
+# check sage linear
+check_sage_linear = True
+if check_sage_linear:
+    path = dir_path + "/self_weight.npy"
+    self_weight = np.load(path)
+    path = dir_path + "/self_bias.npy"
+    self_bias = np.load(path)
+    path = dir_path + "/neigh_weight.npy"
+    neigh_weight = np.load(path)
+    path = dir_path + "/neigh_bias.npy"
+    neigh_bias = np.load(path)
+
+    path = dir_path + "/linear_in_features.npy"
+    linear_in_features = np.load(path)
+    path = dir_path + "/linear_in_aggregate.npy"
+    linear_in_aggregate = np.load(path)
+    path = dir_path + "/linear_result.npy"
+    sage_linear_result = np.load(path)
+
+    self_result = linear_in_features.dot(self_weight) + self_bias.T
+    neigh_result = linear_in_aggregate.dot(neigh_weight) + neigh_bias.T
+    true_sage_linear_result = self_result + neigh_result
+
+    is_close = np.isclose(sage_linear_result, true_sage_linear_result)
+    percentage_equal = is_close.sum() / true_sage_linear_result.size
+    print("SageLinear")
+    print("Percentage of equal elements: {}".format(percentage_equal))
+    # matrices are column-major but the result is close
 
