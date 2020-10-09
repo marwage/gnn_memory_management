@@ -90,7 +90,7 @@ matrix<float> cudnn_forward(matrix<float> X, char mode) {
         check_cudnn(cudnn_status);
     } else if (mode == softmax_mode) {
         cudnn_status = cudnnSoftmaxForward(cudnn_handle,
-                CUDNN_SOFTMAX_ACCURATE,
+                                           CUDNN_SOFTMAX_LOG,
                 CUDNN_SOFTMAX_MODE_INSTANCE,
                 &alpha, x_desc, d_X,
                 &beta, result_desc, d_result);

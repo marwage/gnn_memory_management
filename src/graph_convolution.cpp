@@ -17,10 +17,10 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
     }
 
     cudaError_t cuda_error = cudaSuccess;
-    cusparseStatus_t sparse_status = CUSPARSE_STATUS_SUCCESS;
+    cusparseStatus_t cusparse_status = CUSPARSE_STATUS_SUCCESS;
     cusparseHandle_t sparse_handle;
-    sparse_status = cusparseCreate(&sparse_handle);
-    check_cusparse(sparse_status);
+    cusparse_status = cusparseCreate(&sparse_handle);
+    check_cusparse(cusparse_status);
 
 
     float *d_A_csr_val;
@@ -44,13 +44,13 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
             A.nnz * sizeof(int), cudaMemcpyHostToDevice);
     check_cuda(cuda_error);
     cusparseSpMatDescr_t A_descr;
-    sparse_status = cusparseCreateCsr(&A_descr, A.rows,
-            A.columns, A.nnz,
-            d_A_csr_row_offsets, d_A_col_ind,
-            d_A_csr_val,
-            CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-            CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F);
-    check_cusparse(sparse_status);
+    cusparse_status = cusparseCreateCsr(&A_descr, A.rows,
+                                        A.columns, A.nnz,
+                                        d_A_csr_row_offsets, d_A_col_ind,
+                                        d_A_csr_val,
+                                        CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                                        CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F);
+    check_cusparse(cusparse_status);
 
     //create cusparse B
     float *d_B;
@@ -60,10 +60,10 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
             cudaMemcpyHostToDevice);
     check_cuda(cuda_error);
     cusparseDnMatDescr_t B_descr;
-    sparse_status = cusparseCreateDnMat(&B_descr, B.rows, B.columns,
-            B.rows, d_B,
-            CUDA_R_32F, CUSPARSE_ORDER_COL);
-    check_cusparse(sparse_status);
+    cusparse_status = cusparseCreateDnMat(&B_descr, B.rows, B.columns,
+                                          B.rows, d_B,
+                                          CUDA_R_32F, CUSPARSE_ORDER_COL);
+    check_cusparse(cusparse_status);
 
     // create result
     matrix<float> result;
@@ -82,34 +82,34 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
             cudaMemcpyHostToDevice);
     check_cuda(cuda_error);
     cusparseDnMatDescr_t result_descr;
-    sparse_status = cusparseCreateDnMat(&result_descr, result.rows, result.columns,
-            result.rows, d_result,
-            CUDA_R_32F, CUSPARSE_ORDER_COL);
-    check_cusparse(sparse_status);
+    cusparse_status = cusparseCreateDnMat(&result_descr, result.rows, result.columns,
+                                          result.rows, d_result,
+                                          CUDA_R_32F, CUSPARSE_ORDER_COL);
+    check_cusparse(cusparse_status);
 
     // get buffer size for SpMM
     float alpha = 1.0f;
     float beta = 0.0f;
     size_t buffer_size;
-    sparse_status = cusparseSpMM_bufferSize(sparse_handle,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-            &alpha, A_descr, B_descr, &beta, result_descr,
+    cusparse_status = cusparseSpMM_bufferSize(sparse_handle,
+                                              CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                              &alpha, A_descr, B_descr, &beta, result_descr,
             // CUSPARSE_MM_ALG_DEFAULT is deprecated
             // but CUSPARSE_SPMM_ALG_DEFAULT is not working
             CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,
-            &buffer_size);
-    check_cusparse(sparse_status);
+                                              &buffer_size);
+    check_cusparse(cusparse_status);
     void *d_buffer;
     cuda_error = cudaMalloc(&d_buffer, buffer_size);
     check_cuda(cuda_error);
 
     // compute SpMM
-    sparse_status = cusparseSpMM(sparse_handle,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-            &alpha, A_descr, B_descr, &beta, result_descr,
-            CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,
-            d_buffer);
-    check_cusparse(sparse_status);
+    cusparse_status = cusparseSpMM(sparse_handle,
+                                   CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                   &alpha, A_descr, B_descr, &beta, result_descr,
+                                   CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,
+                                   d_buffer);
+    check_cusparse(cusparse_status);
 
     cuda_error = cudaFree(d_buffer);
     check_cuda(cuda_error);
@@ -136,9 +136,9 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
                 cudaMemcpyHostToDevice);
         check_cuda(cuda_error);
         cusparseDnVecDescr_t ones_desc;
-        sparse_status = cusparseCreateDnVec(&ones_desc, ones.rows,
-                d_ones, CUDA_R_32F);
-        check_cusparse(sparse_status);
+        cusparse_status = cusparseCreateDnVec(&ones_desc, ones.rows,
+                                              d_ones, CUDA_R_32F);
+        check_cusparse(cusparse_status);
 
         matrix<float> sum;
         sum.rows = ones.rows;
@@ -153,24 +153,24 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
         cuda_error = cudaMemcpy(d_sum, sum.values, sum.rows * sum.columns * sizeof(float),
                 cudaMemcpyHostToDevice);
         cusparseDnVecDescr_t sum_desc;
-        sparse_status = cusparseCreateDnVec(&sum_desc, sum.rows * sum.columns,
-                d_sum, CUDA_R_32F);
-        check_cusparse(sparse_status);
+        cusparse_status = cusparseCreateDnVec(&sum_desc, sum.rows * sum.columns,
+                                              d_sum, CUDA_R_32F);
+        check_cusparse(cusparse_status);
 
-        sparse_status = cusparseSpMV_bufferSize(sparse_handle,
-                CUSPARSE_OPERATION_NON_TRANSPOSE,
-                &alpha, A_descr, ones_desc,
-                &beta, sum_desc,
-                CUDA_R_32F, CUSPARSE_MV_ALG_DEFAULT, &buffer_size);
-        check_cusparse(sparse_status);
+        cusparse_status = cusparseSpMV_bufferSize(sparse_handle,
+                                                  CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                                  &alpha, A_descr, ones_desc,
+                                                  &beta, sum_desc,
+                                                  CUDA_R_32F, CUSPARSE_MV_ALG_DEFAULT, &buffer_size);
+        check_cusparse(cusparse_status);
         cuda_error = cudaMalloc(&d_buffer, buffer_size);
         check_cuda(cuda_error);
-        sparse_status = cusparseSpMV(sparse_handle,
-                CUSPARSE_OPERATION_NON_TRANSPOSE,
-                &alpha, A_descr, ones_desc,
-                &beta, sum_desc,
-                CUDA_R_32F, CUSPARSE_MV_ALG_DEFAULT, d_buffer);
-        check_cusparse(sparse_status);
+        cusparse_status = cusparseSpMV(sparse_handle,
+                                       CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                       &alpha, A_descr, ones_desc,
+                                       &beta, sum_desc,
+                                       CUDA_R_32F, CUSPARSE_MV_ALG_DEFAULT, d_buffer);
+        check_cusparse(cusparse_status);
 
         cuda_error = cudaMemcpy(sum.values, d_sum,
                                 sum.rows * sum.columns * sizeof(float),
@@ -210,8 +210,8 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
     cuda_error = cudaFree(d_result);
     check_cuda(cuda_error);
 
-    sparse_status = cusparseDestroy(sparse_handle);
-    check_cusparse(sparse_status);
+    cusparse_status = cusparseDestroy(sparse_handle);
+    check_cusparse(cusparse_status);
 
     return result;
 }
