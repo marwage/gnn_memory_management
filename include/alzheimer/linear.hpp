@@ -8,8 +8,8 @@
 class Linear {
  private:
     int num_in_features, num_out_features;
-    matrix<float> weight;  // column-major
-    vector<float> bias;
+    matrix<float> weight;
+    matrix<float> bias;
 
     void init_weight_bias();
     matrix<float> expand_bias(int num_rows);

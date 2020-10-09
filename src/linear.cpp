@@ -1,6 +1,7 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include <random>
+#include <cstring>
 
 #include "linear.hpp"
 #include "cuda_helper.hpp"
@@ -14,7 +15,8 @@ Linear::Linear(int in_features, int out_features) {
 
     weight.rows = num_in_features;
     weight.columns = num_out_features;
-    bias.size = num_out_features;
+    bias.rows = num_out_features;
+    bias.columns = 1;
 
     Linear::init_weight_bias();
 }
@@ -23,7 +25,7 @@ void Linear::init_weight_bias() {
     weight.values = reinterpret_cast<float *>(
             malloc(weight.rows * weight.columns * sizeof(float)));
     bias.values = reinterpret_cast<float *>(
-            malloc(bias.size * sizeof(float)));
+            malloc(bias.rows * bias.columns * sizeof(float)));
 
     double k = 1.0 / static_cast<double>(num_out_features);
     k = sqrt(k);
@@ -33,7 +35,7 @@ void Linear::init_weight_bias() {
     for (int i = 0; i < weight.rows * weight.columns; ++i) {
         weight.values[i] = distr(gen);
     }
-    for (int i = 0; i < bias.size; ++i) {
+    for (int i = 0; i < bias.rows * bias.columns; ++i) {
         bias.values[i] = distr(gen);
     }
 }
@@ -41,11 +43,7 @@ void Linear::init_weight_bias() {
 matrix<float>* Linear::get_parameters() {
     matrix<float> *parameters = (matrix<float> *) malloc(2 * sizeof(matrix<float>));
     parameters[0] = weight;
-    matrix<float> bias_mat;
-    bias_mat.rows = bias.size;
-    bias_mat.columns = 1;
-    bias_mat.values = bias.values;
-    parameters[1] = bias_mat;
+    parameters[1] = bias;
 
     return parameters;
 }
@@ -53,12 +51,12 @@ matrix<float>* Linear::get_parameters() {
 matrix<float> Linear::expand_bias(int num_rows) {
     matrix<float> bias_expanded;
     bias_expanded.rows = num_rows;
-    bias_expanded.columns = bias.size;
+    bias_expanded.columns = bias.rows;
     bias_expanded.values = reinterpret_cast<float *>(
             malloc(bias_expanded.rows * bias_expanded.columns * sizeof(float)));
     for (int i = 0; i < num_rows; ++i) {
-        std::memcpy(&bias_expanded.values[i * bias.size],
-                bias.values, bias.size * sizeof(float));
+        std::memcpy(&bias_expanded.values[i * bias.rows],
+                bias.values, bias.rows * sizeof(float));
     }
 
     return bias_expanded;

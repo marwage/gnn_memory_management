@@ -20,22 +20,23 @@ int main() {
     // read features
     std::string path = dir_path + "/features.npy";
     matrix<float> features = load_npy_matrix<float>(path);
+    to_column_major<float>(&features);
 
     // read classes
     path = dir_path + "/classes.npy";
-    vector<int> classes = load_npy_vector<int>(path);
+    matrix<int> classes = load_npy_matrix<int>(path);
 
     // read train_mask
     path = dir_path + "/train_mask.npy";
-    vector<bool> train_mask = load_npy_vector<bool>(path);
+    matrix<bool> train_mask = load_npy_matrix<bool>(path);
 
     // read val_mask
     path = dir_path + "/val_mask.npy";
-    vector<bool> val_mask = load_npy_vector<bool>(path);
+    matrix<bool> val_mask = load_npy_matrix<bool>(path);
 
     // read test_mask
     path = dir_path + "/test_mask.npy";
-    vector<bool> test_mask = load_npy_vector<bool>(path);
+    matrix<bool> test_mask = load_npy_matrix<bool>(path);
 
     // read adjacency
     path = dir_path + "/adjacency.mtx";

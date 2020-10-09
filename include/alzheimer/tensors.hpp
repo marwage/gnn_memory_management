@@ -14,12 +14,6 @@ struct matrix {
 };
 
 template <typename T>
-struct vector {
-    int size;
-    T *values;
-};
-
-template <typename T>
 struct sparse_matrix {
     int rows;
     int columns;
@@ -33,15 +27,6 @@ template <typename T>
 void print_matrix(matrix<T> mat);
 
 template <typename T>
-void print_vector(vector<T> vec);
-
-template <typename T>
-void transpose(T *a_T, T *a, int rows, int cols);
-
-template <typename T>
-vector<T> load_npy_vector(std::string path);
-
-template <typename T>
 matrix<T> load_npy_matrix(std::string path);
 
 template <typename T>
@@ -49,5 +34,11 @@ sparse_matrix<T> load_mtx_matrix(std::string path);
 
 template <typename T>
 void save_npy_matrix(matrix<T> mat, std::string path);
+
+template <typename T>
+void to_column_major(matrix<T> *mat);
+
+template <typename T>
+void to_row_major(matrix<T> *mat);
 
 #endif

@@ -38,18 +38,6 @@ template void print_matrix<float>(matrix<float> mat);
 template void print_matrix<int>(matrix<int> mat);
 
 
-template <typename T>
-void print_vector(vector<T> vec) {
-    struct matrix<T> mat;
-    mat.rows = vec.size;
-    mat.columns = 1;
-    print_matrix(mat);
-}
-
-template void print_vector<float>(vector<float> vec);
-template void print_vector<int>(vector<int> vec);
-
-
 int new_index(int old_idx, int N, int M) {
     int last_idx = M * N - 1;
     if (old_idx == last_idx) {
@@ -73,10 +61,6 @@ void transpose(T *a_T, T *a, int rows, int cols) {
     }
 }
 
-template void transpose<float>(float *a_T, float *a, int rows, int cols);
-template void transpose<int>(int *a_T, int *a, int rows, int cols);
-
-
 template <typename T>
 void one_to_zero_index(T *a, int len) {
     for (int i = 0; i < len; ++i) {
@@ -88,27 +72,6 @@ template void one_to_zero_index<int>(int *a, int len);
 
 
 template <typename T>
-vector<T> load_npy_vector(std::string path) {
-    cnpy::NpyArray arr = cnpy::npy_load(path);
-    if (arr.word_size != sizeof(T)) {
-        std::cout << "Vector has wrong data type" << std::endl;
-    }
-    T *arr_data = arr.data<T>();
-
-    vector<T> vec;
-    vec.size = arr.shape[0];
-    vec.values = (T *) malloc(vec.size * sizeof(T)); 
-    std::memcpy(vec.values, arr_data, vec.size * sizeof(T));
-
-    return vec;
-}
-
-template vector<float> load_npy_vector<float>(std::string path);
-template vector<int> load_npy_vector<int>(std::string path);
-template vector<bool> load_npy_vector<bool>(std::string path);
-
-
-template <typename T>
 matrix<T> load_npy_matrix(std::string path) {
     cnpy::NpyArray arr = cnpy::npy_load(path);
     if (arr.word_size != sizeof(T)) {
@@ -117,8 +80,13 @@ matrix<T> load_npy_matrix(std::string path) {
     T *arr_data = arr.data<T>();
     matrix<T> mat;
     mat.rows = arr.shape[0];
-    mat.columns = arr.shape[1];
-    mat.values = (T *) malloc(mat.rows * mat.columns * sizeof(T)); 
+    if (arr.shape.size() == 1) {
+        mat.columns = 1;
+    } else {
+        mat.columns = arr.shape[1];
+    }
+    mat.values = reinterpret_cast<T *>(
+            malloc(mat.rows * mat.columns * sizeof(T)));
     std::memcpy(mat.values, arr_data, mat.rows * mat.columns * sizeof(T));
 
     return mat;
@@ -126,6 +94,7 @@ matrix<T> load_npy_matrix(std::string path) {
 
 template matrix<float> load_npy_matrix<float>(std::string path);
 template matrix<int> load_npy_matrix<int>(std::string path);
+template matrix<bool> load_npy_matrix<bool>(std::string path);
 
 
 template <typename T>
@@ -157,3 +126,28 @@ void save_npy_matrix(matrix<T> mat, std::string path) {
 template void save_npy_matrix<float>(matrix<float> mat, std::string path);
 template void save_npy_matrix<int>(matrix<int> mat, std::string path);
 
+
+template <typename T>
+void to_column_major(matrix<T> *mat) {
+    T *new_values = reinterpret_cast<T *>(
+            malloc(mat->rows * mat->columns * sizeof(T)));
+    transpose<T>(new_values, mat->values, mat->rows, mat->columns);
+    free(mat->values);
+    mat->values = new_values;
+}
+
+template void to_column_major<float>(matrix<float> *mat);
+template void to_column_major<int>(matrix<int> *mat);
+
+
+template <typename T>
+void to_row_major(matrix<T> *mat) {
+    T *new_values = reinterpret_cast<T *>(
+            malloc(mat->rows * mat->columns * sizeof(T)));
+    transpose<T>(new_values, mat->values, mat->columns, mat->rows);
+    free(mat->values);
+    mat->values = new_values;
+}
+
+template void to_row_major<float>(matrix<float> *mat);
+template void to_row_major<int>(matrix<int> *mat);

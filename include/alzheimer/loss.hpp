@@ -6,6 +6,6 @@
 #include "tensors.hpp"
 
 
-float negative_log_likelihood_loss(matrix<float> X, vector<int> y);
+float negative_log_likelihood_loss(matrix<float> X, matrix<int> y);
 
 #endif
