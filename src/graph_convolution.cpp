@@ -4,6 +4,8 @@
 
 #include "cuda_helper.hpp"
 
+void div_mat_vec(float *X, float *y, int n, int m);
+
 
 GraphConvolution::GraphConvolution(CudaHelper *helper) {
     cuda_helper_ = helper;
@@ -94,11 +96,6 @@ matrix<float> GraphConvolution::forward(sparse_matrix<float> A, matrix<float> B,
 
     check_cuda(cudaFree(d_buffer));
 
-    // move result_col to CPU memory
-    check_cuda(cudaMemcpy(result.values, d_result,
-                          result.rows * result.columns * sizeof(float),
-                          cudaMemcpyDeviceToHost));
-
     // apply mean
     if (mean) {
         matrix<float> ones;
@@ -147,13 +144,11 @@ matrix<float> GraphConvolution::forward(sparse_matrix<float> A, matrix<float> B,
                               sum.rows * sum.columns * sizeof(float),
                               cudaMemcpyDeviceToHost));
 
-        // TODO do the following on GPU
-        // scale by 1 / sum
-        for (int i = 0; i < result.columns; ++i) {
-            for (int j = 0; j < result.rows; ++j) {
-                result.values[i * result.rows + j] = result.values[i * result.rows + j] / sum.values[i];
-            }
-        }
+        div_mat_vec(d_result, d_sum, result.rows, result.columns);
+        // copy result to CPU memory
+        check_cuda(cudaMemcpy(result.values, d_result,
+                              result.rows * result.columns * sizeof(float),
+                              cudaMemcpyDeviceToHost));
 
         // free GPU memory
         check_cuda(cudaFree(d_ones));
@@ -163,6 +158,11 @@ matrix<float> GraphConvolution::forward(sparse_matrix<float> A, matrix<float> B,
         free(ones.values);
         free(sum.values);
     }  // end mean
+
+    // copy result to CPU memory
+    check_cuda(cudaMemcpy(result.values, d_result,
+                          result.rows * result.columns * sizeof(float),
+                          cudaMemcpyDeviceToHost));
 
     // free memory
     check_cuda(cudaFree(d_A_csr_val));

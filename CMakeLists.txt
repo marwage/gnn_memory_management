@@ -19,7 +19,7 @@ add_executable(${PROJECT_NAME}
     src/loss.cpp
     src/sage_linear.cpp
     src/mmio_wrapper.cpp
-    src/mmio.c)
+    src/mmio.c src/divmv.cu)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
