@@ -5,8 +5,12 @@
 #include "cuda_helper.hpp"
 
 
-matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
-        std::string reduction) {
+GraphConvolution::GraphConvolution(CudaHelper *helper) {
+    cuda_helper_ = helper;
+}
+
+matrix<float> GraphConvolution::forward(sparse_matrix<float> A, matrix<float> B,
+                                        std::string reduction) {
     bool mean;
     if (reduction.compare("mean") == 0) {
         mean = true;
@@ -16,109 +20,84 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
         std::cout << "Reduction not supported" << std::endl;
     }
 
-    cudaError_t cuda_error = cudaSuccess;
-    cusparseStatus_t cusparse_status = CUSPARSE_STATUS_SUCCESS;
-    cusparseHandle_t sparse_handle;
-    cusparse_status = cusparseCreate(&sparse_handle);
-    check_cusparse(cusparse_status);
-
-
     float *d_A_csr_val;
     int *d_A_csr_row_offsets, *d_A_col_ind;
-    cuda_error = cudaMalloc((void**) &d_A_csr_val, 
-            A.nnz * sizeof(float));
-    check_cuda(cuda_error);
-    cuda_error = cudaMalloc((void**) &d_A_csr_row_offsets,
-            (A.rows + 1) * sizeof(int));
-    check_cuda(cuda_error);
-    cuda_error = cudaMalloc((void**) &d_A_col_ind,
-            A.nnz * sizeof(int));
-    check_cuda(cuda_error);
-    cuda_error = cudaMemcpy(d_A_csr_val, A.csr_val,
-            A.nnz * sizeof(float), cudaMemcpyHostToDevice);
-    check_cuda(cuda_error);
-    cuda_error = cudaMemcpy(d_A_csr_row_offsets, A.csr_row_ptr,
-            (A.rows + 1) * sizeof(int), cudaMemcpyHostToDevice);
-    check_cuda(cuda_error);
-   cuda_error = cudaMemcpy(d_A_col_ind, A.csr_col_ind,
-            A.nnz * sizeof(int), cudaMemcpyHostToDevice);
-    check_cuda(cuda_error);
+    check_cuda(cudaMalloc((void **) &d_A_csr_val,
+                          A.nnz * sizeof(float)));
+    check_cuda(cudaMalloc((void **) &d_A_csr_row_offsets,
+                          (A.rows + 1) * sizeof(int)));
+    check_cuda(cudaMalloc((void **) &d_A_col_ind,
+                          A.nnz * sizeof(int)));
+    check_cuda(cudaMemcpy(d_A_csr_val, A.csr_val,
+                          A.nnz * sizeof(float), cudaMemcpyHostToDevice));
+    check_cuda(cudaMemcpy(d_A_csr_row_offsets, A.csr_row_ptr,
+                          (A.rows + 1) * sizeof(int), cudaMemcpyHostToDevice));
+    check_cuda(cudaMemcpy(d_A_col_ind, A.csr_col_ind,
+                          A.nnz * sizeof(int), cudaMemcpyHostToDevice));
     cusparseSpMatDescr_t A_descr;
-    cusparse_status = cusparseCreateCsr(&A_descr, A.rows,
-                                        A.columns, A.nnz,
-                                        d_A_csr_row_offsets, d_A_col_ind,
-                                        d_A_csr_val,
-                                        CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
-                                        CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F);
-    check_cusparse(cusparse_status);
+    check_cusparse(cusparseCreateCsr(&A_descr, A.rows,
+                                     A.columns, A.nnz,
+                                     d_A_csr_row_offsets, d_A_col_ind,
+                                     d_A_csr_val,
+                                     CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                                     CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F));
 
-    //create cusparse B
+    // create cusparse B
     float *d_B;
-    cuda_error = cudaMalloc((void**) &d_B, B.rows * B.columns * sizeof(float));
-    check_cuda(cuda_error);
-    cuda_error = cudaMemcpy(d_B, B.values, B.rows * B.columns * sizeof(float),
-            cudaMemcpyHostToDevice);
-    check_cuda(cuda_error);
+    check_cuda(cudaMalloc((void **) &d_B, B.rows * B.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_B, B.values, B.rows * B.columns * sizeof(float),
+                          cudaMemcpyHostToDevice));
     cusparseDnMatDescr_t B_descr;
-    cusparse_status = cusparseCreateDnMat(&B_descr, B.rows, B.columns,
-                                          B.rows, d_B,
-                                          CUDA_R_32F, CUSPARSE_ORDER_COL);
-    check_cusparse(cusparse_status);
+    check_cusparse(cusparseCreateDnMat(&B_descr, B.rows, B.columns,
+                                       B.rows, d_B,
+                                       CUDA_R_32F, CUSPARSE_ORDER_COL));
 
     // create result
     matrix<float> result;
     result.rows = A.rows;
     result.columns = B.columns;
-    result.values = (float*) malloc(result.rows * result.columns * sizeof(float));
+    result.values = (float *) malloc(result.rows * result.columns * sizeof(float));
     for (int i = 0; i < result.rows * result.columns; ++i) {
         result.values[i] = 0.0f;
     }
 
     // create cusparse result
     float *d_result;
-    cuda_error = cudaMalloc((void**) &d_result, result.rows * result.columns * sizeof(float));
-    check_cuda(cuda_error);
-    cuda_error = cudaMemcpy(d_result, result.values, result.rows * result.columns * sizeof(float),
-            cudaMemcpyHostToDevice);
-    check_cuda(cuda_error);
+    check_cuda(cudaMalloc((void **) &d_result, result.rows * result.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_result, result.values, result.rows * result.columns * sizeof(float),
+                          cudaMemcpyHostToDevice));
     cusparseDnMatDescr_t result_descr;
-    cusparse_status = cusparseCreateDnMat(&result_descr, result.rows, result.columns,
-                                          result.rows, d_result,
-                                          CUDA_R_32F, CUSPARSE_ORDER_COL);
-    check_cusparse(cusparse_status);
+    check_cusparse(cusparseCreateDnMat(&result_descr, result.rows, result.columns,
+                                       result.rows, d_result,
+                                       CUDA_R_32F, CUSPARSE_ORDER_COL));
 
     // get buffer size for SpMM
     float alpha = 1.0f;
     float beta = 0.0f;
     size_t buffer_size;
-    cusparse_status = cusparseSpMM_bufferSize(sparse_handle,
-                                              CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                              &alpha, A_descr, B_descr, &beta, result_descr,
+    check_cusparse(cusparseSpMM_bufferSize(cuda_helper_->cusparse_handle,
+                                           CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                           &alpha, A_descr, B_descr, &beta, result_descr,
             // CUSPARSE_MM_ALG_DEFAULT is deprecated
             // but CUSPARSE_SPMM_ALG_DEFAULT is not working
-            CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,
-                                              &buffer_size);
-    check_cusparse(cusparse_status);
+                                           CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,
+                                           &buffer_size));
     void *d_buffer;
-    cuda_error = cudaMalloc(&d_buffer, buffer_size);
-    check_cuda(cuda_error);
+    check_cuda(cudaMalloc(&d_buffer, buffer_size));
 
     // compute SpMM
-    cusparse_status = cusparseSpMM(sparse_handle,
-                                   CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                   &alpha, A_descr, B_descr, &beta, result_descr,
-                                   CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,
-                                   d_buffer);
-    check_cusparse(cusparse_status);
+    check_cusparse(cusparseSpMM(cuda_helper_->cusparse_handle,
+                                CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                &alpha, A_descr, B_descr, &beta, result_descr,
+                                CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,
+                                d_buffer));
 
-    cuda_error = cudaFree(d_buffer);
-    check_cuda(cuda_error);
+    check_cuda(cudaFree(d_buffer));
 
     // move result_col to CPU memory
-    cuda_error = cudaMemcpy(result.values, d_result,
-            result.rows * result.columns * sizeof(float),
-            cudaMemcpyDeviceToHost);
-    check_cuda(cuda_error);
+    check_cuda(cudaMemcpy(result.values, d_result,
+                          result.rows * result.columns * sizeof(float),
+                          cudaMemcpyDeviceToHost));
 
     // apply mean
     if (mean) {
@@ -130,15 +109,12 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
             ones.values[i] = 1.0;
         }
         float *d_ones;
-        cuda_error = cudaMalloc(&d_ones, ones.rows * ones.columns * sizeof(float));
-        check_cuda(cuda_error);
-        cuda_error = cudaMemcpy(d_ones, ones.values, ones.rows * ones.columns * sizeof(float),
-                cudaMemcpyHostToDevice);
-        check_cuda(cuda_error);
+        check_cuda(cudaMalloc(&d_ones, ones.rows * ones.columns * sizeof(float)));
+        check_cuda(cudaMemcpy(d_ones, ones.values, ones.rows * ones.columns * sizeof(float),
+                              cudaMemcpyHostToDevice));
         cusparseDnVecDescr_t ones_desc;
-        cusparse_status = cusparseCreateDnVec(&ones_desc, ones.rows,
-                                              d_ones, CUDA_R_32F);
-        check_cusparse(cusparse_status);
+        check_cusparse(cusparseCreateDnVec(&ones_desc, ones.rows,
+                                           d_ones, CUDA_R_32F));
 
         matrix<float> sum;
         sum.rows = ones.rows;
@@ -148,34 +124,28 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
             sum.values[0] = 0.0;
         }
         float *d_sum;
-        cuda_error = cudaMalloc(&d_sum, sum.rows * sum.columns * sizeof(float));
-        check_cuda(cuda_error);
-        cuda_error = cudaMemcpy(d_sum, sum.values, sum.rows * sum.columns * sizeof(float),
-                cudaMemcpyHostToDevice);
+        check_cuda(cudaMalloc(&d_sum, sum.rows * sum.columns * sizeof(float)));
+        check_cuda(cudaMemcpy(d_sum, sum.values, sum.rows * sum.columns * sizeof(float),
+                              cudaMemcpyHostToDevice));
         cusparseDnVecDescr_t sum_desc;
-        cusparse_status = cusparseCreateDnVec(&sum_desc, sum.rows * sum.columns,
-                                              d_sum, CUDA_R_32F);
-        check_cusparse(cusparse_status);
+        check_cusparse(cusparseCreateDnVec(&sum_desc, sum.rows * sum.columns,
+                                           d_sum, CUDA_R_32F));
 
-        cusparse_status = cusparseSpMV_bufferSize(sparse_handle,
-                                                  CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                                  &alpha, A_descr, ones_desc,
-                                                  &beta, sum_desc,
-                                                  CUDA_R_32F, CUSPARSE_MV_ALG_DEFAULT, &buffer_size);
-        check_cusparse(cusparse_status);
-        cuda_error = cudaMalloc(&d_buffer, buffer_size);
-        check_cuda(cuda_error);
-        cusparse_status = cusparseSpMV(sparse_handle,
-                                       CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                       &alpha, A_descr, ones_desc,
-                                       &beta, sum_desc,
-                                       CUDA_R_32F, CUSPARSE_MV_ALG_DEFAULT, d_buffer);
-        check_cusparse(cusparse_status);
+        check_cusparse(cusparseSpMV_bufferSize(cuda_helper_->cusparse_handle,
+                                               CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                               &alpha, A_descr, ones_desc,
+                                               &beta, sum_desc,
+                                               CUDA_R_32F, CUSPARSE_MV_ALG_DEFAULT, &buffer_size));
+        check_cuda(cudaMalloc(&d_buffer, buffer_size));
+        check_cusparse(cusparseSpMV(cuda_helper_->cusparse_handle,
+                                    CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                    &alpha, A_descr, ones_desc,
+                                    &beta, sum_desc,
+                                    CUDA_R_32F, CUSPARSE_MV_ALG_DEFAULT, d_buffer));
 
-        cuda_error = cudaMemcpy(sum.values, d_sum,
-                                sum.rows * sum.columns * sizeof(float),
-                cudaMemcpyDeviceToHost);
-        check_cuda(cuda_error);
+        check_cuda(cudaMemcpy(sum.values, d_sum,
+                              sum.rows * sum.columns * sizeof(float),
+                              cudaMemcpyDeviceToHost));
 
         // TODO do the following on GPU
         // scale by 1 / sum
@@ -186,10 +156,8 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
         }
 
         // free GPU memory
-        cuda_error = cudaFree(d_ones);
-        check_cuda(cuda_error);
-        cuda_error = cudaFree(d_sum);
-        check_cuda(cuda_error);
+        check_cuda(cudaFree(d_ones));
+        check_cuda(cudaFree(d_sum));
 
         // free CPU memory
         free(ones.values);
@@ -197,21 +165,12 @@ matrix<float> graph_convolution(sparse_matrix<float> A, matrix<float> B,
     }  // end mean
 
     // free memory
-    cuda_error = cudaFree(d_A_csr_val);
-    check_cuda(cuda_error);
-    cuda_error = cudaFree(d_A_col_ind);
-    check_cuda(cuda_error);
-    cuda_error = cudaFree(d_A_csr_row_offsets);
-    check_cuda(cuda_error);
-    cuda_error = cudaFree(d_B);
-    check_cuda(cuda_error);
-    cuda_error = cudaFree(d_buffer);
-    check_cuda(cuda_error);
-    cuda_error = cudaFree(d_result);
-    check_cuda(cuda_error);
-
-    cusparse_status = cusparseDestroy(sparse_handle);
-    check_cusparse(cusparse_status);
+    check_cuda(cudaFree(d_A_csr_val));
+    check_cuda(cudaFree(d_A_col_ind));
+    check_cuda(cudaFree(d_A_csr_row_offsets));
+    check_cuda(cudaFree(d_B));
+    check_cuda(cudaFree(d_buffer));
+    check_cuda(cudaFree(d_result));
 
     return result;
 }

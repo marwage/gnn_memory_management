@@ -7,81 +7,63 @@
 #include <cudnn.h>
 
 
-matrix<float> dropout(matrix<float> X) {
-    cudaError_t cuda_error;
-    cudnnStatus_t cudnn_status;
-    cudnnHandle_t cudnn_handle;
-    cudnn_status = cudnnCreate(&cudnn_handle);
+Dropout::Dropout(CudaHelper *helper) {
+    cuda_helper_ = helper;
+}
 
+
+matrix<float> Dropout::forward(matrix<float> X) {
     float probability = 0.2f;
     size_t state_size;
-    cudnn_status = cudnnDropoutGetStatesSize(cudnn_handle, &state_size);
+    check_cudnn(cudnnDropoutGetStatesSize(cuda_helper_->cudnn_handle, &state_size));
     void *states;
-    cuda_error = cudaMalloc(&states, state_size);
-    check_cuda(cuda_error);
+    check_cuda(cudaMalloc(&states, state_size));
     unsigned long long seed = rand();
     cudnnDropoutDescriptor_t dropout_descr;
-    cudnn_status = cudnnCreateDropoutDescriptor(&dropout_descr);
-    check_cudnn(cudnn_status);
-    cudnn_status = cudnnSetDropoutDescriptor(dropout_descr,
-            cudnn_handle, probability,
-            states, state_size, seed);
-    check_cudnn(cudnn_status);
+    check_cudnn(cudnnCreateDropoutDescriptor(&dropout_descr));
+    check_cudnn(cudnnSetDropoutDescriptor(dropout_descr,
+                                          cuda_helper_->cudnn_handle, probability,
+                                          states, state_size, seed));
 
     matrix<float> Y;
     Y.rows = X.rows;
     Y.columns = X.columns;
 
     cudnnTensorDescriptor_t x_descr;
-    cudnn_status = cudnnCreateTensorDescriptor(&x_descr);
-    check_cudnn(cudnn_status);
-    cudnn_status = cudnnSetTensor4dDescriptor(x_descr,
+    check_cudnn(cudnnCreateTensorDescriptor(&x_descr));
+    check_cudnn(cudnnSetTensor4dDescriptor(x_descr,
             CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-            1, 1, X.rows, X.columns);
-    check_cudnn(cudnn_status);
+            1, 1, X.rows, X.columns));
     cudnnTensorDescriptor_t y_descr;
-    cudnn_status = cudnnCreateTensorDescriptor(&y_descr);
-    check_cudnn(cudnn_status);
-    cudnn_status = cudnnSetTensor4dDescriptor(y_descr,
+    check_cudnn(cudnnCreateTensorDescriptor(&y_descr));
+    check_cudnn(cudnnSetTensor4dDescriptor(y_descr,
             CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-            1, 1, Y.rows, Y.columns);
-    check_cudnn(cudnn_status);
+            1, 1, Y.rows, Y.columns));
+
     void *d_X, *d_Y;
-    // cudaMemcpy
-    cuda_error = cudaMalloc(&d_X, X.rows * X.columns * sizeof(float));
-    check_cuda(cuda_error);
-    cuda_error = cudaMemcpy(d_X, X.values, X.rows * X.columns * sizeof(float),
-            cudaMemcpyHostToDevice);
-    check_cuda(cuda_error);
-    cuda_error = cudaMalloc(&d_Y, Y.rows * Y.columns * sizeof(float));
-    check_cuda(cuda_error);
-    void *reserve_space;
-    size_t reserve_space_size;
-    cudnn_status = cudnnDropoutGetReserveSpaceSize(x_descr, &reserve_space_size);
-    check_cudnn(cudnn_status);
-    cuda_error = cudaMalloc(&reserve_space, reserve_space_size);
-    check_cuda(cuda_error);
-    cudnn_status = cudnnDropoutForward(cudnn_handle,
-            dropout_descr, x_descr, d_X,
-            y_descr, d_Y,
-            reserve_space, reserve_space_size);
-    check_cudnn(cudnn_status);
+    check_cuda(cudaMalloc(&d_X, X.rows * X.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_X, X.values, X.rows * X.columns * sizeof(float),
+                          cudaMemcpyHostToDevice));
+    check_cuda(cudaMalloc(&d_Y, Y.rows * Y.columns * sizeof(float)));
+
 
     Y.values = (float *) malloc(Y.rows * Y.columns * sizeof(float));
-    cuda_error = cudaMemcpy(Y.values, d_Y, Y.rows * Y.columns * sizeof(float),
-            cudaMemcpyDeviceToHost);
-    check_cuda(cuda_error);
+    check_cuda(cudaMemcpy(Y.values, d_Y, Y.rows * Y.columns * sizeof(float),
+                          cudaMemcpyDeviceToHost));
 
-    cudnn_status = cudnnDestroy(cudnn_handle);
+    void *reserve_space;
+    size_t reserve_space_size;
+    check_cudnn(cudnnDropoutGetReserveSpaceSize(x_descr, &reserve_space_size));
+    check_cuda(cudaMalloc(&reserve_space, reserve_space_size));
+    check_cudnn(cudnnDropoutForward(cuda_helper_->cudnn_handle,
+                                    dropout_descr, x_descr, d_X,
+                                    y_descr, d_Y,
+                                    reserve_space, reserve_space_size));
 
-    cuda_error = cudaFree(states);
-    check_cuda(cuda_error);
-    cuda_error = cudaFree(reserve_space);
-    check_cuda(cuda_error);
-    cuda_error = cudaFree(d_X);
-    check_cuda(cuda_error);
-    cuda_error = cudaFree(d_Y);
-    check_cuda(cuda_error);
+    check_cuda(cudaFree(states));
+    check_cuda(cudaFree(reserve_space));
+    check_cuda(cudaFree(d_X));
+    check_cuda(cudaFree(d_Y));
 
     return Y;
 }

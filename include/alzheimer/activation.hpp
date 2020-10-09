@@ -4,10 +4,23 @@
 #define ACTIVATION_H
 
 #include "tensors.hpp"
+#include "cuda_helper.hpp"
 
 
-matrix<float> relu(matrix<float> X);
+class Relu {
+private:
+    CudaHelper *cuda_helper_;
+public:
+    Relu(CudaHelper *helper);
+    matrix<float> forward(matrix<float> X);
+};
 
-matrix<float> softmax(matrix<float> X);
+class LogSoftmax {
+private:
+    CudaHelper *cuda_helper_;
+public:
+    LogSoftmax(CudaHelper * helper);
+    matrix<float> forward(matrix<float> X);
+};
 
 #endif
