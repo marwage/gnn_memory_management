@@ -145,10 +145,6 @@ matrix<float> GraphConvolution::forward(sparse_matrix<float> A, matrix<float> B,
                               cudaMemcpyDeviceToHost));
 
         div_mat_vec(d_result, d_sum, result.rows, result.columns);
-        // copy result to CPU memory
-        check_cuda(cudaMemcpy(result.values, d_result,
-                              result.rows * result.columns * sizeof(float),
-                              cudaMemcpyDeviceToHost));
 
         // free GPU memory
         check_cuda(cudaFree(d_ones));

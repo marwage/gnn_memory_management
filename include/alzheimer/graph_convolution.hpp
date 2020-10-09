@@ -16,7 +16,6 @@ public:
     GraphConvolution(CudaHelper *helper);
     matrix<float> forward(sparse_matrix<float> A, matrix<float> B,
                           std::string reduction);
-
 };
 
 #endif

@@ -64,10 +64,14 @@ if check_transposed_features:
     print("Percentage of equal elements: {}".format(percentage_equal))
 
 #check graph convolution
-check_graph_conv = False
+check_graph_conv = True
 if check_graph_conv:
     path = dir_path + "/graph_conv_result.npy"
     graph_conv_result = np.load(path)
+    # to row-major
+    n, m = graph_conv_result.shape
+    graph_conv_result = graph_conv_result.reshape((m, n))
+    graph_conv_result = graph_conv_result.transpose()
 
     graph_conv_true_result = adj.dot(features)
 
@@ -77,20 +81,19 @@ if check_graph_conv:
     print("Percentage of equal elements: {}".format(percentage_equal))
 
 # check graph convolution with mean
-check_graph_conv_mean = False
+check_graph_conv_mean = True
 if check_graph_conv_mean:
     path = dir_path + "/graph_conv_mean_result.npy"
     graph_conv_mean_result = np.load(path)
-    path = dir_path + "/sum.npy"
-    sum = np.load(path)
-    sum = np.squeeze(sum)
+    # to row-major
+    n, m = graph_conv_mean_result.shape
+    graph_conv_mean_result = graph_conv_mean_result.reshape((m, n))
+    graph_conv_mean_result = graph_conv_mean_result.transpose()
 
     true_graph_conv_mean_result = adj.dot(features)
-    true_sum = adj.dot(np.ones((adj.shape[0],)))
+    true_sum = adj.dot(np.ones((adj.shape[1],)))
     for i in range(true_graph_conv_mean_result.shape[1]):
         true_graph_conv_mean_result[:, i] = true_graph_conv_mean_result[:, i] / true_sum
-
-    assert(sum.shape == true_sum.shape)
 
     assert(graph_conv_mean_result.shape == true_graph_conv_mean_result.shape)
     is_close = np.isclose(graph_conv_mean_result, true_graph_conv_mean_result)
@@ -116,7 +119,7 @@ if check_relu:
     print("Percentage of equal elements: {}".format(percentage_equal))
 
 # check sage linear
-check_sage_linear = True
+check_sage_linear = False
 if check_sage_linear:
     path = dir_path + "/self_weight.npy"
     self_weight = np.load(path)

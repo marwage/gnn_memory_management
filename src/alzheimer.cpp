@@ -54,6 +54,15 @@ int main() {
     matrix<float> graph_conv_result_0 = graph_convolution.forward(adjacency,
                                                                   dropout_result_0, "mean");
 
+    // DEBUG
+    matrix<float> graph_conv_result = graph_convolution.forward(adjacency, features, "sum");
+    path = dir_path + "/graph_conv_result.npy";
+    save_npy_matrix(graph_conv_result, path);
+    matrix<float> graph_conv_mean_result = graph_convolution.forward(adjacency, features, "mean");
+    path = dir_path + "/graph_conv_mean_result.npy";
+    save_npy_matrix(graph_conv_mean_result, path);
+    // END DEBUG
+
     // linear layer 0
     int num_hidden_channels = 128;
     SageLinear linear_0(features.columns, num_hidden_channels, &cuda_helper);
