@@ -2,9 +2,9 @@
 
 __global__
 void divmv(float *X, float*y, int n, int m) {
-    // n rows, i is blockIdx.x, blockDim.x is rows
-    // m columns, j is threadIdx.x,
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    // n rows, i is blockIdx.x
+    // m columns, j is threadIdx.x
+    int idx = threadIdx.x * n + blockIdx.x;
     if (idx < n * m) X[idx] = X[idx] / y[blockIdx.x];
 }
 

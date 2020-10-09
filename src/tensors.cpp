@@ -28,7 +28,7 @@ void print_matrix(matrix<T> mat) {
     for (int i = 0; i < N; i = i + 1) {
         // for (int j = 0; j < cols; j = j + 1) {
         for (int j = 0; j < M; j = j + 1) {
-            std::cout << mat.values[i * mat.columns + j] << ",";
+            std::cout << mat.values[j * mat.rows + i] << ",";
         }
         std::cout << std::endl;
     }

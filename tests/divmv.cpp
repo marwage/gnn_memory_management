@@ -3,8 +3,8 @@
 
 void check_divmv() {
     float *d_X, *d_y;
-    int n = 500;
-    int m = 700;
+    int n = 5;
+    int m = 7;
 
     check_cuda(cudaMalloc((void **) &d_X, n * m * sizeof(float)));
     check_cuda(cudaMalloc((void **) &d_y, n * sizeof(float)));
@@ -18,16 +18,34 @@ void check_divmv() {
         y[i] = (float) (i + 1);
     }
 
+    float Z[n * m];
+    for (int i = 0; i < n * m; ++i) {
+        Z[i] = 1.0;
+    }
+
+    int idx;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            idx = j * n + i;
+            Z[idx] = Z[idx] / y[i];
+        }
+    }
+    matrix<float> Z_mat;
+    Z_mat.rows = n;
+    Z_mat.columns = m;
+    Z_mat.values = Z;
+    print_matrix<float>(Z_mat);
+
     check_cuda(cudaMemcpy(d_X, X, n * m * sizeof(float),
-                cudaMemcpyHostToDevice));
+                          cudaMemcpyHostToDevice));
     check_cuda(cudaMemcpy(d_y, y, n * sizeof(float),
-                cudaMemcpyHostToDevice));
+                          cudaMemcpyHostToDevice));
 
     div_mat_vec(d_X, d_y, n, m);
 
     check_cuda(cudaMemcpy(X, d_X, n * m * sizeof(float),
-                cudaMemcpyDeviceToHost));
-    
+                          cudaMemcpyDeviceToHost));
+
     matrix<float> X_mat;
     X_mat.rows = n;
     X_mat.columns = m;
