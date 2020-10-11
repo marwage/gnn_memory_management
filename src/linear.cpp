@@ -145,7 +145,7 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
                           cudaMemcpyHostToDevice));
 
     float *d_db;
-    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_ones),
+    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_db),
                           in_gradients.columns * sizeof(float)));
 
     float alpha = 1.0;
@@ -167,8 +167,8 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
     // gradient of weight
     // gradients_input = in_gradients * weight.T
     matrix<float> grad_input;
-    grad_input.rows = weight_.columns;
-    grad_input.columns = in_gradients.columns;
+    grad_input.rows = in_gradients.rows;
+    grad_input.columns = weight_.rows;
     grad_input.values = reinterpret_cast<float *>(malloc(grad_input.rows * grad_input.columns * sizeof(float)));
 
     float *d_weight;
@@ -180,7 +180,7 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
 
     float *d_dinput;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_dinput),
-                          weight_.rows * weight_.columns * sizeof(float)));
+                          grad_input.rows * grad_input.columns * sizeof(float)));
 
     check_cublas(cublasSgemm(cuda_helper_->cublas_handle,
                              CUBLAS_OP_N, CUBLAS_OP_T,
