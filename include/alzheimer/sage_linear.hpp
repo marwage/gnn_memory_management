@@ -18,8 +18,9 @@ class SageLinear {
     CudaHelper *cuda_helper_;
  public:
     SageLinear(int in_features, int out_features, CudaHelper *helper);
-    matrix<float> forward(matrix<float> features, matrix<float> aggr);
     matrix<float>* get_parameters();
+    matrix<float> forward(matrix<float> features, matrix<float> aggr);
+    matrix<float> backward(matrix<float> in_gradients);
 };
 
 #endif

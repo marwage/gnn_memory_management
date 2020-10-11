@@ -54,15 +54,6 @@ int main() {
     matrix<float> graph_conv_result_0 = graph_convolution.forward(adjacency,
                                                                   dropout_result_0, "mean");
 
-    // DEBUG
-    matrix<float> graph_conv_result = graph_convolution.forward(adjacency, features, "sum");
-    path = dir_path + "/graph_conv_result.npy";
-    save_npy_matrix(graph_conv_result, path);
-    matrix<float> graph_conv_mean_result = graph_convolution.forward(adjacency, features, "mean");
-    path = dir_path + "/graph_conv_mean_result.npy";
-    save_npy_matrix(graph_conv_mean_result, path);
-    // END DEBUG
-
     // linear layer 0
     int num_hidden_channels = 128;
     SageLinear linear_0(features.columns, num_hidden_channels, &cuda_helper);
@@ -101,14 +92,26 @@ int main() {
     matrix<float> linear_result_2 = linear_2.forward(dropout_result_2,
                                                      graph_conv_result_2);
 
-    // softmax
+    // log-softmax
     LogSoftmax log_softmax(&cuda_helper);
     matrix<float> softmax_result = log_softmax.forward(linear_result_2);
 
     // loss
-    float loss = negative_log_likelihood_loss(softmax_result, classes);
+    NLLLoss loss_layer;
+    float loss = loss_layer.forward(softmax_result, classes);
     std::cout << "loss " << loss << std::endl;
 
+    // BACKPROPAGATION
+    //loss
+    matrix<float> gradients = loss_layer.backward();
+
+    // log-softmax
+    gradients = log_softmax.backward(gradients);
+
+    // linear layer 2
+    gradients = linear_2.backward(gradients);
+
+    // CLEAN-UP
     // destroy cuda handles
     cuda_helper.destroy_handles();
 

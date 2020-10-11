@@ -6,6 +6,14 @@
 #include "tensors.hpp"
 
 
-float negative_log_likelihood_loss(matrix<float> X, matrix<int> y);
+class NLLLoss {
+private:
+    matrix<float> input_;
+    matrix<int> y_;
+public:
+    NLLLoss();
+    float forward(matrix<float> X, matrix<int> y);
+    matrix<float> backward();
+};
 
 #endif

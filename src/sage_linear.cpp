@@ -59,3 +59,8 @@ matrix<float> SageLinear::forward(matrix<float> features,
 
     return self_result;
 }
+
+matrix<float> SageLinear::backward(matrix<float> in_gradients) {
+    matrix<float> self_gradients = linear_self_.backward(in_gradients);
+    matrix<float> neigh_gradients = linear_neigh_.backward(in_gradients);
+}

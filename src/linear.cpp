@@ -20,6 +20,13 @@ Linear::Linear(int in_features, int out_features, CudaHelper *helper) {
     bias_.rows = num_out_features_;
     bias_.columns = 1;
 
+    grad_weight_.rows = weight_.rows;
+    grad_weight_.columns = weight_.columns;
+    grad_weight_.values = reinterpret_cast<float *>(malloc(grad_weight_.rows * grad_weight_.columns * sizeof(float)));
+    grad_bias_.rows = bias_.rows;
+    grad_bias_.columns = bias_.columns;
+    grad_bias_.values = reinterpret_cast<float *>(malloc(grad_bias_.rows * grad_bias_.columns * sizeof(float)));
+
     Linear::init_weight_bias();
 }
 
@@ -120,3 +127,96 @@ matrix<float> Linear::forward(matrix<float> X) {
     return result;
 }
 
+matrix<float> Linear::backward(matrix<float> in_gradients) {
+    // gradients of bias
+    float *d_g;
+    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_g),
+                          in_gradients.rows * in_gradients.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_g, in_gradients.values,
+                          in_gradients.rows * in_gradients.columns * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
+    float *d_ones;
+    float *ones = reinterpret_cast<float *>(malloc(in_gradients.rows * sizeof(float)));
+    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_ones),
+                          in_gradients.rows * sizeof(float)));
+    check_cuda(cudaMemcpy(d_ones, ones,
+                          in_gradients.rows * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
+    float *d_db;
+    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_ones),
+                          in_gradients.columns * sizeof(float)));
+
+    float alpha = 1.0;
+    float beta = 0.0;
+    check_cublas(cublasSgemv(cuda_helper_->cublas_handle,
+                             CUBLAS_OP_T,
+                             in_gradients.rows, in_gradients.columns,
+                             &alpha, d_g, in_gradients.rows,
+                             d_ones, 1,
+                             &beta, d_db, 1));
+
+    check_cuda(cudaMemcpy(grad_bias_.values, d_db,
+                          grad_bias_.rows * grad_bias_.columns * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    check_cuda(cudaFree(d_ones));
+    check_cuda(cudaFree(d_db));
+
+    // gradient of weight
+    // gradients_input = in_gradients * weight.T
+    matrix<float> grad_input;
+    grad_input.rows = weight_.columns;
+    grad_input.columns = in_gradients.columns;
+    grad_input.values = reinterpret_cast<float *>(malloc(grad_input.rows * grad_input.columns * sizeof(float)));
+
+    float *d_weight;
+    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_weight),
+                          weight_.rows * weight_.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_weight, weight_.values,
+                          weight_.rows * weight_.columns * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
+    float *d_dinput;
+    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_dinput),
+                          weight_.rows * weight_.columns * sizeof(float)));
+
+    check_cublas(cublasSgemm(cuda_helper_->cublas_handle,
+                             CUBLAS_OP_N, CUBLAS_OP_T,
+                             in_gradients.rows, weight_.rows, in_gradients.columns,
+                             &alpha,
+                             d_g, in_gradients.rows,
+                             d_weight, weight_.rows,
+                             &beta,
+                             d_dinput, grad_input.rows));
+
+    check_cuda(cudaMemcpy(grad_input.values, d_dinput,
+                          grad_input.rows * grad_input.columns * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    // dWeight = gradients_input.T * in_gradients
+    float *d_dweight;
+    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_dweight),
+                          grad_weight_.rows * grad_weight_.columns * sizeof(float)));
+
+    check_cublas(cublasSgemm(cuda_helper_->cublas_handle,
+                             CUBLAS_OP_T, CUBLAS_OP_N,
+                             grad_input.columns, in_gradients.columns, grad_input.rows,
+                             &alpha,
+                             d_dinput, grad_input.rows,
+                             d_g, in_gradients.rows,
+                             &beta,
+                             d_dweight, grad_weight_.rows));
+
+    check_cuda(cudaMemcpy(grad_weight_.values, d_dweight,
+                          grad_weight_.rows * grad_weight_.columns * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    check_cuda(cudaFree(d_g));
+    check_cuda(cudaFree(d_weight));
+    check_cuda(cudaFree(d_dinput));
+    check_cuda(cudaFree(d_dweight));
+
+    return grad_input;
+}
