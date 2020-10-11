@@ -23,6 +23,7 @@ class Linear {
     matrix<float>* get_parameters();
     matrix<float> forward(matrix<float> X);
     matrix<float> backward(matrix<float> in_gradients);
+    void update_weights(float learning_rate);
 };
 
 #endif

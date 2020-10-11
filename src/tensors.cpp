@@ -151,3 +151,43 @@ void to_row_major(matrix<T> *mat) {
 
 template void to_row_major<float>(matrix<float> *mat);
 template void to_row_major<int>(matrix<int> *mat);
+
+
+matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<float> mat_b) {
+    float alpha = 1.0;
+
+    float *d_a;
+    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_a),
+                          mat_a.rows * mat_a.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_a, mat_a.values,
+                          mat_a.rows * mat_a.columns * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
+    float *d_b;
+    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_b),
+                          mat_b.rows * mat_b.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_b, mat_b.values,
+                          mat_b.rows * mat_b.columns * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
+    check_cublas(cublasSaxpy(cuda_helper->cublas_handle,
+                             mat_a.rows * mat_a.columns,
+                             &alpha, d_a, 1,
+                             d_b, 1));
+
+    matrix<float> mat_c;
+    mat_c.rows = mat_a.rows;
+    mat_c.columns = mat_a.columns;
+    mat_c.values = reinterpret_cast<float *>(malloc(mat_c.rows * mat_c.columns * sizeof(float)));
+
+    check_cuda(cudaMemcpy(mat_c.values, d_b,
+                          mat_c.rows * mat_c.columns * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    // clean-up
+    check_cuda(cudaFree(d_a));
+    check_cuda(cudaFree(d_b));
+
+    return mat_c;
+
+}

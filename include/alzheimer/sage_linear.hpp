@@ -17,10 +17,15 @@ class SageLinear {
 
     CudaHelper *cuda_helper_;
  public:
+    struct SageLinearGradients {
+        matrix<float> self_grads;
+        matrix<float> neigh_grads;
+    };
     SageLinear(int in_features, int out_features, CudaHelper *helper);
     matrix<float>* get_parameters();
     matrix<float> forward(matrix<float> features, matrix<float> aggr);
-    matrix<float> backward(matrix<float> in_gradients);
+    SageLinearGradients backward(matrix<float> in_gradients);
+    void update_weights(float learning_rate);
 };
 
 #endif

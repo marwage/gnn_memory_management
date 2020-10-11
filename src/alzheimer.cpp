@@ -44,80 +44,119 @@ int main() {
 
     // FORWARD PASS
     CudaHelper cuda_helper;
-
-    // dropout 0
-    Dropout dropout_0(&cuda_helper);
-    matrix<float> dropout_result_0 = dropout_0.forward(features);
-
-    // graph convolution 0
-    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean");
-    matrix<float> graph_conv_result_0 = graph_convolution_0.forward(dropout_result_0);
-
-    // linear layer 0
+    float learning_rate = 0.003;
     int num_hidden_channels = 128;
-    SageLinear linear_0(features.columns, num_hidden_channels, &cuda_helper);
-    matrix<float> linear_result_0 = linear_0.forward(dropout_result_0,
-                                                     graph_conv_result_0);
-
-    // ReLU 0
-    Relu relu_0(&cuda_helper);
-    matrix<float> relu_result_0 = relu_0.forward(linear_result_0);
-
-    // dropout 1
-    Dropout dropout_1(&cuda_helper);
-    matrix<float> dropout_result_1 = dropout_1.forward(relu_result_0);
-
-    // graph convolution 1
-    GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean");
-    matrix<float> graph_conv_result_1 = graph_convolution_1.forward(dropout_result_1);
-
-    // linear layer 1
-    SageLinear linear_1(num_hidden_channels, num_hidden_channels, &cuda_helper);
-    matrix<float> linear_result_1 = linear_1.forward(dropout_result_1,
-                                                     graph_conv_result_1);
-
-    // ReLU 1
-    Relu relu_1(&cuda_helper);
-    matrix<float> relu_result_1 = relu_1.forward(linear_result_1);
-
-    // dropout 2
-    Dropout dropout_2(&cuda_helper);
-    matrix<float> dropout_result_2 = dropout_2.forward(relu_result_1);
-
-    // graph convolution 2
-    GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean");
-    matrix<float> graph_conv_result_2 = graph_convolution_2.forward(dropout_result_2);
-
-    // linear layer 2
     int num_classes = 7;
+
+    // layers
+    Dropout dropout_0(&cuda_helper);
+    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean");
+    SageLinear linear_0(features.columns, num_hidden_channels, &cuda_helper);
+    Relu relu_0(&cuda_helper);
+    Dropout dropout_1(&cuda_helper);
+    GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean");
+    SageLinear linear_1(num_hidden_channels, num_hidden_channels, &cuda_helper);
+    Relu relu_1(&cuda_helper);
+    Dropout dropout_2(&cuda_helper);
+    GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean");
     SageLinear linear_2(num_hidden_channels, num_classes, &cuda_helper);
-    matrix<float> linear_result_2 = linear_2.forward(dropout_result_2,
-                                                     graph_conv_result_2);
-
-    // log-softmax
     LogSoftmax log_softmax(&cuda_helper);
-    matrix<float> softmax_result = log_softmax.forward(linear_result_2);
-
-    // loss
     NLLLoss loss_layer;
-    float loss = loss_layer.forward(softmax_result, classes);
-    std::cout << "loss " << loss << std::endl;
 
-    // BACKPROPAGATION
-    //loss
-    matrix<float> gradients = loss_layer.backward();
+    matrix<float> signals;
+    matrix<float> signals_dropout;
+    matrix<float> gradients;
+    SageLinear::SageLinearGradients sage_linear_gradients;
 
-    // log-softmax
-    gradients = log_softmax.backward(gradients);
+    int num_epochs = 10;
+    for (int i = 0; i < num_epochs; ++i) {
+        // dropout 0
+        signals_dropout = dropout_0.forward(features);
 
-    // linear layer 2
-    gradients = linear_2.backward(gradients);
+        // graph convolution 0
+        signals = graph_convolution_0.forward(signals_dropout);
 
-    // graph convolution 2
-    gradients = graph_convolution_2.backward(gradients);
+        // linear layer 0
+        signals = linear_0.forward(signals_dropout, signals);
 
-    // dropout 2
-    gradients = dropout_2.backward(gradients);
+        // ReLU 0
+        signals = relu_0.forward(signals);
+
+        // dropout 1
+        signals_dropout = dropout_1.forward(signals);
+
+        // graph convolution 1
+        signals = graph_convolution_1.forward(signals_dropout);
+
+        // linear layer 1
+        signals = linear_1.forward(signals_dropout, signals);
+
+        // ReLU 1
+        signals = relu_1.forward(signals);
+
+        // dropout 2
+        signals_dropout = dropout_2.forward(signals);
+
+        // graph convolution 2
+        signals = graph_convolution_2.forward(signals_dropout);
+
+        // linear layer 2
+        signals = linear_2.forward(signals_dropout, signals);
+
+        // log-softmax
+        signals = log_softmax.forward(signals);
+
+        // loss
+        float loss = loss_layer.forward(signals, classes);
+        std::cout << "loss " << loss << std::endl;
+
+        // BACKPROPAGATION
+        //loss
+        gradients = loss_layer.backward();
+
+        // log-softmax
+        gradients = log_softmax.backward(gradients);
+
+        // linear layer 2
+        sage_linear_gradients = linear_2.backward(gradients);
+
+        // graph convolution 2
+        gradients = graph_convolution_2.backward(sage_linear_gradients.neigh_grads);
+
+        // add sage_linear_gradients.self_grads + gradients
+        gradients = add_matrices(&cuda_helper, sage_linear_gradients.self_grads, gradients);
+
+        // dropout 2
+        gradients = dropout_2.backward(gradients);
+
+        // relu 1
+        gradients = relu_1.backward(gradients);
+
+        // linear layer 1
+        sage_linear_gradients = linear_1.backward(gradients);
+
+        // graph convolution 1
+        gradients = graph_convolution_1.backward(gradients);
+
+        // add sage_linear_gradients.self_grads + gradients
+        gradients = add_matrices(&cuda_helper, sage_linear_gradients.self_grads, gradients);
+
+        // dropout 1
+        gradients = dropout_1.backward(gradients);
+
+        // relu 0
+        gradients = relu_0.backward(gradients);
+
+        // linear layer 0
+        sage_linear_gradients = linear_0.backward(gradients);
+
+        // no need for graph conv 0 and dropout 0
+    }  // end training loop
+
+    // update weights
+    linear_2.update_weights(learning_rate);
+    linear_1.update_weights(learning_rate);
+    linear_0.update_weights(learning_rate);
 
     // CLEAN-UP
     // destroy cuda handles

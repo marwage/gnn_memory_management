@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include "cuda_helper.hpp"
+
 
 template <typename T>
 struct matrix {
@@ -40,5 +42,7 @@ void to_column_major(matrix<T> *mat);
 
 template <typename T>
 void to_row_major(matrix<T> *mat);
+
+matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<float> mat_b);
 
 #endif

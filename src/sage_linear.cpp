@@ -60,7 +60,16 @@ matrix<float> SageLinear::forward(matrix<float> features,
     return self_result;
 }
 
-matrix<float> SageLinear::backward(matrix<float> in_gradients) {
-    matrix<float> self_gradients = linear_self_.backward(in_gradients);
-    matrix<float> neigh_gradients = linear_neigh_.backward(in_gradients);
+SageLinear::SageLinearGradients SageLinear::backward(matrix<float> in_gradients) {
+    SageLinearGradients grads;
+
+    grads.self_grads = linear_self_.backward(in_gradients);
+    grads.neigh_grads = linear_neigh_.backward(in_gradients);
+
+    return grads;
+}
+
+void SageLinear::update_weights(float learning_rate) {
+    linear_self_.update_weights(learning_rate);
+    linear_neigh_.update_weights(learning_rate);
 }
