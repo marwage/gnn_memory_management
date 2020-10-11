@@ -12,10 +12,15 @@
 class GraphConvolution {
 private:
     CudaHelper *cuda_helper_;
+    sparse_matrix<float> *adjacency_;
+    std::string reduction_;
+    bool mean_;
+    matrix<float> sum_;
+
 public:
-    GraphConvolution(CudaHelper *helper);
-    matrix<float> forward(sparse_matrix<float> A, matrix<float> B,
-                          std::string reduction);
+    GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adjacency_, std::string reduction);
+    matrix<float> forward(matrix<float> B);
+    matrix<float> backward(matrix<float> in_gradients);
 };
 
 #endif

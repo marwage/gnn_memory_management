@@ -46,13 +46,12 @@ int main() {
     CudaHelper cuda_helper;
 
     // dropout 0
-    Dropout dropout(&cuda_helper);
-    matrix<float> dropout_result_0 = dropout.forward(features);
+    Dropout dropout_0(&cuda_helper);
+    matrix<float> dropout_result_0 = dropout_0.forward(features);
 
     // graph convolution 0
-    GraphConvolution graph_convolution(&cuda_helper);
-    matrix<float> graph_conv_result_0 = graph_convolution.forward(adjacency,
-                                                                  dropout_result_0, "mean");
+    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean");
+    matrix<float> graph_conv_result_0 = graph_convolution_0.forward(dropout_result_0);
 
     // linear layer 0
     int num_hidden_channels = 128;
@@ -61,30 +60,33 @@ int main() {
                                                      graph_conv_result_0);
 
     // ReLU 0
-    Relu relu(&cuda_helper);
-    matrix<float> relu_result_0 = relu.forward(linear_result_0);
+    Relu relu_0(&cuda_helper);
+    matrix<float> relu_result_0 = relu_0.forward(linear_result_0);
 
     // dropout 1
-    matrix<float> dropout_result_1 = dropout.forward(relu_result_0);
+    Dropout dropout_1(&cuda_helper);
+    matrix<float> dropout_result_1 = dropout_1.forward(relu_result_0);
 
     // graph convolution 1
-    matrix<float> graph_conv_result_1 = graph_convolution.forward(adjacency,
-                                                                  dropout_result_1, "mean");
+    GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean");
+    matrix<float> graph_conv_result_1 = graph_convolution_1.forward(dropout_result_1);
 
     // linear layer 1
     SageLinear linear_1(num_hidden_channels, num_hidden_channels, &cuda_helper);
     matrix<float> linear_result_1 = linear_1.forward(dropout_result_1,
                                                      graph_conv_result_1);
 
-    // ReLU 0
-    matrix<float> relu_result_1 = relu.forward(linear_result_1);
+    // ReLU 1
+    Relu relu_1(&cuda_helper);
+    matrix<float> relu_result_1 = relu_1.forward(linear_result_1);
 
     // dropout 2
-    matrix<float> dropout_result_2 = dropout.forward(relu_result_1);
+    Dropout dropout_2(&cuda_helper);
+    matrix<float> dropout_result_2 = dropout_2.forward(relu_result_1);
 
     // graph convolution 2
-    matrix<float> graph_conv_result_2 = graph_convolution.forward(adjacency,
-                                                                  dropout_result_2, "mean");
+    GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean");
+    matrix<float> graph_conv_result_2 = graph_convolution_2.forward(dropout_result_2);
 
     // linear layer 2
     int num_classes = 7;
@@ -110,6 +112,12 @@ int main() {
 
     // linear layer 2
     gradients = linear_2.backward(gradients);
+
+    // graph convolution 2
+    gradients = graph_convolution_2.backward(gradients);
+
+    // dropout 2
+    gradients = dropout_2.backward(gradients);
 
     // CLEAN-UP
     // destroy cuda handles
