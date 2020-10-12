@@ -18,4 +18,7 @@ void check_loss() {
     NLLLoss loss_layer;
     float loss = loss_layer.forward(log_softmax_out, classes);
     std::cout << "loss " << loss << std::endl;
+
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/check_loss.py";
+    system(command);
 }

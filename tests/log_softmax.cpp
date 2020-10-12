@@ -23,6 +23,6 @@ void check_log_softmax_forward() {
     path = dir_path + "/log_softmax_out.npy";
     save_npy_matrix(signals, path);
 
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/check_log_softmax.py";
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/check_log_softmax.py";
     system(command);
 }
