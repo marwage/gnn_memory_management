@@ -1,6 +1,7 @@
 set(TEST_NAME test)
 
 add_executable(${TEST_NAME}
+        tests/tests.cpp
         tests/divmv.cpp
         ${SOURCE_FILES})
 

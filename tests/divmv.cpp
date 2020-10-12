@@ -1,6 +1,7 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include <cuda_runtime.h>
+#include <iostream>
 
 #include "divmv.h"
 #include "cuda_helper.hpp"
@@ -40,7 +41,6 @@ void check_divmv() {
     Z_mat.rows = n;
     Z_mat.columns = m;
     Z_mat.values = Z;
-    print_matrix<float>(Z_mat);
 
     check_cuda(cudaMemcpy(d_X, X, n * m * sizeof(float),
                           cudaMemcpyHostToDevice));
@@ -52,16 +52,19 @@ void check_divmv() {
     check_cuda(cudaMemcpy(X, d_X, n * m * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
-    matrix<float> X_mat;
-    X_mat.rows = n;
-    X_mat.columns = m;
-    X_mat.values = X;
-    print_matrix<float>(X_mat);
-
     check_cuda(cudaFree(d_X));
     check_cuda(cudaFree(d_y));
-}
 
-int main() {
-    check_divmv();
+    bool equal = true;
+    for (int i = 0; i < Z_mat.rows * Z_mat.columns; ++i) {
+        if (Z_mat.values[i] != Z_mat.values[i]) {
+            equal = false;
+            break;
+        }
+    }
+    if (equal) {
+        std::cout << "divmv works" << std::endl;
+    } else {
+        std::cout << "divmv does not work" << std::endl;
+    }
 }
