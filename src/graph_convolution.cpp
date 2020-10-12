@@ -1,10 +1,8 @@
 // Copyright 2020 Marcel Wagenländer
 
+#include "divmv.h"
 #include "graph_convolution.hpp"
-
 #include "cuda_helper.hpp"
-
-void div_mat_vec(float *X, float *y, int n, int m);
 
 
 GraphConvolution::GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adjacency, std::string reduction) {

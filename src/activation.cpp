@@ -129,6 +129,9 @@ LogSoftmax::LogSoftmax(CudaHelper *helper) {
 }
 
 matrix<float> LogSoftmax::forward(matrix<float> X) {
+    // cudnn Tensor is row-major
+    to_row_major(&X);
+
     float *d_X;
     check_cuda(cudaMalloc(&d_X, X.rows * X.columns * sizeof(float)));
     check_cuda(cudaMemcpy(d_X, X.values,
@@ -172,6 +175,8 @@ matrix<float> LogSoftmax::forward(matrix<float> X) {
     // free GPU memory
     check_cuda(cudaFree(d_X));
     check_cuda(cudaFree(d_y));
+
+    to_column_major(&y_);
 
     return y_;
 }

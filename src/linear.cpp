@@ -2,6 +2,7 @@
 
 #include <random>
 #include <cstring>
+#include <cuda_runtime.h>
 
 #include "linear.hpp"
 #include "cuda_helper.hpp"

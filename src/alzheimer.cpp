@@ -67,8 +67,9 @@ int main() {
     matrix<float> signals_dropout;
     matrix<float> gradients;
     SageLinear::SageLinearGradients sage_linear_gradients;
+    float loss;
 
-    int num_epochs = 10;
+    int num_epochs = 1;
     for (int i = 0; i < num_epochs; ++i) {
         // dropout 0
         signals_dropout = dropout_0.forward(features);
@@ -103,11 +104,22 @@ int main() {
         // linear layer 2
         signals = linear_2.forward(signals_dropout, signals);
 
+        // DEBUG
+        print_matrix(signals);
+        path = dir_path + "/log_softmax_in.npy";
+        save_npy_matrix(signals, path);
+
         // log-softmax
         signals = log_softmax.forward(signals);
 
+        // DEBUG
+        std::cout << "-----" << std::endl;
+        print_matrix(signals);
+        path = dir_path + "/log_softmax_out.npy";
+        save_npy_matrix(signals, path);
+
         // loss
-        float loss = loss_layer.forward(signals, classes);
+        loss = loss_layer.forward(signals, classes);
         std::cout << "loss " << loss << std::endl;
 
         // BACKPROPAGATION

@@ -1,5 +1,11 @@
 // Copyright 2020 Marcel Wagenländer
 
+#include <cuda_runtime.h>
+
+#include "divmv.h"
+#include "cuda_helper.hpp"
+#include "tensors.hpp"
+
 
 void check_divmv() {
     float *d_X, *d_y;
@@ -56,3 +62,6 @@ void check_divmv() {
     check_cuda(cudaFree(d_y));
 }
 
+int main() {
+    check_divmv();
+}
