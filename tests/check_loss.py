@@ -16,8 +16,6 @@ classes = np.load(path)
 n, m = log_softmax_out.shape
 log_softmax_out = log_softmax_out.reshape((m, n))
 log_softmax_out = log_softmax_out.transpose()
-classes = classes.reshape((m, n))
-classes = classes.transpose()
 
 loss_layer = torch.nn.NLLLoss()
 true_loss = loss_layer(torch.from_numpy(log_softmax_out), torch.from_numpy(classes))
