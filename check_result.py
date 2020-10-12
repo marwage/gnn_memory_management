@@ -64,7 +64,7 @@ if check_transposed_features:
     print("Percentage of equal elements: {}".format(percentage_equal))
 
 #check graph convolution
-check_graph_conv = True
+check_graph_conv = False
 if check_graph_conv:
     path = dir_path + "/graph_conv_result.npy"
     graph_conv_result = np.load(path)
@@ -81,7 +81,7 @@ if check_graph_conv:
     print("Percentage of equal elements: {}".format(percentage_equal))
 
 # check graph convolution with mean
-check_graph_conv_mean = True
+check_graph_conv_mean = False
 if check_graph_conv_mean:
     path = dir_path + "/graph_conv_mean_result.npy"
     graph_conv_mean_result = np.load(path)
@@ -146,4 +146,34 @@ if check_sage_linear:
     print("SageLinear")
     print("Percentage of equal elements: {}".format(percentage_equal))
     # matrices are column-major but the result is close
+
+# check log-softmax
+check_log_softmax = True
+if check_log_softmax:
+    path = dir_path + "/log_softmax_in.npy"
+    log_softmax_in = np.load(path)
+    path = dir_path + "/log_softmax_out.npy"
+    log_softmax_out = np.load(path)
+    # to row-major
+    n, m = log_softmax_in.shape
+    log_softmax_in = log_softmax_in.reshape((m, n))
+    log_softmax_in = log_softmax_in.transpose()
+    log_softmax_out = log_softmax_out.reshape((m, n))
+    log_softmax_out = log_softmax_out.transpose()
+
+    log_softmax_layer = torch.nn.LogSoftmax(dim=-1)
+    true_log_softmax_out = log_softmax_layer(torch.from_numpy(log_softmax_in))
+    true_log_softmax_out = true_log_softmax_out.numpy()
+
+    print(log_softmax_in[0:10, 0:10])
+    print("----")
+    print(true_log_softmax_out[0:10, 0:10])
+    print("----")
+    print(log_softmax_layer(torch.from_numpy(log_softmax_in[0, 0:10])))
+    print(log_softmax_layer(torch.from_numpy(log_softmax_in[1, 0:10])))
+
+    is_close = np.isclose(log_softmax_out, true_log_softmax_out)
+    percentage_equal = is_close.sum() / true_log_softmax_out.size
+    print("Log-softmax")
+    print("Percentage of equal elements: {}".format(percentage_equal))
 
