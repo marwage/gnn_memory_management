@@ -4,6 +4,7 @@ add_executable(${TEST_NAME}
         tests/tests.cpp
         tests/divmv.cpp
         tests/log_softmax.cpp
+        tests/loss.cpp
         ${SOURCE_FILES})
 
 target_include_directories(${TEST_NAME}
