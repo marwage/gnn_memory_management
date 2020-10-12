@@ -1,7 +1,4 @@
-import json
 import numpy as np
-import scipy.sparse as sp
-import scipy.io
 import os
 import torch
 
@@ -16,9 +13,7 @@ path = dir_path + "/log_softmax_out.npy"
 log_softmax_out = np.load(path)
 
 # to row-major
-n, m = features.shape
-features = features.reshape((m, n))
-features = features.transpose()
+n, m = log_softmax_out.shape
 log_softmax_out = log_softmax_out.reshape((m, n))
 log_softmax_out = log_softmax_out.transpose()
 
