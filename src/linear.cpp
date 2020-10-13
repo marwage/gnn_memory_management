@@ -6,6 +6,7 @@
 
 #include "linear.hpp"
 #include "cuda_helper.hpp"
+#include "tensors.hpp"
 
 
 Linear::Linear() { }
@@ -64,9 +65,11 @@ matrix<float> Linear::expand_bias(int num_rows) {
     bias_expanded.columns = bias_.rows;
     bias_expanded.values = reinterpret_cast<float *>(
             malloc(bias_expanded.rows * bias_expanded.columns * sizeof(float)));
-    for (int i = 0; i < num_rows; ++i) {
-        std::memcpy(&bias_expanded.values[i * bias_.rows],
-                    bias_.values, bias_.rows * sizeof(float));
+
+    for (int i = 0; i < bias_expanded.columns; ++i) {
+        for (int j = 0; j < bias_expanded.rows; ++j) {
+            bias_expanded.values[i * bias_expanded.rows + j] = bias_.values[i];
+        }
     }
 
     return bias_expanded;

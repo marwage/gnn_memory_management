@@ -65,7 +65,7 @@ int main() {
     path = test_dir_path + "/linear_result.npy";
     save_npy_matrix(linear_result, path);
     matrix<float> *parameters = linear_layer.get_parameters();
-    path = test_dir_path + "self_weight.npy";
+    path = test_dir_path + "/self_weight.npy";
     save_npy_matrix(parameters[0], path);
     path = test_dir_path + "/self_bias.npy";
     save_npy_matrix(parameters[1], path);
