@@ -24,3 +24,4 @@ true_log_softmax_out = true_log_softmax_out.numpy()
 is_close = np.isclose(log_softmax_out, true_log_softmax_out)
 percentage_equal = is_close.sum() / true_log_softmax_out.size
 print("Log-softmax: Percentage of equal elements: {}".format(percentage_equal))
+
