@@ -2,15 +2,18 @@
 
 #include "loss.hpp"
 
+// debug
+#include <iostream>
+
 
 NLLLoss::NLLLoss() {}
 
 float NLLLoss::forward(matrix<float> X, matrix<int> y) {
-    double loss = 0.0;
+    float loss = 0.0;
     for (int i = 0; i < X.rows; ++i) {
         loss = loss + X.values[i * X.columns + y.values[i]];
     }
-    loss = loss / (X.columns * X.rows);
+    loss = loss / (float) X.rows;
     loss = - loss;
 
     input_ = X;
@@ -30,7 +33,7 @@ matrix<float> NLLLoss::backward() {
     }
 
     for (int i = 0; i < y_.rows; ++i) {
-        gradients.values[y_.values[i] * y_.rows + i] = - 1 / (input_.rows * input_.columns);
+        gradients.values[y_.values[i] * y_.rows + i] = - 1.0 / input_.rows;
     }
 
     return gradients;

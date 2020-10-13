@@ -19,6 +19,11 @@ void check_loss() {
     float loss = loss_layer.forward(log_softmax_out, classes);
     std::cout << "loss " << loss << std::endl;
 
+    matrix<float> grads = loss_layer.backward();
+
+    path = dir_path + "/loss_grads.npy";
+    save_npy_matrix(grads, path);
+
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/check_loss.py";
     system(command);
 }
