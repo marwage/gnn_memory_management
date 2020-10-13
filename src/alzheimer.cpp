@@ -8,8 +8,6 @@
 #include "activation.hpp"
 #include "loss.hpp"
 
-#include "cnpy.h"
-
 
 int main() {
     // read tensors
