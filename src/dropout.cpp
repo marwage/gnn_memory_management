@@ -43,11 +43,6 @@ matrix<float> Dropout::forward(matrix<float> X) {
                           cudaMemcpyHostToDevice));
     check_cuda(cudaMalloc(&d_Y, Y.rows * Y.columns * sizeof(float)));
 
-
-    Y.values = (float *) malloc(Y.rows * Y.columns * sizeof(float));
-    check_cuda(cudaMemcpy(Y.values, d_Y, Y.rows * Y.columns * sizeof(float),
-                          cudaMemcpyDeviceToHost));
-
     void *d_reserve_space;
     check_cudnn(cudnnDropoutGetReserveSpaceSize(x_descr, &reserve_space_size_));
     check_cuda(cudaMalloc(&d_reserve_space, reserve_space_size_));
@@ -55,6 +50,10 @@ matrix<float> Dropout::forward(matrix<float> X) {
                                     dropout_desc_, x_descr, d_X,
                                     y_descr, d_Y,
                                     d_reserve_space, reserve_space_size_));
+
+    Y.values = (float *) malloc(Y.rows * Y.columns * sizeof(float));
+    check_cuda(cudaMemcpy(Y.values, d_Y, Y.rows * Y.columns * sizeof(float),
+                          cudaMemcpyDeviceToHost));
 
     reserve_space_ = reinterpret_cast<void *>(malloc(reserve_space_size_));
     check_cuda(cudaMemcpy(reserve_space_, d_reserve_space,
