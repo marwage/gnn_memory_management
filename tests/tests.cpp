@@ -96,26 +96,42 @@ int main() {
     // BACKPROPAGATION
     //loss
     matrix<float> loss_grads = loss_layer.backward();
+    path = test_dir_path + "/loss_grads.npy";
+    save_npy_matrix(loss_grads, path);
 
     // log-softmax
     matrix<float> log_softmax_grads = log_softmax_layer.backward(loss_grads);
+    path = test_dir_path + "/log_softmax_grads.npy";
+    save_npy_matrix(log_softmax_grads, path);
 
     // linear layer
     SageLinear::SageLinearGradients linear_grads = linear_layer.backward(log_softmax_grads);
+    path = test_dir_path + "/self_grads.npy";
+    save_npy_matrix(linear_grads.self_grads, path);
+    path = test_dir_path + "/neigh_grads.npy";
+    save_npy_matrix(linear_grads.neigh_grads, path);
 
     // graph convolution
     matrix<float> graph_convolution_grads = graph_convolution_layer.backward(linear_grads.neigh_grads);
+    path = test_dir_path + "/graph_convolution_grads.npy";
+    save_npy_matrix(graph_convolution_grads, path);
 
     // add sage_linear_gradients.self_grads + gradients
     matrix<float> add_grads = add_matrices(&cuda_helper, linear_grads.self_grads, graph_convolution_grads);
+    path = test_dir_path + "/add_grads.npy";
+    save_npy_matrix(add_grads, path);
 
     // dropout
     matrix<float> dropout_grads = dropout_layer.backward(add_grads);
+    path = test_dir_path + "/dropout_grads.npy";
+    save_npy_matrix(dropout_grads, path);
 
     // ReLU
     assert(relu_result.rows == log_softmax_grads.rows);
     assert(relu_result.columns == log_softmax_grads.columns);
     matrix<float> relu_grads = relu_layer.backward(log_softmax_grads);
+    path = test_dir_path + "/relu_grads.npy";
+    save_npy_matrix(relu_grads, path);
 
     // update weights
     linear_layer.update_weights(learning_rate);
