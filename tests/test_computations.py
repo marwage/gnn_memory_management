@@ -84,53 +84,45 @@ def test_computations():
 
     percentage_equal = check_isclose(sage_linear_result, true_sage_linear_result)
     print("SageLinear: Percentage of equal elements: {}".format(percentage_equal))
-
-    #debug
-    return
     
     # check relu
-    path = dir_path + "/relu_result.npy"
-    relu_result = np.load(path)
+    path = test_dir_path + "/relu_result.npy"
+    relu_result = load_col_major(path)
 
-    relu_layer = torch.nn.functional.relu
-    features_torch = torch.from_numpy(features)
-    true_relu_result = relu_layer(features_torch)
+    relu_layer = torch.nn.ReLU()
+    sage_linear_result_torch = torch.from_numpy(sage_linear_result)
+    true_relu_result = relu_layer(sage_linear_result_torch)
     true_relu_result = true_relu_result.numpy()
 
-    assert(relu_result.shape == true_relu_result.shape)
-    is_close = np.isclose(relu_result, true_relu_result)
-    percentage_equal = is_close.sum() / true_relu_result.size
-    print("ReLU")
-    print("Percentage of equal elements: {}".format(percentage_equal))
-
+    percentage_equal = check_isclose(relu_result, true_relu_result)
+    print("ReLU: Percentage of equal elements: {}".format(percentage_equal))
 
     # check log-softmax
-    path = dir_path + "/log_softmax_in.npy"
-    log_softmax_in = np.load(path)
-    path = dir_path + "/log_softmax_out.npy"
-    log_softmax_out = np.load(path)
-    # to row-major
-    n, m = log_softmax_in.shape
-    log_softmax_in = log_softmax_in.reshape((m, n))
-    log_softmax_in = log_softmax_in.transpose()
-    log_softmax_out = log_softmax_out.reshape((m, n))
-    log_softmax_out = log_softmax_out.transpose()
+    path = test_dir_path + "/log_softmax_result.npy"
+    log_softmax_result = load_col_major(path)
 
     log_softmax_layer = torch.nn.LogSoftmax(dim=-1)
-    true_log_softmax_out = log_softmax_layer(torch.from_numpy(log_softmax_in))
-    true_log_softmax_out = true_log_softmax_out.numpy()
+    true_log_softmax_result_torch = log_softmax_layer(sage_linear_result_torch)
+    true_log_softmax_result = true_log_softmax_result_torch.numpy()
 
-    print(log_softmax_in[0:10, 0:10])
-    print("----")
-    print(true_log_softmax_out[0:10, 0:10])
-    print("----")
-    print(log_softmax_layer(torch.from_numpy(log_softmax_in[0, 0:10])))
-    print(log_softmax_layer(torch.from_numpy(log_softmax_in[1, 0:10])))
+    percentage_equal = check_isclose(log_softmax_result, true_log_softmax_result)
+    print("Log-softmax: Percentage of equal elements: {}".format(percentage_equal))
 
-    is_close = np.isclose(log_softmax_out, true_log_softmax_out)
-    percentage_equal = is_close.sum() / true_log_softmax_out.size
-    print("Log-softmax")
-    print("Percentage of equal elements: {}".format(percentage_equal))
+    # check loss
+    path = test_dir_path + "/loss_result.npy"
+    loss_result = np.load(path)
+    loss_result = loss_result.squeeze()
+
+    loss_layer = torch.nn.NLLLoss()
+    log_softmax_result_torch = torch.from_numpy(log_softmax_result)
+    classes_torch = torch.from_numpy(classes).long()
+    true_loss_result_torch = loss_layer(log_softmax_result_torch, classes_torch)
+    true_loss_result = true_loss_result_torch.numpy()
+
+    loss_diff = true_loss_result - loss_result
+    print("Loss: Difference between loss and true loss: {}".format(loss_diff))
+    percentage_off = loss_diff / true_loss_result
+    print("Loss: Percentage off: {}".format(percentage_off))
 
 
 if __name__ == "__main__":
