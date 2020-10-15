@@ -13,6 +13,7 @@ class Linear {
     matrix<float> bias_;
     matrix<float> grad_weight_;
     matrix<float> grad_bias_;
+    matrix<float> x_;
     CudaHelper *cuda_helper_;
 
     void init_weight_bias();

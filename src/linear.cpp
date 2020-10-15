@@ -1,15 +1,15 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <random>
 #include <cstring>
 #include <cuda_runtime.h>
+#include <random>
 
-#include "linear.hpp"
 #include "cuda_helper.hpp"
+#include "linear.hpp"
 #include "tensors.hpp"
 
 
-Linear::Linear() { }
+Linear::Linear() {}
 
 Linear::Linear(int in_features, int out_features, CudaHelper *helper) {
     cuda_helper_ = helper;
@@ -51,7 +51,7 @@ void Linear::init_weight_bias() {
     }
 }
 
-matrix<float>* Linear::get_parameters() {
+matrix<float> *Linear::get_parameters() {
     matrix<float> *parameters = (matrix<float> *) malloc(2 * sizeof(matrix<float>));
     parameters[0] = weight_;
     parameters[1] = bias_;
@@ -59,7 +59,7 @@ matrix<float>* Linear::get_parameters() {
     return parameters;
 }
 
-matrix<float>* Linear::get_gradients() {
+matrix<float> *Linear::get_gradients() {
     matrix<float> *grads = (matrix<float> *) malloc(2 * sizeof(matrix<float>));
     grads[0] = grad_weight_;
     grads[1] = grad_bias_;
@@ -85,6 +85,8 @@ matrix<float> Linear::expand_bias(int num_rows) {
 
 // assume X is column-major
 matrix<float> Linear::forward(matrix<float> X) {
+    x_ = X;
+
     float *d_X, *d_weight, *d_bias;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_X),
                           X.rows * X.columns * sizeof(float)));
@@ -107,7 +109,7 @@ matrix<float> Linear::forward(matrix<float> X) {
 
     float alpha = 1.0;
     float beta = 1.0;
-    check_cublas(cublasSgemm(cuda_helper_->cublas_handle,  // PyTorch uses GEMM too
+    check_cublas(cublasSgemm(cuda_helper_->cublas_handle,// PyTorch uses GEMM too
                              CUBLAS_OP_N, CUBLAS_OP_N,
                              X.rows, weight_.columns, X.columns,
                              &alpha,
@@ -208,16 +210,23 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
                           grad_input.rows * grad_input.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
-    // dWeight = gradients_input.T * in_gradients
+    // dWeight = input.T * in_gradients
+    float * d_input;
+    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_input),
+                          x_.rows * x_.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_input, x_.values,
+                          x_.rows * x_.columns * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
     float *d_dweight;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_dweight),
                           grad_weight_.rows * grad_weight_.columns * sizeof(float)));
 
     check_cublas(cublasSgemm(cuda_helper_->cublas_handle,
                              CUBLAS_OP_T, CUBLAS_OP_N,
-                             grad_input.columns, in_gradients.columns, grad_input.rows,
+                             x_.columns, in_gradients.columns, x_.rows,
                              &alpha,
-                             d_dinput, grad_input.rows,
+                             d_input, x_.rows,
                              d_g, in_gradients.rows,
                              &beta,
                              d_dweight, grad_weight_.rows));
@@ -235,7 +244,7 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
 }
 
 void Linear::update_weights(float learning_rate) {
-    float alpha = - learning_rate;
+    float alpha = -learning_rate;
 
     float *d_grads;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_grads),
