@@ -24,6 +24,7 @@ void print_matrix(matrix<T> mat) {
         M = 10;
     }
 
+    std::cout << "-----" << std::endl;
     // for (int i = 0; i < rows; i = i + 1) {
     for (int i = 0; i < N; i = i + 1) {
         // for (int j = 0; j < cols; j = j + 1) {
@@ -132,7 +133,7 @@ void to_column_major(matrix<T> *mat) {
     T *new_values = reinterpret_cast<T *>(
             malloc(mat->rows * mat->columns * sizeof(T)));
     transpose<T>(new_values, mat->values, mat->rows, mat->columns);
-    free(mat->values);
+//    free(mat->values);  // TODO triggers error
     mat->values = new_values;
 }
 
@@ -145,7 +146,7 @@ void to_row_major(matrix<T> *mat) {
     T *new_values = reinterpret_cast<T *>(
             malloc(mat->rows * mat->columns * sizeof(T)));
     transpose<T>(new_values, mat->values, mat->columns, mat->rows);
-    free(mat->values);
+//    free(mat->values);  // TODO triggers error
     mat->values = new_values;
 }
 

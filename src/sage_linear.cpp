@@ -25,6 +25,18 @@ matrix<float>* SageLinear::get_parameters() {
     return params;
 }
 
+matrix<float>* SageLinear::get_gradients() {
+    matrix<float> *self_grads = linear_self_.get_gradients();
+    matrix<float> *neigh_grads = linear_neigh_.get_gradients();
+    matrix<float> *grads = (matrix<float> *) malloc(4 * sizeof(matrix<float>));
+    grads[0] = self_grads[0];
+    grads[1] = self_grads[1];
+    grads[2] = neigh_grads[0];
+    grads[3] = neigh_grads[1];
+
+    return grads;
+}
+
 matrix<float> SageLinear::forward(matrix<float> features,
         matrix<float> aggr) {
     matrix<float> self_result = linear_self_.forward(features);

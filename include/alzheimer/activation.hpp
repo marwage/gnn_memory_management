@@ -21,6 +21,7 @@ public:
     Relu(CudaHelper *helper);
 
     matrix<float> forward(matrix<float> X);
+
     matrix<float> backward(matrix<float> in_gradients);
 };
 

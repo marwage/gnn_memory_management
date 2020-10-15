@@ -21,6 +21,7 @@ class Linear {
     Linear();
     Linear(int in_features, int out_features, CudaHelper *helper);
     matrix<float>* get_parameters();
+    matrix<float>* get_gradients();
     matrix<float> forward(matrix<float> X);
     matrix<float> backward(matrix<float> in_gradients);
     void update_weights(float learning_rate);

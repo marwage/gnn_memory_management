@@ -182,6 +182,9 @@ matrix<float> LogSoftmax::forward(matrix<float> X) {
 }
 
 matrix<float> LogSoftmax::backward(matrix<float> in_gradients) {
+    to_row_major(&in_gradients);
+    to_row_major(&y_);
+
     cudnnTensorDescriptor_t y_desc;
     float *d_y;
     check_cuda(cudaMalloc(&d_y, y_.rows * y_.columns * sizeof(float)));
@@ -230,6 +233,8 @@ matrix<float> LogSoftmax::backward(matrix<float> in_gradients) {
     check_cuda(cudaMemcpy(gradients.values, d_dx,
                           gradients.rows * gradients.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
+
+    to_column_major(&gradients);
 
     // free GPU memory
     check_cuda(cudaFree(d_y));

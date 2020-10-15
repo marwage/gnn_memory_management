@@ -59,6 +59,14 @@ matrix<float>* Linear::get_parameters() {
     return parameters;
 }
 
+matrix<float>* Linear::get_gradients() {
+    matrix<float> *grads = (matrix<float> *) malloc(2 * sizeof(matrix<float>));
+    grads[0] = grad_weight_;
+    grads[1] = grad_bias_;
+
+    return grads;
+}
+
 matrix<float> Linear::expand_bias(int num_rows) {
     matrix<float> bias_expanded;
     bias_expanded.rows = num_rows;
@@ -140,6 +148,9 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
 
     float *d_ones;
     float *ones = reinterpret_cast<float *>(malloc(in_gradients.rows * sizeof(float)));
+    for (int i = 0; i < in_gradients.rows; ++i) {
+        ones[i] = 1.0;
+    }
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_ones),
                           in_gradients.rows * sizeof(float)));
     check_cuda(cudaMemcpy(d_ones, ones,

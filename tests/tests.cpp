@@ -110,6 +110,15 @@ int main() {
     save_npy_matrix(linear_grads.self_grads, path);
     path = test_dir_path + "/neigh_grads.npy";
     save_npy_matrix(linear_grads.neigh_grads, path);
+    matrix<float> *gradients = linear_layer.get_gradients();
+    path = test_dir_path + "/self_weight_grads.npy";
+    save_npy_matrix(gradients[0], path);
+    path = test_dir_path + "/self_bias_grads.npy";
+    save_npy_matrix(gradients[1], path);
+    path = test_dir_path + "/neigh_weight_grads.npy";
+    save_npy_matrix(gradients[2], path);
+    path = test_dir_path + "/neigh_bias_grads.npy";
+    save_npy_matrix(gradients[3], path);
 
     // graph convolution
     matrix<float> graph_convolution_grads = graph_convolution_layer.backward(linear_grads.neigh_grads);
