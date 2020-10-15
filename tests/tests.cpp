@@ -51,7 +51,8 @@ int main() {
     NLLLoss loss_layer;
 
     // dropout
-    matrix<float> dropout_result = dropout_layer.forward(features);
+//    matrix<float> dropout_result = dropout_layer.forward(features);
+    matrix<float> dropout_result = features;  // test without dropout
     path = test_dir_path + "/dropout_result.npy";
     save_npy_matrix(dropout_result, path);
 
@@ -131,9 +132,9 @@ int main() {
     save_npy_matrix(add_grads, path);
 
     // dropout
-    matrix<float> dropout_grads = dropout_layer.backward(add_grads);
-    path = test_dir_path + "/dropout_grads.npy";
-    save_npy_matrix(dropout_grads, path);
+//    matrix<float> dropout_grads = dropout_layer.backward(add_grads);
+//    path = test_dir_path + "/dropout_grads.npy";
+//    save_npy_matrix(dropout_grads, path);
 
     // ReLU
     assert(relu_result.rows == log_softmax_grads.rows);
