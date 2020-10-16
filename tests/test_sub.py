@@ -41,59 +41,15 @@ def test_computations():
     path = flickr_dir_path + "/classes.npy"
     classes = np.load(path)
 
+    path = test_dir_path + "/A.npy"
+    A = load_col_major(path)
+
+    path = test_dir_path + "/B.npy"
+    B = load_col_major(path)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with torch.cuda.device(device):
         # FORWARD PASS
-        # check dropout
-        # to degree it is possible
-        path = test_dir_path + "/dropout_result.npy"
-        dropout_result = load_col_major(path)
-
-        #  probability = 0.2
-        #  dropout_layer = torch.nn.Dropout(p=probability)
-        #  features_torch = torch.from_numpy(features)
-        #  features_torch.requires_grad_()
-        #  features_torch.retain_grad()
-        #  true_dropout_result_torch = dropout_layer(features_torch)
-        #  true_dropout_result = true_dropout_result_torch.detach().numpy()
-        #  dropout_result_torch.requires_grad_()
-        #  dropout_result_torch.retain_grad()
-        # ^TODO renameing happened
-
-        #  percentage_equal = check_isclose(dropout_result, true_dropout_result)
-        #  print("Dropout: Percentage of equal elements: {}".format(percentage_equal))
-
-        true_dropout_result_torch = torch.from_numpy(dropout_result)
-        true_dropout_result_torch.requires_grad_()
-        true_dropout_result_torch.retain_grad()
-
-        #check graph convolution
-        path = test_dir_path + "/graph_convolution_result.npy"
-        graph_conv_result = load_col_major(path)
-
-
-        assert(sp.isspmatrix_coo(adj))
-        values = adj.data
-        indices = np.vstack((adj.row, adj.col))
-        indices = torch.LongTensor(indices)
-        values = torch.FloatTensor(values)
-        shape = adj.shape
-        adj_torch = torch.sparse.FloatTensor(indices, values, torch.Size(shape))
-        
-        true_graph_conv_result_torch = torch.sparse.mm(adj_torch, true_dropout_result_torch)
-        true_graph_conv_result_torch.requires_grad_()
-        true_graph_conv_result_torch.retain_grad()
-
-        # mean
-        sum_torch = torch.sparse.sum(adj_torch, dim=-1)
-        sum_torch = sum_torch.to_dense()
-        for i in range(true_graph_conv_result_torch.shape[1]):
-            true_graph_conv_result_torch[:, i] = true_graph_conv_result_torch[:, i] / sum_torch
-        
-        true_graph_conv_result = true_graph_conv_result_torch.detach().numpy()
-
-        percentage_equal = check_isclose(graph_conv_result, true_graph_conv_result)
-        print("Graph convolution: Percentage of equal elements: {}".format(percentage_equal))
 
         # check sage linear
         path = test_dir_path + "/self_weight.npy"
@@ -107,6 +63,13 @@ def test_computations():
         path = test_dir_path + "/linear_result.npy"
         sage_linear_result = load_col_major(path)
 
+        A_torch = torch.from_numpy(A)
+        A_torch.requires_grad_()
+        A_torch.retain_grad()
+        B_torch = torch.from_numpy(B)
+        B_torch.requires_grad_()
+        B_torch.retain_grad()
+
         self_weight_torch = torch.from_numpy(self_weight)
         self_weight_torch.requires_grad_()
         self_weight_torch.retain_grad()
@@ -114,7 +77,7 @@ def test_computations():
         self_bias_torch.requires_grad_()
         self_bias_torch.retain_grad()
 
-        self_result_torch = torch.matmul(true_dropout_result_torch, self_weight_torch) + self_bias_torch.T
+        self_result_torch = torch.matmul(A_torch, self_weight_torch) + self_bias_torch.T
 
         neigh_weight_torch = torch.from_numpy(neigh_weight)
         neigh_weight_torch.requires_grad_()
@@ -123,7 +86,7 @@ def test_computations():
         neigh_bias_torch.requires_grad_()
         neigh_bias_torch.retain_grad()
 
-        neigh_result_torch = torch.matmul(true_graph_conv_result_torch, neigh_weight_torch) + neigh_bias_torch.T
+        neigh_result_torch = torch.matmul(B_torch, neigh_weight_torch) + neigh_bias_torch.T
         true_sage_linear_result_torch = self_result_torch + neigh_result_torch
 
         true_sage_linear_result = true_sage_linear_result_torch.detach().numpy()
@@ -131,20 +94,6 @@ def test_computations():
         percentage_equal = check_isclose(sage_linear_result, true_sage_linear_result)
         print("SageLinear: Percentage of equal elements: {}".format(percentage_equal))
         
-        # check relu
-        #  path = test_dir_path + "/relu_result.npy"
-        #  relu_result = load_col_major(path)
-
-        #  relu_layer = torch.nn.ReLU()
-        #  sage_linear_result_torch = torch.from_numpy(sage_linear_result)
-        #  sage_linear_result_torch.requires_grad_()
-        #  sage_linear_result_torch = sage_linear_result_torch.retain_grad()
-        #  true_relu_result = relu_layer(sage_linear_result_torch)
-        #  true_relu_result = true_relu_result.detach().numpy()
-
-        #  percentage_equal = check_isclose(relu_result, true_relu_result)
-        #  print("ReLU: Percentage of equal elements: {}".format(percentage_equal))
-
         # check log-softmax
         path = test_dir_path + "/log_softmax_result.npy"
         log_softmax_result = load_col_major(path)
@@ -170,6 +119,8 @@ def test_computations():
         true_loss_result_torch = loss_layer(true_log_softmax_result_torch, classes_torch)
         true_loss_result = true_loss_result_torch.detach().numpy()
 
+        ratio_equal = check_isclose(loss_result, true_loss_result)
+        print("Loss: Ratio of equal elements {}".format(ratio_equal))
         loss_diff = true_loss_result - loss_result
         print("Loss: Difference between loss and true loss: {}".format(loss_diff))
         ratio_off = loss_diff / true_loss_result
@@ -196,11 +147,6 @@ def test_computations():
         ratio_equal = check_isclose(log_softmax_grads, true_log_softmax_grads)
         print("Log-softmax backward: Ratio of equal elements: {}".format(ratio_equal))
 
-        # check relu
-        path = test_dir_path + "/relu_grads.npy"
-        relu_grads = load_col_major(path)
-        # TODO last
-
         # check linear layer
         path = test_dir_path + "/self_grads.npy"
         self_grads = load_col_major(path)
@@ -216,8 +162,8 @@ def test_computations():
         path = test_dir_path + "/neigh_bias_grads.npy"
         neigh_bias_grads = load_col_major(path)
 
-        true_self_grads = true_dropout_result_torch.grad.numpy()
-        true_neigh_grads = true_graph_conv_result_torch.grad.numpy()
+        true_self_grads = A_torch.grad.numpy()
+        true_neigh_grads = B_torch.grad.numpy()
         true_self_weight_grads = self_weight_torch.grad.numpy()
         true_self_bias_grads = self_bias_torch.grad.numpy()
         true_neigh_weight_grads = neigh_weight_torch.grad.numpy()
