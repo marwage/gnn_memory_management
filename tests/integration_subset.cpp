@@ -2,13 +2,13 @@
 
 #include <assert.h>
 
-#include "cuda_helper.hpp"
-#include "graph_convolution.hpp"
-#include "tensors.hpp"
-#include "dropout.hpp"
-#include "sage_linear.hpp"
 #include "activation.hpp"
+#include "cuda_helper.hpp"
+#include "dropout.hpp"
+#include "graph_convolution.hpp"
 #include "loss.hpp"
+#include "sage_linear.hpp"
+#include "tensors.hpp"
 
 
 void check_divmv();

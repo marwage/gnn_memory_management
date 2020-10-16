@@ -3,16 +3,17 @@
 #ifndef CUDA_HELPER_H
 #define CUDA_HELPER_H
 
-#include <cuda_runtime.h>
 #include "cusparse.h"
-#include <cudnn.h>
 #include <cublas_v2.h>
+#include <cuda_runtime.h>
+#include <cudnn.h>
 
 class CudaHelper {
 private:
     cublasStatus_t cublas_status;
     cudnnStatus_t cudnn_status;
     cusparseStatus_t cusparse_status;
+
 public:
     cublasHandle_t cublas_handle;
     cudnnHandle_t cudnn_handle;

@@ -2,13 +2,14 @@
 
 #include <assert.h>
 
-#include "cuda_helper.hpp"
-#include "graph_convolution.hpp"
-#include "tensors.hpp"
-#include "dropout.hpp"
-#include "sage_linear.hpp"
 #include "activation.hpp"
+#include "adam.hpp"
+#include "cuda_helper.hpp"
+#include "dropout.hpp"
+#include "graph_convolution.hpp"
 #include "loss.hpp"
+#include "sage_linear.hpp"
+#include "tensors.hpp"
 
 
 int main() {
@@ -44,9 +45,12 @@ int main() {
     LogSoftmax log_softmax_layer(&cuda_helper);
     NLLLoss loss_layer;
 
+    // optimiser
+    Adam adam(&cuda_helper, learning_rate, linear_layer.get_parameters(), 4);
+
     // dropout
-//    matrix<float> dropout_result = dropout_layer.forward(features);
-    matrix<float> dropout_result = features;  // test without dropout
+    //    matrix<float> dropout_result = dropout_layer.forward(features);
+    matrix<float> dropout_result = features;// test without dropout
     path = test_dir_path + "/dropout_result.npy";
     save_npy_matrix(dropout_result, path);
 
@@ -126,9 +130,9 @@ int main() {
     save_npy_matrix(add_grads, path);
 
     // dropout
-//    matrix<float> dropout_grads = dropout_layer.backward(add_grads);
-//    path = test_dir_path + "/dropout_grads.npy";
-//    save_npy_matrix(dropout_grads, path);
+    //    matrix<float> dropout_grads = dropout_layer.backward(add_grads);
+    //    path = test_dir_path + "/dropout_grads.npy";
+    //    save_npy_matrix(dropout_grads, path);
 
     // ReLU
     assert(relu_result.rows == log_softmax_grads.rows);
@@ -137,8 +141,9 @@ int main() {
     path = test_dir_path + "/relu_grads.npy";
     save_npy_matrix(relu_grads, path);
 
-    // update weights
-    linear_layer.update_weights(learning_rate);
+    // Adam
+    gradients = adam.step(linear_layer.get_gradients());
+    linear_layer.update_weights(gradients);
 
     // compare with Pytorch, Numpy, SciPy
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/integration.py";

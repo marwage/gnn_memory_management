@@ -3,9 +3,9 @@
 #include "activation.hpp"
 #include "cuda_helper.hpp"
 
-#include <limits>
 #include <cuda_runtime.h>
 #include <cudnn.h>
+#include <limits>
 
 
 Relu::Relu(CudaHelper *helper) {
@@ -59,7 +59,6 @@ matrix<float> Relu::forward(matrix<float> X) {
     check_cuda(cudaMemcpy(y_.values, d_y,
                           y_.rows * y_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
-
 
 
     // free GPU memory

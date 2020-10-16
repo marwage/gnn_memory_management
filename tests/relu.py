@@ -1,6 +1,6 @@
 import numpy as np
-import torch
 import os
+import torch
 
 
 def load_col_major(path):
@@ -10,6 +10,7 @@ def load_col_major(path):
     mat = mat.transpose()
 
     return mat
+
 
 def check_isclose(A, B):
     if (A.shape == B.shape):

@@ -2,8 +2,8 @@
 
 #include <iostream>
 
-#include "tensors.hpp"
 #include "dropout.hpp"
+#include "tensors.hpp"
 
 
 void check_dropout() {

@@ -1,7 +1,6 @@
 import numpy as np
-import scipy.sparse as sp
-import scipy.io
 import os
+import scipy.io
 import torch
 
 
@@ -12,6 +11,7 @@ def load_col_major(path):
     mat = mat.transpose()
 
     return mat
+
 
 def check_isclose(A, B):
     if (A.shape == B.shape):
@@ -93,7 +93,7 @@ def test_computations():
 
         percentage_equal = check_isclose(sage_linear_result, true_sage_linear_result)
         print("SageLinear: Percentage of equal elements: {}".format(percentage_equal))
-        
+
         # check log-softmax
         path = test_dir_path + "/log_softmax_result.npy"
         log_softmax_result = load_col_major(path)
@@ -102,7 +102,7 @@ def test_computations():
         true_sage_linear_result_torch.requires_grad_()
         true_sage_linear_result_torch.retain_grad()
         true_log_softmax_result_torch = log_softmax_layer(true_sage_linear_result_torch)
-        true_log_softmax_result_torch.requires_grad_() 
+        true_log_softmax_result_torch.requires_grad_()
         true_log_softmax_result_torch.retain_grad()
         true_log_softmax_result = true_log_softmax_result_torch.detach().numpy()
 
@@ -130,7 +130,7 @@ def test_computations():
         # check loss
         path = test_dir_path + "/loss_grads.npy"
         loss_grads = load_col_major(path)
-        
+
         true_loss_result_torch.backward()
 
         true_loss_grads = true_log_softmax_result_torch.grad.numpy()
@@ -191,4 +191,3 @@ def test_computations():
 
 if __name__ == "__main__":
     test_computations()
-

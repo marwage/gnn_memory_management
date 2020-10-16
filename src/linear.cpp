@@ -211,7 +211,7 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
                           cudaMemcpyDeviceToHost));
 
     // dWeight = input.T * in_gradients
-    float * d_input;
+    float *d_input;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_input),
                           x_.rows * x_.columns * sizeof(float)));
     check_cuda(cudaMemcpy(d_input, x_.values,
@@ -243,8 +243,9 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
     return grad_input;
 }
 
-void Linear::update_weights(float learning_rate) {
-    float alpha = -learning_rate;
+void Linear::update_weights(matrix<float> *gradients) {
+    grad_weight_ = gradients[0];
+    grad_bias_ = gradients[1];
 
     float *d_grads;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_grads),
@@ -260,6 +261,7 @@ void Linear::update_weights(float learning_rate) {
                           weight_.rows * weight_.columns * sizeof(float),
                           cudaMemcpyHostToDevice));
 
+    float alpha = -1.0;
     check_cublas(cublasSaxpy(cuda_helper_->cublas_handle,
                              weight_.rows * weight_.columns,
                              &alpha, d_grads, 1,

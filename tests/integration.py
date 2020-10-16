@@ -1,7 +1,7 @@
 import numpy as np
-import scipy.sparse as sp
-import scipy.io
 import os
+import scipy.io
+import scipy.sparse as sp
 import torch
 
 
@@ -12,6 +12,7 @@ def load_col_major(path):
     mat = mat.transpose()
 
     return mat
+
 
 def check_isclose(A, B):
     if (A.shape == B.shape):
@@ -66,24 +67,24 @@ def test_computations():
         dropout_result_torch.requires_grad_()
         dropout_result_torch.retain_grad()
 
-        #check graph convolution
+        # check graph convolution
         path = test_dir_path + "/graph_convolution_result.npy"
         graph_conv_result = load_col_major(path)
 
-        assert(sp.isspmatrix_coo(adj))
+        assert (sp.isspmatrix_coo(adj))
         values = adj.data
         indices = np.vstack((adj.row, adj.col))
         indices = torch.LongTensor(indices)
         values = torch.FloatTensor(values)
         shape = adj.shape
         adj_torch = torch.sparse.FloatTensor(indices, values, torch.Size(shape))
-        
+
         graph_conv_result_torch = torch.sparse.mm(adj_torch, dropout_result_torch)
         graph_conv_result_torch.requires_grad_()
         graph_conv_result_torch.retain_grad()
 
         true_graph_conv_result = torch.sparse.mm(adj_torch,
-                torch.from_numpy(dropout_result)).numpy()
+                                                 torch.from_numpy(dropout_result)).numpy()
 
         # mean
         sum_torch = torch.sparse.sum(adj_torch, dim=-1)
@@ -92,7 +93,7 @@ def test_computations():
         for i in range(graph_conv_result_torch.shape[1]):
             graph_conv_result_torch[:, i] = graph_conv_result_torch[:, i] / sum_torch
             true_graph_conv_result[:, i] = true_graph_conv_result[:, i] / sum_np
-        
+
         percentage_equal = check_isclose(graph_conv_result, true_graph_conv_result)
         print("Graph convolution: Percentage of equal elements: {}".format(percentage_equal))
 
@@ -131,7 +132,7 @@ def test_computations():
 
         percentage_equal = check_isclose(sage_linear_result, true_sage_linear_result)
         print("SageLinear: Percentage of equal elements: {}".format(percentage_equal))
-        
+
         # check relu
         #  path = test_dir_path + "/relu_result.npy"
         #  relu_result = load_col_major(path)
@@ -154,7 +155,7 @@ def test_computations():
         true_sage_linear_result_torch.requires_grad_()
         true_sage_linear_result_torch.retain_grad()
         true_log_softmax_result_torch = log_softmax_layer(true_sage_linear_result_torch)
-        true_log_softmax_result_torch.requires_grad_() 
+        true_log_softmax_result_torch.requires_grad_()
         true_log_softmax_result_torch.retain_grad()
         true_log_softmax_result = true_log_softmax_result_torch.detach().numpy()
 
@@ -180,7 +181,7 @@ def test_computations():
         # check loss
         path = test_dir_path + "/loss_grads.npy"
         loss_grads = load_col_major(path)
-        
+
         true_loss_result_torch.backward()
 
         true_loss_grads = true_log_softmax_result_torch.grad.numpy()
@@ -256,9 +257,7 @@ def test_computations():
 
         ratio_equal = check_isclose(add_grads, true_add_grads)
         print("Add gradients: Ratio {}".format(ratio_equal))
-        
 
 
 if __name__ == "__main__":
     test_computations()
-

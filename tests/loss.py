@@ -2,7 +2,6 @@ import numpy as np
 import os
 import torch
 
-
 home = os.getenv("HOME")
 dir_path = home + "/gpu_memory_reduction/alzheimer/data/flickr"
 
@@ -37,8 +36,7 @@ loss_grads = loss_grads.transpose()
 
 torch_loss_grads = torch_log_softmax_out.grad.numpy()
 
-assert(loss_grads.shape == torch_log_softmax_out.grad.shape)
-is_close = np.isclose(loss_grads, torch_loss_grads) 
+assert (loss_grads.shape == torch_log_softmax_out.grad.shape)
+is_close = np.isclose(loss_grads, torch_loss_grads)
 percentage_equal = is_close.sum() / loss_grads.size
 print("Loss backward: Percentage of equal elements: {}".format(percentage_equal))
-

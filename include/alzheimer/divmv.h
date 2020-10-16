@@ -3,6 +3,6 @@
 #ifndef DIVMV_H
 #define DIVMV_H
 
-void div_mat_vec(float *X, float*y, int n, int m);
+void div_mat_vec(float *X, float *y, int n, int m);
 
-#endif //DIVMV_H
+#endif//DIVMV_H

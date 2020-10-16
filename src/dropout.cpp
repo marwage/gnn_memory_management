@@ -29,13 +29,13 @@ matrix<float> Dropout::forward(matrix<float> X) {
     cudnnTensorDescriptor_t x_descr;
     check_cudnn(cudnnCreateTensorDescriptor(&x_descr));
     check_cudnn(cudnnSetTensor4dDescriptor(x_descr,
-            CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-            1, 1, X.rows, X.columns));
+                                           CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                                           1, 1, X.rows, X.columns));
     cudnnTensorDescriptor_t y_descr;
     check_cudnn(cudnnCreateTensorDescriptor(&y_descr));
     check_cudnn(cudnnSetTensor4dDescriptor(y_descr,
-            CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-            1, 1, Y.rows, Y.columns));
+                                           CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                                           1, 1, Y.rows, Y.columns));
 
     void *d_X, *d_Y;
     check_cuda(cudaMalloc(&d_X, X.rows * X.columns * sizeof(float)));

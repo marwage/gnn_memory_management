@@ -14,7 +14,7 @@ float NLLLoss::forward(matrix<float> X, matrix<int> y) {
         loss = loss + X.values[y.values[i] * X.rows + i];
     }
     loss = loss / (float) X.rows;
-    loss = - loss;
+    loss = -loss;
 
     input_ = X;
     y_ = y;
@@ -33,7 +33,7 @@ matrix<float> NLLLoss::backward() {
     }
 
     for (int i = 0; i < y_.rows; ++i) {
-        gradients.values[y_.values[i] * y_.rows + i] = - 1.0 / input_.rows;
+        gradients.values[y_.values[i] * y_.rows + i] = -1.0 / input_.rows;
     }
 
     return gradients;

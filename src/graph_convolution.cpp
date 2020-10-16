@@ -1,8 +1,8 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "divmv.h"
 #include "graph_convolution.hpp"
 #include "cuda_helper.hpp"
+#include "divmv.h"
 
 
 GraphConvolution::GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adjacency, std::string reduction) {
@@ -77,8 +77,8 @@ matrix<float> GraphConvolution::forward(matrix<float> B) {
     check_cusparse(cusparseSpMM_bufferSize(cuda_helper_->cusparse_handle,
                                            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                            &alpha, A_descr, B_descr, &beta, result_descr,
-            // CUSPARSE_MM_ALG_DEFAULT is deprecated
-            // but CUSPARSE_SPMM_ALG_DEFAULT is not working
+                                           // CUSPARSE_MM_ALG_DEFAULT is deprecated
+                                           // but CUSPARSE_SPMM_ALG_DEFAULT is not working
                                            CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,
                                            &buffer_size));
     void *d_buffer;
@@ -148,7 +148,7 @@ matrix<float> GraphConvolution::forward(matrix<float> B) {
 
         // free CPU memory
         free(ones.values);
-    }  // end mean
+    }// end mean
 
     // copy result to CPU memory
     check_cuda(cudaMemcpy(result.values, d_result,

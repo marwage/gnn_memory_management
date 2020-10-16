@@ -3,8 +3,8 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-#include "divmv.h"
 #include "cuda_helper.hpp"
+#include "divmv.h"
 #include "tensors.hpp"
 
 

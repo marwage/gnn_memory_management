@@ -1,12 +1,13 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "cuda_helper.hpp"
-#include "graph_convolution.hpp"
-#include "tensors.hpp"
-#include "dropout.hpp"
-#include "sage_linear.hpp"
 #include "activation.hpp"
+#include "cuda_helper.hpp"
+#include "dropout.hpp"
+#include "graph_convolution.hpp"
 #include "loss.hpp"
+#include "sage_linear.hpp"
+#include "tensors.hpp"
+#include <adam.hpp>
 
 
 int main() {
@@ -61,13 +62,18 @@ int main() {
     LogSoftmax log_softmax(&cuda_helper);
     NLLLoss loss_layer;
 
+    // optimizer
+    Adam adam_0(&cuda_helper, learning_rate, linear_0.get_parameters(), 4);
+    Adam adam_1(&cuda_helper, learning_rate, linear_1.get_parameters(), 4);
+    Adam adam_2(&cuda_helper, learning_rate, linear_2.get_parameters(), 4);
+
     matrix<float> signals;
     matrix<float> signals_dropout;
     matrix<float> gradients;
     SageLinear::SageLinearGradients sage_linear_gradients;
     float loss;
 
-    int num_epochs = 1;
+    int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
         // dropout 0
         signals_dropout = dropout_0.forward(features);
@@ -151,11 +157,18 @@ int main() {
 
         // no need for graph conv 0 and dropout 0
 
+        // optimiser
+        matrix<float> *gradient_0 = adam_0.step(linear_0.get_gradients());
+        matrix<float> *gradient_1 = adam_1.step(linear_1.get_gradients());
+        matrix<float> *gradient_2 = adam_2.step(linear_2.get_gradients());
+
         // update weights
-        linear_2.update_weights(learning_rate);
-        linear_1.update_weights(learning_rate);
-        linear_0.update_weights(learning_rate);
-    }  // end training loop
+        linear_0.update_weights(gradient_0);
+        linear_1.update_weights(gradient_1);
+        linear_2.update_weights(gradient_2);
+
+
+    }// end training loop
 
     // CLEAN-UP
     // destroy cuda handles
@@ -168,4 +181,3 @@ int main() {
     free(val_mask.values);
     free(test_mask.values);
 }
-

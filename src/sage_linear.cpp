@@ -10,10 +10,10 @@ SageLinear::SageLinear(int in_features, int out_features, CudaHelper *helper) {
     num_in_features_ = in_features;
     num_out_features_ = out_features;
     linear_self_ = Linear(num_in_features_, num_out_features_, cuda_helper_);
-    linear_neigh_= Linear(num_in_features_, num_out_features_, cuda_helper_);
+    linear_neigh_ = Linear(num_in_features_, num_out_features_, cuda_helper_);
 }
 
-matrix<float>* SageLinear::get_parameters() {
+matrix<float> *SageLinear::get_parameters() {
     matrix<float> *self_params = linear_self_.get_parameters();
     matrix<float> *neigh_params = linear_neigh_.get_parameters();
     matrix<float> *params = (matrix<float> *) malloc(4 * sizeof(matrix<float>));
@@ -25,7 +25,7 @@ matrix<float>* SageLinear::get_parameters() {
     return params;
 }
 
-matrix<float>* SageLinear::get_gradients() {
+matrix<float> *SageLinear::get_gradients() {
     matrix<float> *self_grads = linear_self_.get_gradients();
     matrix<float> *neigh_grads = linear_neigh_.get_gradients();
     matrix<float> *grads = (matrix<float> *) malloc(4 * sizeof(matrix<float>));
@@ -38,13 +38,13 @@ matrix<float>* SageLinear::get_gradients() {
 }
 
 matrix<float> SageLinear::forward(matrix<float> features,
-        matrix<float> aggr) {
+                                  matrix<float> aggr) {
     matrix<float> self_result = linear_self_.forward(features);
     matrix<float> neigh_result = linear_neigh_.forward(aggr);
 
     float *d_self;
     check_cuda(cudaMalloc((void **) &d_self,
-                          self_result.rows * self_result.columns * sizeof(float)) );
+                          self_result.rows * self_result.columns * sizeof(float)));
     check_cuda(cudaMemcpy(d_self, self_result.values,
                           self_result.rows * self_result.columns * sizeof(float),
                           cudaMemcpyHostToDevice));
@@ -81,7 +81,7 @@ SageLinear::SageLinearGradients SageLinear::backward(matrix<float> in_gradients)
     return grads;
 }
 
-void SageLinear::update_weights(float learning_rate) {
-    linear_self_.update_weights(learning_rate);
-    linear_neigh_.update_weights(learning_rate);
+void SageLinear::update_weights(matrix<float> *gradients) {
+    linear_self_.update_weights(gradients);
+    linear_neigh_.update_weights(&gradients[2]);
 }

@@ -3,8 +3,8 @@
 #ifndef ACTIVATION_H
 #define ACTIVATION_H
 
-#include "tensors.hpp"
 #include "cuda_helper.hpp"
+#include "tensors.hpp"
 
 
 class Relu {
@@ -17,6 +17,7 @@ private:
     matrix<float> y_;
     matrix<float> x_;
     cudnnTensorDescriptor_t x_desc_;
+
 public:
     Relu(CudaHelper *helper);
 
@@ -31,6 +32,7 @@ private:
     float beta_;
     matrix<float> y_;
     CudaHelper *cuda_helper_;
+
 public:
     LogSoftmax(CudaHelper *helper);
 

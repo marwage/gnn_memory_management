@@ -19,9 +19,12 @@ set(HEADER_FILES
         include/alzheimer/activation.hpp
         include/alzheimer/loss.hpp
         include/alzheimer/sage_linear.hpp
+        include/alzheimer/adam.hpp
         include/alzheimer/mmio_wrapper.hpp
         include/alzheimer/mmio.h
-        include/alzheimer/divmv.h)
+        include/alzheimer/divmv.h
+        include/alzheimer/axpby.h
+        include/alzheimer/invsqrt.h)
 
 set(SOURCE_FILES
         src/tensors.cpp
@@ -32,9 +35,12 @@ set(SOURCE_FILES
         src/activation.cpp
         src/loss.cpp
         src/sage_linear.cpp
+        src/adam.cpp
         src/mmio_wrapper.cpp
         src/mmio.c
-        src/divmv.cu)
+        src/divmv.cu
+        src/axpby.cu
+        src/invsqrt.cu)
 
 add_executable(${PROJECT_NAME}
         src/alzheimer.cpp

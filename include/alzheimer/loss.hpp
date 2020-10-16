@@ -10,6 +10,7 @@ class NLLLoss {
 private:
     matrix<float> input_;
     matrix<int> y_;
+
 public:
     NLLLoss();
     float forward(matrix<float> X, matrix<int> y);

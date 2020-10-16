@@ -2,9 +2,9 @@
 
 #include <stdlib.h>
 
-#include "tensors.hpp"
 #include "activation.hpp"
 #include "cuda_helper.hpp"
+#include "tensors.hpp"
 
 
 void check_log_softmax_forward() {

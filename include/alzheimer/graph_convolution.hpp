@@ -5,8 +5,8 @@
 
 #include <iostream>
 
-#include "tensors.hpp"
 #include "cuda_helper.hpp"
+#include "tensors.hpp"
 
 
 class GraphConvolution {
