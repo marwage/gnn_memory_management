@@ -54,23 +54,21 @@ def test_computations():
         #  features_torch = torch.from_numpy(features)
         #  features_torch.requires_grad_()
         #  features_torch.retain_grad()
-        #  true_dropout_result_torch = dropout_layer(features_torch)
-        #  true_dropout_result = true_dropout_result_torch.detach().numpy()
+        #  dropout_result_torch = dropout_layer(features_torch)
         #  dropout_result_torch.requires_grad_()
         #  dropout_result_torch.retain_grad()
-        # ^TODO renameing happened
+        #  true_dropout_result = dropout_result_torch.detach().numpy()  # Not really true
 
         #  percentage_equal = check_isclose(dropout_result, true_dropout_result)
         #  print("Dropout: Percentage of equal elements: {}".format(percentage_equal))
 
-        true_dropout_result_torch = torch.from_numpy(dropout_result)
-        true_dropout_result_torch.requires_grad_()
-        true_dropout_result_torch.retain_grad()
+        dropout_result_torch = torch.from_numpy(dropout_result)
+        dropout_result_torch.requires_grad_()
+        dropout_result_torch.retain_grad()
 
         #check graph convolution
         path = test_dir_path + "/graph_convolution_result.npy"
         graph_conv_result = load_col_major(path)
-
 
         assert(sp.isspmatrix_coo(adj))
         values = adj.data
@@ -80,18 +78,21 @@ def test_computations():
         shape = adj.shape
         adj_torch = torch.sparse.FloatTensor(indices, values, torch.Size(shape))
         
-        true_graph_conv_result_torch = torch.sparse.mm(adj_torch, true_dropout_result_torch)
-        true_graph_conv_result_torch.requires_grad_()
-        true_graph_conv_result_torch.retain_grad()
+        graph_conv_result_torch = torch.sparse.mm(adj_torch, dropout_result_torch)
+        graph_conv_result_torch.requires_grad_()
+        graph_conv_result_torch.retain_grad()
+
+        true_graph_conv_result = torch.sparse.mm(adj_torch,
+                torch.from_numpy(dropout_result)).numpy()
 
         # mean
         sum_torch = torch.sparse.sum(adj_torch, dim=-1)
         sum_torch = sum_torch.to_dense()
-        for i in range(true_graph_conv_result_torch.shape[1]):
-            true_graph_conv_result_torch[:, i] = true_graph_conv_result_torch[:, i] / sum_torch
+        sum_np = sum_torch.numpy()
+        for i in range(graph_conv_result_torch.shape[1]):
+            graph_conv_result_torch[:, i] = graph_conv_result_torch[:, i] / sum_torch
+            true_graph_conv_result[:, i] = true_graph_conv_result[:, i] / sum_np
         
-        true_graph_conv_result = true_graph_conv_result_torch.detach().numpy()
-
         percentage_equal = check_isclose(graph_conv_result, true_graph_conv_result)
         print("Graph convolution: Percentage of equal elements: {}".format(percentage_equal))
 
@@ -114,7 +115,7 @@ def test_computations():
         self_bias_torch.requires_grad_()
         self_bias_torch.retain_grad()
 
-        self_result_torch = torch.matmul(true_dropout_result_torch, self_weight_torch) + self_bias_torch.T
+        self_result_torch = torch.matmul(dropout_result_torch, self_weight_torch) + self_bias_torch.T
 
         neigh_weight_torch = torch.from_numpy(neigh_weight)
         neigh_weight_torch.requires_grad_()
@@ -123,7 +124,7 @@ def test_computations():
         neigh_bias_torch.requires_grad_()
         neigh_bias_torch.retain_grad()
 
-        neigh_result_torch = torch.matmul(true_graph_conv_result_torch, neigh_weight_torch) + neigh_bias_torch.T
+        neigh_result_torch = torch.matmul(graph_conv_result_torch, neigh_weight_torch) + neigh_bias_torch.T
         true_sage_linear_result_torch = self_result_torch + neigh_result_torch
 
         true_sage_linear_result = true_sage_linear_result_torch.detach().numpy()
@@ -216,19 +217,15 @@ def test_computations():
         path = test_dir_path + "/neigh_bias_grads.npy"
         neigh_bias_grads = load_col_major(path)
 
-        true_self_grads = true_dropout_result_torch.grad.numpy()
-        true_neigh_grads = true_graph_conv_result_torch.grad.numpy()
+        # true_self_grads NOT POSSIBLE
+        true_neigh_grads = graph_conv_result_torch.grad.numpy()
         true_self_weight_grads = self_weight_torch.grad.numpy()
         true_self_bias_grads = self_bias_torch.grad.numpy()
         true_neigh_weight_grads = neigh_weight_torch.grad.numpy()
         true_neigh_bias_grads = neigh_bias_torch.grad.numpy()
 
-        #  grad_neigh_in = true_log_softmax_grads @ neigh_weight.T
-        #  ratio_equal = check_isclose(grad_neigh_in, true_neigh_grads)
-        #  print("MANUAL Linear neigh: Ratio of equal elements {}".format(ratio_equal))
-
-        ratio_equal = check_isclose(self_grads, true_self_grads)
-        print("Linear self: Ratio of equal elements {}".format(ratio_equal))
+        #  ratio_equal = check_isclose(self_grads, true_self_grads)
+        #  print("Linear self: Ratio of equal elements {}".format(ratio_equal))
         ratio_equal = check_isclose(neigh_grads, true_neigh_grads)
         print("Linear neigh: Ratio of equal elements {}".format(ratio_equal))
         ratio_equal = check_isclose(self_weight_grads, true_self_weight_grads)
@@ -241,6 +238,25 @@ def test_computations():
         ratio_equal = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
         print("Linear neigh bias: Ratio {}".format(ratio_equal))
         print("Linear neigh bias: !!! Currently, it looks good by the eye !!!")
+
+        # check graph convolution
+        path = test_dir_path + "/graph_convolution_grads.npy"
+        graph_conv_grads = load_col_major(path)
+
+        # NOT possible
+
+        #  ratio_equal = check_isclose(graph_conv_grads, true_graph_conv_grads)
+        #  print("Graph convolution: Ratio {}".format(ratio_equal))
+
+        # check add
+        path = test_dir_path + "/add_grads.npy"
+        add_grads = load_col_major(path)
+
+        true_add_grads = dropout_result_torch.grad.numpy()
+
+        ratio_equal = check_isclose(add_grads, true_add_grads)
+        print("Add gradients: Ratio {}".format(ratio_equal))
+        
 
 
 if __name__ == "__main__":
