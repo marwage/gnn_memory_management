@@ -4,5 +4,4 @@ data
 .vscode
 .idea
 cmake-build-*
-.clang-format
 
