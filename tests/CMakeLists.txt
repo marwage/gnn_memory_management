@@ -1,7 +1,7 @@
-set(TEST_NAME test)
+set(TEST_NAME test_integration)
 
 add_executable(${TEST_NAME}
-        tests/tests.cpp
+        tests/test_integration.cpp
         tests/divmv.cpp
         tests/log_softmax.cpp
         tests/loss.cpp
@@ -22,10 +22,10 @@ target_link_libraries(${TEST_NAME}
         ${CUDA_CUBLAS_LIBRARIES})
 
 
-set(TEST_NAME test_sub)
+set(TEST_NAME test_integration_subset)
 
 add_executable(${TEST_NAME}
-        tests/tests_sub.cpp
+        tests/test_integration_subset.cpp
         tests/divmv.cpp
         tests/log_softmax.cpp
         tests/loss.cpp
