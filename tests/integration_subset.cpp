@@ -127,7 +127,7 @@ int main() {
     save_npy_matrix(gradients[3], path);
 
     // compare with Pytorch, Numpy, SciPy
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/test_sub.py";
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/integration_subset.py";
     system(command);
 
     // CLEAN-UP

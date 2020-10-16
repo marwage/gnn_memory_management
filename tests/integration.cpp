@@ -11,12 +11,6 @@
 #include "loss.hpp"
 
 
-void check_divmv();
-
-void check_log_softmax_forward();
-
-void check_loss();
-
 int main() {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
@@ -147,7 +141,7 @@ int main() {
     linear_layer.update_weights(learning_rate);
 
     // compare with Pytorch, Numpy, SciPy
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/test_computations.py";
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/integration.py";
     system(command);
 
     // CLEAN-UP

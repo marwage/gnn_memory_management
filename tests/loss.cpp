@@ -24,6 +24,10 @@ void check_loss() {
     path = dir_path + "/loss_grads.npy";
     save_npy_matrix(grads, path);
 
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/check_loss.py";
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/loss.py";
     system(command);
+}
+
+int main() {
+    check_loss();
 }

@@ -102,19 +102,8 @@ int main() {
         // linear layer 2
         signals = linear_2.forward(signals_dropout, signals);
 
-        // DEBUG
-        print_matrix(signals);
-        path = dir_path + "/log_softmax_in.npy";
-        save_npy_matrix(signals, path);
-
         // log-softmax
         signals = log_softmax.forward(signals);
-
-        // DEBUG
-        std::cout << "-----" << std::endl;
-        print_matrix(signals);
-        path = dir_path + "/log_softmax_out.npy";
-        save_npy_matrix(signals, path);
 
         // loss
         loss = loss_layer.forward(signals, classes);
@@ -161,12 +150,12 @@ int main() {
         sage_linear_gradients = linear_0.backward(gradients);
 
         // no need for graph conv 0 and dropout 0
-    }  // end training loop
 
-    // update weights
-    linear_2.update_weights(learning_rate);
-    linear_1.update_weights(learning_rate);
-    linear_0.update_weights(learning_rate);
+        // update weights
+        linear_2.update_weights(learning_rate);
+        linear_1.update_weights(learning_rate);
+        linear_0.update_weights(learning_rate);
+    }  // end training loop
 
     // CLEAN-UP
     // destroy cuda handles

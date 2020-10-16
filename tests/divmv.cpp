@@ -68,3 +68,7 @@ void check_divmv() {
         std::cout << "divmv does not work" << std::endl;
     }
 }
+
+int main() {
+    check_divmv();
+}
