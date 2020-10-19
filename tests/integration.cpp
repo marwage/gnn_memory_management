@@ -143,6 +143,11 @@ int main() {
 
     // Adam
     gradients = adam.step(linear_layer.get_gradients());
+    for (int i = 0; i < 4; ++i) {
+        path = test_dir_path + "/adam_grads_" + std::to_string(i) + ".npy";
+        save_npy_matrix(gradients[i], path);
+    }
+
     linear_layer.update_weights(gradients);
 
     // compare with Pytorch, Numpy, SciPy

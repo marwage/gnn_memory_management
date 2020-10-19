@@ -24,7 +24,8 @@ set(HEADER_FILES
         include/alzheimer/mmio.h
         include/alzheimer/divmv.h
         include/alzheimer/axpby.h
-        include/alzheimer/invsqrt.h)
+        include/alzheimer/invsqrt.h
+        include/alzheimer/elesq.h)
 
 set(SOURCE_FILES
         src/tensors.cpp
@@ -40,7 +41,7 @@ set(SOURCE_FILES
         src/mmio.c
         src/divmv.cu
         src/axpby.cu
-        src/invsqrt.cu)
+        src/invsqrt.cu src/elesq.cu src/axdy.cu)
 
 add_executable(${PROJECT_NAME}
         src/alzheimer.cpp
