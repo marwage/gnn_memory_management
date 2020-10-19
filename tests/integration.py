@@ -116,8 +116,6 @@ def test_computations():
         self_bias_torch.requires_grad_()
         self_bias_torch.retain_grad()
 
-        self_result_torch = torch.matmul(dropout_result_torch, self_weight_torch) + self_bias_torch.T
-
         neigh_weight_torch = torch.from_numpy(neigh_weight)
         neigh_weight_torch.requires_grad_()
         neigh_weight_torch.retain_grad()
@@ -125,6 +123,15 @@ def test_computations():
         neigh_bias_torch.requires_grad_()
         neigh_bias_torch.retain_grad()
 
+        learning_rate = 0.003
+        params = [self_weight_torch,
+            self_bias_torch,
+            neigh_weight_torch,
+            neigh_bias_torch]
+        optimiser = torch.optim.Adam(params, lr=learning_rate)
+        optimiser.zero_grad()
+
+        self_result_torch = torch.matmul(dropout_result_torch, self_weight_torch) + self_bias_torch.T
         neigh_result_torch = torch.matmul(graph_conv_result_torch, neigh_weight_torch) + neigh_bias_torch.T
         true_sage_linear_result_torch = self_result_torch + neigh_result_torch
 
@@ -257,6 +264,9 @@ def test_computations():
 
         ratio_equal = check_isclose(add_grads, true_add_grads)
         print("Add gradients: Ratio {}".format(ratio_equal))
+
+        # check Adam
+        optimiser.step()
 
 
 if __name__ == "__main__":
