@@ -19,6 +19,7 @@ private:
 public:
     Dropout(CudaHelper *helper);
     matrix<float> forward(matrix<float> X);
+    matrix<float> forward_chunked(matrix<float> X);
     matrix<float> backward(matrix<float> in_gradients);
 };
 

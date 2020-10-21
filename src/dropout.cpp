@@ -72,6 +72,68 @@ matrix<float> Dropout::forward(matrix<float> X) {
     return Y;
 }
 
+matrix<float> Dropout::forward_chunked(matrix<float> X) {
+    float probability = 0.2f;
+    check_cudnn(cudnnDropoutGetStatesSize(cuda_helper_->cudnn_handle, &state_size_));
+    void *d_states;
+    check_cuda(cudaMalloc(&d_states, state_size_));
+    unsigned long long seed = rand();
+    check_cudnn(cudnnCreateDropoutDescriptor(&dropout_desc_));
+    check_cudnn(cudnnSetDropoutDescriptor(dropout_desc_,
+                                          cuda_helper_->cudnn_handle, probability,
+                                          d_states, state_size_, seed));
+
+    matrix<float> Y;
+    Y.rows = X.rows;
+    Y.columns = X.columns;
+    Y.values = (float *) malloc(Y.rows * Y.columns * sizeof(float));
+
+    cudnnTensorDescriptor_t x_descr;
+    check_cudnn(cudnnCreateTensorDescriptor(&x_descr));
+    check_cudnn(cudnnSetTensor4dDescriptor(x_descr,
+                                           CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                                           1, 1, X.rows, X.columns));
+    cudnnTensorDescriptor_t y_descr;
+    check_cudnn(cudnnCreateTensorDescriptor(&y_descr));
+    check_cudnn(cudnnSetTensor4dDescriptor(y_descr,
+                                           CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                                           1, 1, Y.rows, Y.columns));
+
+    void *d_X, *d_Y;
+    check_cuda(cudaMalloc(&d_X, X.rows * X.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_X, X.values, X.rows * X.columns * sizeof(float),
+                          cudaMemcpyHostToDevice));
+    check_cuda(cudaMalloc(&d_Y, Y.rows * Y.columns * sizeof(float)));
+
+    void *d_reserve_space;
+    check_cudnn(cudnnDropoutGetReserveSpaceSize(x_descr, &reserve_space_size_));
+    check_cuda(cudaMalloc(&d_reserve_space, reserve_space_size_));
+    check_cudnn(cudnnDropoutForward(cuda_helper_->cudnn_handle,
+                                    dropout_desc_, x_descr, d_X,
+                                    y_descr, d_Y,
+                                    d_reserve_space, reserve_space_size_));
+
+
+    check_cuda(cudaMemcpy(Y.values, d_Y, Y.rows * Y.columns * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    reserve_space_ = reinterpret_cast<void *>(malloc(reserve_space_size_));
+    check_cuda(cudaMemcpy(reserve_space_, d_reserve_space,
+                          reserve_space_size_,
+                          cudaMemcpyDeviceToHost));
+
+    states_ = reinterpret_cast<void *>(malloc(state_size_));
+    check_cuda(cudaMemcpy(states_, d_states, state_size_,
+                          cudaMemcpyDeviceToHost));
+
+    check_cuda(cudaFree(d_states));
+    check_cuda(cudaFree(d_reserve_space));
+    check_cuda(cudaFree(d_X));
+    check_cuda(cudaFree(d_Y));
+
+    return Y;
+}
+
 matrix<float> Dropout::backward(matrix<float> in_gradients) {
     void *d_states;
     check_cuda(cudaMalloc(&d_states, state_size_));
