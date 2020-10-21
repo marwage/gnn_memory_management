@@ -24,6 +24,14 @@ def check_isclose(A, B):
     return ratio_equal
 
 
+def num_equal_rows(A, B):
+    num_rows = 0
+    for i in range(A.shape[0]):
+        if np.isclose(A[i], B[i]).sum() == A[i].size:
+            num_rows = num_rows + 1
+    return num_rows
+
+
 def main():
     home = os.getenv("HOME")
     dir_path = home + "/gpu_memory_reduction/alzheimer/data"

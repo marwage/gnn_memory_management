@@ -61,4 +61,25 @@ target_link_libraries(${PROJECT_NAME}
         cudnn
         ${CUDA_CUBLAS_LIBRARIES})
 
+
+add_executable(${PROJECT_NAME}_chunked
+        src/alzheimer_chunked.cpp
+        ${SOURCE_FILES})
+
+target_include_directories(${PROJECT_NAME}_chunked
+        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
+        PRIVATE /usr/local/cuda/include)
+
+target_link_directories(${PROJECT_NAME}_chunked
+        PRIVATE /usr/local/lib)
+
+target_link_libraries(${PROJECT_NAME}_chunked
+        cnpy
+        ${CUDA_LIBRARIES}
+        ${CUDA_cusparse_LIBRARY}
+        cudnn
+        ${CUDA_CUBLAS_LIBRARIES})
+
+
 include(tests/CMakeLists.txt)
+
