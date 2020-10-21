@@ -46,10 +46,10 @@ def main():
     num_rows = num_equal_rows(dropout_result, dropout_result_chunked)
     print("Dropout: Number of equal rows {}".format(num_rows))
 
-    #  path = test_dir_path + "/dropout_gradients.npy"
-    #  dropout_grads = load_col_major(path)
-    #  path = test_dir_path + "/in_gradients.npy"
-    #  in_gradients = load_col_major(path)
+    path = test_dir_path + "/dropout_gradients_chunked.npy"
+    dropout_grads = load_col_major(path)
+    path = test_dir_path + "/in_gradients.npy"
+    in_gradients = load_col_major(path)
 
 if __name__ == "__main__":
     main()

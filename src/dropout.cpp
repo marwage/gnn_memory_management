@@ -75,7 +75,7 @@ matrix<float> Dropout::forward(matrix<float> X) {
 }
 
 matrix<float> Dropout::forward_chunked(matrix<float> X, int chunk_size) {
-    int num_chunks = ceil((float) X.rows / (float) chunk_size);
+    num_chunks_ = ceil((float) X.rows / (float) chunk_size);
 
     float probability = 0.2f;
     check_cudnn(cudnnDropoutGetStatesSize(cuda_helper_->cudnn_handle, &state_size_));
@@ -104,18 +104,17 @@ matrix<float> Dropout::forward_chunked(matrix<float> X, int chunk_size) {
     check_cuda(cudaMalloc(&d_X, chunk_size * X.columns * sizeof(float)));
     check_cuda(cudaMalloc(&d_Y, chunk_size * Y.columns * sizeof(float)));
 
+    reserve_spaces_ = std::vector<void *>(num_chunks_);
     int last_chunk_size;
-    if (num_chunks * chunk_size > X.rows) {
-        last_chunk_size = X.rows - (num_chunks - 1) * chunk_size;
+    if (num_chunks_ * chunk_size > X.rows) {
+        last_chunk_size = X.rows - (num_chunks_ - 1) * chunk_size;
     } else {
         last_chunk_size = chunk_size;
     }
 
-    void *reserve_spaces[num_chunks]; 
-
     int current_chunk_size = chunk_size;
-    for (int c = 0; c < num_chunks; ++c) {
-        if (c == (num_chunks - 1)) {
+    for (int c = 0; c < num_chunks_; ++c) {
+        if (c == (num_chunks_ - 1)) {
             current_chunk_size = last_chunk_size;
         }
 
@@ -131,7 +130,6 @@ matrix<float> Dropout::forward_chunked(matrix<float> X, int chunk_size) {
         if (c == 0) {
             check_cudnn(cudnnDropoutGetReserveSpaceSize(x_descr, &reserve_space_size_));
             check_cuda(cudaMalloc(&d_reserve_space, reserve_space_size_));
-
         }
         check_cudnn(cudnnDropoutForward(cuda_helper_->cudnn_handle,
                                         dropout_desc_, x_descr, d_X,
@@ -142,8 +140,8 @@ matrix<float> Dropout::forward_chunked(matrix<float> X, int chunk_size) {
         check_cuda(cudaMemcpy(&Y.values[c * chunk_size], d_Y, current_chunk_size * Y.columns * sizeof(float),
                               cudaMemcpyDeviceToHost));
 
-        reserve_spaces[c] = reinterpret_cast<void *>(malloc(reserve_space_size_));
-        check_cuda(cudaMemcpy(reserve_spaces[c], d_reserve_space,
+        reserve_spaces_[c] = malloc(reserve_space_size_);
+        check_cuda(cudaMemcpy(reserve_spaces_[c], d_reserve_space,
                               reserve_space_size_,
                               cudaMemcpyDeviceToHost));
     }
@@ -205,3 +203,70 @@ matrix<float> Dropout::backward(matrix<float> in_gradients) {
 
     return grad_input;
 }
+
+matrix<float> Dropout::backward_chunked(matrix<float> in_gradients, int chunk_size) {
+    to_row_major(&in_gradients);
+
+    matrix<float> grad_input;
+    grad_input.rows = in_gradients.rows;
+    grad_input.columns = in_gradients.columns;
+    grad_input.values = reinterpret_cast<float *>(malloc(grad_input.rows * grad_input.columns * sizeof(float)));
+
+    cudnnTensorDescriptor_t dy_desc;
+    check_cudnn(cudnnCreateTensorDescriptor(&dy_desc));
+    cudnnTensorDescriptor_t dx_desc;
+    check_cudnn(cudnnCreateTensorDescriptor(&dx_desc));
+    float *d_dy;
+    check_cuda(cudaMalloc(&d_dy, chunk_size * in_gradients.columns * sizeof(float)));
+    float *d_dx;
+    check_cuda(cudaMalloc(&d_dx, chunk_size * in_gradients.columns * sizeof(float)));
+    void *d_reserve_space;
+    check_cuda(cudaMalloc(&d_reserve_space, reserve_space_size_));
+
+    int last_chunk_size;
+    if (num_chunks_ * chunk_size > in_gradients.rows) {
+        last_chunk_size = in_gradients.rows - (num_chunks_ - 1) * chunk_size;
+    } else {
+        last_chunk_size = chunk_size;
+    }
+
+    int current_chunk_size = chunk_size;
+    for (int c = 0; c < num_chunks_; ++c) {
+        if (c == (num_chunks_ - 1)) {
+            current_chunk_size = last_chunk_size;
+        }
+
+        check_cudnn(cudnnSetTensor4dDescriptor(dy_desc,
+                                               CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                                               1, 1, current_chunk_size, in_gradients.columns));
+        check_cuda(cudaMemcpy(d_dy, &in_gradients.values[c * chunk_size],
+                              current_chunk_size * in_gradients.columns,
+                              cudaMemcpyHostToDevice));
+        check_cudnn(cudnnSetTensor4dDescriptor(dx_desc,
+                                               CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+                                               1, 1, current_chunk_size, in_gradients.columns));
+
+        check_cuda(cudaMemcpy(d_reserve_space, &reserve_spaces_[c],
+                              reserve_space_size_,
+                              cudaMemcpyHostToDevice));
+
+        // It is expected that reserveSpace was populated during a call to cudnnDropoutForward and has not been changed
+        check_cudnn(cudnnDropoutBackward(cuda_helper_->cudnn_handle,
+                                         dropout_desc_,
+                                         dy_desc, d_dy,
+                                         dx_desc, d_dx,
+                                         d_reserve_space, reserve_space_size_));
+
+        check_cuda(cudaMemcpy(&grad_input.values[c * chunk_size], d_dx,
+                              current_chunk_size * grad_input.columns * sizeof(float),
+                              cudaMemcpyDeviceToHost));
+    }
+
+    //clean-up
+    check_cuda(cudaFree(d_dy));
+    check_cuda(cudaFree(d_dx));
+    check_cuda(cudaFree(d_reserve_space));
+
+    return grad_input;
+}
+

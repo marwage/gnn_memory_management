@@ -5,7 +5,7 @@
 
 #include "cuda_helper.hpp"
 #include "tensors.hpp"
-
+#include <vector>
 
 class Dropout {
 private:
@@ -15,12 +15,15 @@ private:
     cudnnDropoutDescriptor_t dropout_desc_;
     void *states_;
     size_t state_size_;
+    std::vector <void *> reserve_spaces_;
+    int num_chunks_;
 
 public:
     Dropout(CudaHelper *helper);
     matrix<float> forward(matrix<float> X);
     matrix<float> forward_chunked(matrix<float> X, int chunk_size);
     matrix<float> backward(matrix<float> in_gradients);
+    matrix<float> backward_chunked(matrix<float> in_gradients, int chunk_size);
 };
 
 #endif

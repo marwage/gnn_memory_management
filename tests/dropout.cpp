@@ -81,20 +81,12 @@ void check_dropout_chunked(int chunk_size) {
     path = test_dir_path + "/dropout_result_chunked.npy";
     save_npy_matrix(dropout_result, path);
 
-    // matrix<float> in_gradients;
-    // in_gradients.rows = features.rows;
-    // in_gradients.columns = features.columns;
-    // in_gradients.values = reinterpret_cast<float *>(
-            // malloc(in_gradients.rows * in_gradients.columns * sizeof(float)));
-    // for (int i = 0; i < in_gradients.rows * in_gradients.columns; ++i) {
-        // in_gradients.values[i] = rand();
-    // }
-    // path = test_dir_path + "/in_gradients.npy";
-    // save_npy_matrix(in_gradients, path);
+    path = test_dir_path + "/in_gradients.npy";
+    matrix<float> in_gradients = load_npy_matrix<float>(path);
 
-    // matrix<float> gradients = dropout_layer.backward(in_gradients);
-    // path = test_dir_path + "/dropout_gradients.npy";
-    // save_npy_matrix(gradients, path);
+    matrix<float> gradients = dropout_layer.backward_chunked(in_gradients, chunk_size);
+    path = test_dir_path + "/dropout_gradients_chunked.npy";
+    save_npy_matrix(gradients, path);
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/dropout_chunked.py";
     system(command);
