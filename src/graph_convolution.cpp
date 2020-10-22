@@ -257,3 +257,68 @@ matrix<float> GraphConvolution::backward(matrix<float> in_gradients) {
 
     return grad_input;
 }
+
+GraphConvChunked::GraphConvChunked(CudaHelper *helper, sparse_matrix<float> *adjacency, std::string reduction, int chunk_size) {
+    cuda_helper_ = helper;
+    adjacency_ = adjacency;
+    reduction_ = reduction;
+    chunk_size_ = chunk_size_;
+    if (reduction_.compare("mean") == 0) {
+        mean_ = true;
+    } else if (reduction_.compare("sum") == 0) {
+        mean_ = false;
+    } else {
+        std::cout << "Reduction not supported" << std::endl;
+    }
+}
+
+matrix<float> GraphConvChunked::forward(matrix<float> X) {
+    num_chunks_ = ceil((float) X.rows / (float) chunk_size_);
+
+    graph_conv_layers_ = reinterpret_cast<GraphConvolution *>(malloc(num_chunks_ * sizeof(GraphConvolution)));
+    int last_index;
+    for (int i = 0; i < num_chunks_; ++i) {
+        if ((i + 1) * chunk_size_ > X.rows) {
+            last_index = X.rows;
+        } else {
+            last_index = (i + 1) * chunk_size_;
+        }
+        sparse_matrix<float> reduced_adj = get_rows(*adjacency_, i * chunk_size_, last_index);
+        GraphConvolution conv = GraphConvolution(cuda_helper_, &reduced_adj, reduction_);
+        graph_conv_layers_[i] = conv;
+    }
+
+    if (num_chunks_ * chunk_size_ > X.rows) {
+        last_chunk_size_ = X.rows - (num_chunks_ - 1) * chunk_size_;
+    } else {
+        last_chunk_size_ = chunk_size_;
+    }
+
+    matrix<float> Y;
+    Y.rows = X.rows;
+    Y.columns = X.columns;
+    Y.values = reinterpret_cast<float *>(malloc(Y.rows * Y.columns * sizeof(float)));
+    matrix<float> X_chunk;
+    matrix<float> Y_chunk;
+
+    for (int i = 0; i < num_chunks_; ++i) {
+        std::cout << "i " << i << std::endl;
+        if (i == (num_chunks_ - 1)) {
+            X_chunk.rows = last_chunk_size_;
+        } else {
+            X_chunk.rows = chunk_size_;
+        }
+        X_chunk.columns = X.columns;
+        X_chunk.values = &X.values[i * chunk_size_];
+
+        Y_chunk = graph_conv_layers_[i].forward(X_chunk);
+
+        to_row_major(&Y_chunk);
+        std::memcpy(&Y.values[i * chunk_size_], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
+    }
+
+    to_column_major(&Y);
+    
+    return Y;
+}
+

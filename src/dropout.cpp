@@ -131,7 +131,6 @@ DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size) {
 
 matrix<float> DropoutChunked::forward(matrix<float> X) {
     num_chunks_ = ceil((float) X.rows / (float) chunk_size_);
-    std::cout << "num_chunks " << num_chunks_ << std::endl;
 
     dropout_layers_ = (Dropout *) malloc(num_chunks_ * sizeof(Dropout));
     for (int i = 0; i < num_chunks_; ++i) {
