@@ -1,14 +1,14 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <iostream>
 #include <cmath>
 #include <cuda_runtime.h>
+#include <iostream>
 
 #include "adam.hpp"
-#include "axpby.h"
-#include "invsqrt.h"
-#include "elesq.h"
 #include "axdy.h"
+#include "axpby.h"
+#include "elesq.h"
+#include "invsqrt.h"
 
 
 Adam::Adam(CudaHelper *helper, float learning_rate, matrix<float> *parameters, int num_parameters) {

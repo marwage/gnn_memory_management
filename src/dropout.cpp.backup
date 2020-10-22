@@ -1,13 +1,13 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "dropout.hpp"
 #include "cuda_helper.hpp"
+#include "dropout.hpp"
 #include "tensors.hpp"
 
-#include <cuda_runtime.h>
-#include <cudnn.h>
 #include <cmath>
 #include <cstring>
+#include <cuda_runtime.h>
+#include <cudnn.h>
 #include <iostream>
 
 
@@ -89,7 +89,7 @@ matrix<float> Dropout::forward_chunked(matrix<float> X, int chunk_size) {
                                           cuda_helper_->cudnn_handle, probability,
                                           d_states, state_size_, seed));
 
-    to_row_major(&X);  // TODO Can we avoid this?
+    to_row_major(&X);// TODO Can we avoid this?
 
     matrix<float> Y;
     Y.rows = X.rows;
@@ -153,7 +153,7 @@ matrix<float> Dropout::forward_chunked(matrix<float> X, int chunk_size) {
     check_cuda(cudaFree(d_Y));
     check_cuda(cudaFree(d_reserve_space));
 
-    to_column_major(&Y);  // TODO Can we avoid this?
+    to_column_major(&Y);// TODO Can we avoid this?
 
     return Y;
 }
@@ -317,7 +317,6 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
     }
 
     to_column_major(&Y);
-    
+
     return Y;
 }
-

@@ -201,7 +201,7 @@ sparse_matrix<float> get_rows(sparse_matrix<float> mat, int start_row, int end_r
     int last_index = mat.csr_row_ptr[end_row];
     reduced_mat.nnz = last_index - first_index;
     reduced_mat.csr_val = (float *) malloc(reduced_mat.nnz * sizeof(float));
-    reduced_mat.csr_row_ptr =  (int *) malloc((reduced_mat.rows + 1) * sizeof(int));
+    reduced_mat.csr_row_ptr = (int *) malloc((reduced_mat.rows + 1) * sizeof(int));
     reduced_mat.csr_col_ind = (int *) malloc(reduced_mat.nnz * sizeof(int));
 
     std::memcpy(reduced_mat.csr_val, &mat.csr_val[first_index], reduced_mat.nnz * sizeof(float));

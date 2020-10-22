@@ -318,7 +318,6 @@ matrix<float> GraphConvChunked::forward(matrix<float> X) {
     }
 
     to_column_major(&Y);
-    
+
     return Y;
 }
-

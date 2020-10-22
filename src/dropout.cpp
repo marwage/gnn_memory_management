@@ -4,10 +4,10 @@
 #include "cuda_helper.hpp"
 #include "tensors.hpp"
 
-#include <cuda_runtime.h>
-#include <cudnn.h>
 #include <cmath>
 #include <cstring>
+#include <cuda_runtime.h>
+#include <cudnn.h>
 #include <iostream>
 
 
@@ -168,7 +168,6 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
     }
 
     to_column_major(&Y);
-    
+
     return Y;
 }
-
