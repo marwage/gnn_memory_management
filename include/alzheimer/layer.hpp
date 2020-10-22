@@ -2,8 +2,7 @@
 
 
 class Layer {
-    public:
-        matrix<float> forward(matrix<float> in);
-        matrix<float> backward(matrix<float> gradients);
+public:
+    matrix<float> forward(matrix<float> in);
+    matrix<float> backward(matrix<float> gradients);
 };
-
