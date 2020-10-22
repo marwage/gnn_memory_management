@@ -77,7 +77,7 @@ int main() {
     int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
         // dropout 0
-        signals_dropout = dropout_0.forward_chunked(features, chunk_size);
+        // signals_dropout = dropout_0.forward_chunked(features, chunk_size);
 
         // graph convolution 0
         signals = graph_convolution_0.forward(signals_dropout);

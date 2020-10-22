@@ -191,3 +191,43 @@ matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<
 
     return mat_c;
 }
+
+sparse_matrix<float> get_rows(sparse_matrix<float> mat, int start_row, int end_row) {
+    sparse_matrix<float> reduced_mat;
+    reduced_mat.rows = end_row - start_row;
+    reduced_mat.columns = mat.columns;
+
+    int first_index = mat.csr_row_ptr[start_row];
+    int last_index = mat.csr_row_ptr[end_row];
+    reduced_mat.nnz = last_index - first_index;
+    reduced_mat.csr_val = (float *) malloc(reduced_mat.nnz * sizeof(float));
+    reduced_mat.csr_row_ptr =  (int *) malloc((reduced_mat.rows + 1) * sizeof(int));
+    reduced_mat.csr_col_ind = (int *) malloc(reduced_mat.nnz * sizeof(int));
+
+    std::memcpy(reduced_mat.csr_val, &mat.csr_val[first_index], reduced_mat.nnz * sizeof(float));
+    std::memcpy(reduced_mat.csr_row_ptr, &mat.csr_row_ptr[start_row], reduced_mat.rows * sizeof(int));
+    std::memcpy(reduced_mat.csr_col_ind, &mat.csr_col_ind[first_index], reduced_mat.nnz * sizeof(int));
+    for (int i = 0; i < reduced_mat.rows; ++i) {
+        reduced_mat.csr_row_ptr[i] = reduced_mat.csr_row_ptr[i] - first_index;
+    }
+
+    return reduced_mat;
+}
+
+void print_sparse_matrix(sparse_matrix<float> mat) {
+    std::cout << "Row pointers" << std::endl;
+    for (int i = 0; i < mat.rows + 1; ++i) {
+        std::cout << mat.csr_row_ptr[i] << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "Column indices" << std::endl;
+    for (int i = 0; i < mat.nnz; ++i) {
+        std::cout << mat.csr_col_ind[i] << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "Values" << std::endl;
+    for (int i = 0; i < mat.nnz; ++i) {
+        std::cout << mat.csr_val[i] << ", ";
+    }
+    std::cout << std::endl;
+}

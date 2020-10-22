@@ -44,7 +44,10 @@ def main():
     dropout_result_chunked = load_col_major(path)
 
     num_rows = num_equal_rows(dropout_result, dropout_result_chunked)
-    print("Dropout: Number of equal rows {}".format(num_rows))
+    print("Dropout chunked: Number of equal rows {}".format(num_rows))
+
+    ratio = check_isclose(dropout_result, dropout_result_chunked)
+    print("Dropout chunked: Ratio equal: {}".format(ratio))
 
     path = test_dir_path + "/dropout_gradients_chunked.npy"
     dropout_grads = load_col_major(path)
