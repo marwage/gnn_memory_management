@@ -7,6 +7,8 @@
 #include "linear.hpp"
 #include "tensors.hpp"
 
+#include <vector>
+
 
 class SageLinear {
 private:
@@ -22,11 +24,29 @@ public:
         matrix<float> self_grads;
         matrix<float> neigh_grads;
     };
+    SageLinear();
     SageLinear(int in_features, int out_features, CudaHelper *helper);
     matrix<float> *get_parameters();
     matrix<float> *get_gradients();
     matrix<float> forward(matrix<float> features, matrix<float> aggr);
     SageLinearGradients backward(matrix<float> in_gradients);
+    void update_weights(matrix<float> *gradients);
+};
+
+class SageLinearChunked {
+private:
+    SageLinear sage_linear_layer_;
+    int num_out_features_;
+    int chunk_size_;
+    int last_chunk_size_;
+    int num_chunks_;
+
+public:
+    SageLinearChunked(CudaHelper *helper, int num_in_features, int num_out_features, int chunk_size);
+    matrix<float> forward(matrix<float> features, matrix<float> aggr);
+    SageLinear::SageLinearGradients backward(matrix<float> in_gradients);
+    matrix<float> *get_parameters();
+    matrix<float> *get_gradients();
     void update_weights(matrix<float> *gradients);
 };
 

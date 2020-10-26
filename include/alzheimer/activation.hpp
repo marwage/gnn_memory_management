@@ -20,9 +20,7 @@ private:
 
 public:
     Relu(CudaHelper *helper);
-
     matrix<float> forward(matrix<float> X);
-
     matrix<float> backward(matrix<float> in_gradients);
 };
 
@@ -38,6 +36,19 @@ public:
 
     matrix<float> forward(matrix<float> X);
 
+    matrix<float> backward(matrix<float> in_gradients);
+};
+
+class ReluChunked {
+private:
+    Relu relu_layer_;
+    int chunk_size_;
+    int last_chunk_size_;
+    int num_chunks_;
+
+public:
+    ReluChunked(CudaHelper *helper);
+    matrix<float> forward(matrix<float> X);
     matrix<float> backward(matrix<float> in_gradients);
 };
 

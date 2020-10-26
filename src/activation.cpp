@@ -6,6 +6,7 @@
 #include <cuda_runtime.h>
 #include <cudnn.h>
 #include <limits>
+#include <cmath>
 
 
 Relu::Relu(CudaHelper *helper) {
@@ -241,4 +242,49 @@ matrix<float> LogSoftmax::backward(matrix<float> in_gradients) {
     check_cuda(cudaFree(d_dx));
 
     return gradients;
+}
+
+ReluChunked::ReluChunked(CudaHelper *helper) {
+    relu_layer_ = Relu(helper);
+}
+
+matrix<float> ReluChunked::forward(matrix<float> X) {
+    num_chunks_ = ceil((float) X.rows / (float) chunk_size_);
+
+    if (num_chunks_ * chunk_size_ > X.rows) {
+        last_chunk_size_ = X.rows - (num_chunks_ - 1) * chunk_size_;
+    } else {
+        last_chunk_size_ = chunk_size_;
+    }
+
+    to_row_major(&X);
+
+    matrix<float> Y;
+    Y.rows = X.rows;
+    Y.columns = X.columns;
+    Y.values = reinterpret_cast<float *>(malloc(Y.rows * Y.columns * sizeof(float)));
+    matrix<float> X_chunk;
+    matrix<float> Y_chunk;
+
+    for (int i = 0; i < num_chunks_; ++i) {
+        if (i == (num_chunks_ - 1)) {
+            X_chunk.rows = last_chunk_size_;
+        } else {
+            X_chunk.rows = chunk_size_;
+        }
+        X_chunk.columns = X.columns;
+        X_chunk.values = &X.values[i * chunk_size_];
+
+        Y_chunk = relu_layer_.forward(X_chunk);
+
+        std::memcpy(&Y.values[i * chunk_size_], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
+    }
+
+    to_column_major(&Y);
+
+    return Y;
+}
+
+matrix<float> ReluChunked::backward(matrix<float> in_gradients) {
+
 }
