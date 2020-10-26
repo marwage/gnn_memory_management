@@ -145,7 +145,7 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
         last_chunk_size_ = chunk_size_;
     }
 
-    to_row_major(&X);
+    matrix<float> X_row = to_row_major(&X);
 
     matrix<float> Y;
     Y.rows = X.rows;
@@ -160,15 +160,15 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
         } else {
             X_chunk.rows = chunk_size_;
         }
-        X_chunk.columns = X.columns;
-        X_chunk.values = &X.values[i * chunk_size_];
+        X_chunk.columns = X_row.columns;
+        X_chunk.values = &X_row.values[i * chunk_size_];
 
         Y_chunk = dropout_layers_[i].forward(X_chunk);
 
         std::memcpy(&Y.values[i * chunk_size_], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
     }
 
-    to_column_major(&Y);
+    to_column_major_inplace(&Y);
 
     return Y;
 }
