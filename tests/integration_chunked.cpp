@@ -36,13 +36,15 @@ int main() {
     float learning_rate = 0.003;
     int num_hidden_channels = 128;
     int num_classes = 7;
+    int chunk_size = 1 << 14;
+//    int chunk_size = 1 << 16;
 
     // layers
-    Dropout dropout_layer(&cuda_helper);
-    GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean");
-    SageLinear linear_layer(features.columns, num_hidden_channels, &cuda_helper);
-    Relu relu_layer(&cuda_helper);
-    LogSoftmax log_softmax_layer(&cuda_helper);
+    DropoutChunked dropout_layer(&cuda_helper, chunk_size);
+    GraphConvolution graph_convolution_layer(&cuda_helper, "mean");
+    SageLinearChunked linear_layer(&cuda_helper, features.columns, num_hidden_channels, chunk_size);
+    ReluChunked relu_layer(&cuda_helper, chunk_size);
+    LogSoftmaxChunked log_softmax_layer(&cuda_helper, chunk_size);
     NLLLoss loss_layer;
 
     // optimiser
@@ -55,7 +57,7 @@ int main() {
     save_npy_matrix(dropout_result, path);
 
     // graph convolution
-    matrix<float> graph_convolution_result = graph_convolution_layer.forward(dropout_result);
+    matrix<float> graph_convolution_result = graph_convolution_layer.forward(&adjacency, dropout_result);
     path = test_dir_path + "/graph_convolution_result.npy";
     save_npy_matrix(graph_convolution_result, path);
 
@@ -85,6 +87,7 @@ int main() {
 
     // loss
     float loss = loss_layer.forward(log_softmax_result, classes);
+    std::cout << "loss " << loss << std::endl;
     matrix<float> loss_mat;
     loss_mat.rows = 1;
     loss_mat.columns = 1;

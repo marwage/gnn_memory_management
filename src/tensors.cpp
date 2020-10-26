@@ -129,7 +129,7 @@ template void save_npy_matrix<int>(matrix<int> mat, std::string path);
 
 
 template<typename T>
-void to_column_major(matrix<T> *mat) {
+void to_column_major_inplace(matrix<T> *mat) {
     T *new_values = reinterpret_cast<T *>(
             malloc(mat->rows * mat->columns * sizeof(T)));
     transpose<T>(new_values, mat->values, mat->rows, mat->columns);
@@ -137,12 +137,22 @@ void to_column_major(matrix<T> *mat) {
     mat->values = new_values;
 }
 
-template void to_column_major<float>(matrix<float> *mat);
-template void to_column_major<int>(matrix<int> *mat);
+template void to_column_major_inplace<float>(matrix<float> *mat);
+template void to_column_major_inplace<int>(matrix<int> *mat);
+
+template<typename T>
+matrix<T> to_column_major(matrix<T> *mat) {
+    matrix<T> mat_transposed = *mat;
+    to_column_major_inplace(&mat_transposed);
+    return mat_transposed;
+}
+
+template matrix<float> to_column_major<float>(matrix<float> *mat);
+template matrix<int> to_column_major<int>(matrix<int> *mat);
 
 
 template<typename T>
-void to_row_major(matrix<T> *mat) {
+void to_row_major_inplace(matrix<T> *mat) {
     T *new_values = reinterpret_cast<T *>(
             malloc(mat->rows * mat->columns * sizeof(T)));
     transpose<T>(new_values, mat->values, mat->columns, mat->rows);
@@ -150,8 +160,18 @@ void to_row_major(matrix<T> *mat) {
     mat->values = new_values;
 }
 
-template void to_row_major<float>(matrix<float> *mat);
-template void to_row_major<int>(matrix<int> *mat);
+template void to_row_major_inplace<float>(matrix<float> *mat);
+template void to_row_major_inplace<int>(matrix<int> *mat);
+
+template<typename T>
+matrix<T> to_row_major(matrix<T> *mat) {
+    matrix<T> mat_transposed = *mat;
+    to_row_major_inplace(&mat_transposed);
+    return mat_transposed;
+}
+
+template matrix<float> to_row_major<float>(matrix<float> *mat);
+template matrix<int> to_row_major<int>(matrix<int> *mat);
 
 
 matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<float> mat_b) {

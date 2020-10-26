@@ -19,6 +19,7 @@ private:
     cudnnTensorDescriptor_t x_desc_;
 
 public:
+    Relu();
     Relu(CudaHelper *helper);
     matrix<float> forward(matrix<float> X);
     matrix<float> backward(matrix<float> in_gradients);
@@ -32,10 +33,9 @@ private:
     CudaHelper *cuda_helper_;
 
 public:
+    LogSoftmax();
     LogSoftmax(CudaHelper *helper);
-
     matrix<float> forward(matrix<float> X);
-
     matrix<float> backward(matrix<float> in_gradients);
 };
 
@@ -47,7 +47,20 @@ private:
     int num_chunks_;
 
 public:
-    ReluChunked(CudaHelper *helper);
+    ReluChunked(CudaHelper *helper, int chunk_size);
+    matrix<float> forward(matrix<float> X);
+    matrix<float> backward(matrix<float> in_gradients);
+};
+
+class LogSoftmaxChunked {
+private:
+    LogSoftmax log_softmax_layer_;
+    int chunk_size_;
+    int last_chunk_size_;
+    int num_chunks_;
+
+public:
+    LogSoftmaxChunked(CudaHelper *helper, int chunk_size);
     matrix<float> forward(matrix<float> X);
     matrix<float> backward(matrix<float> in_gradients);
 };

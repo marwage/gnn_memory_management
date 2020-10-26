@@ -38,10 +38,16 @@ template<typename T>
 void save_npy_matrix(matrix<T> mat, std::string path);
 
 template<typename T>
-void to_column_major(matrix<T> *mat);
+matrix<T> to_column_major(matrix<T> *mat);
 
 template<typename T>
-void to_row_major(matrix<T> *mat);
+matrix<T> to_row_major(matrix<T> *mat);
+
+template<typename T>
+void to_column_major_inplace(matrix<T> *mat);
+
+template<typename T>
+void to_row_major_inplace(matrix<T> *mat);
 
 matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<float> mat_b);
 

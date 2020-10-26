@@ -52,15 +52,15 @@ int main() {
     DropoutChunked dropout_0(&cuda_helper, chunk_size);
     GraphConvChunked graph_convolution_0(&cuda_helper, &adjacency, "mean", chunk_size);
     SageLinearChunked linear_0(&cuda_helper, features.columns, num_hidden_channels, chunk_size);
-    ReluChunked relu_0(&cuda_helper);
+    ReluChunked relu_0(&cuda_helper, chunk_size);
     DropoutChunked dropout_1(&cuda_helper, chunk_size);
     GraphConvChunked graph_convolution_1(&cuda_helper, &adjacency, "mean", chunk_size);
     SageLinearChunked linear_1(&cuda_helper, num_hidden_channels, num_hidden_channels, chunk_size);
-    ReluChunked relu_1(&cuda_helper);
+    ReluChunked relu_1(&cuda_helper, chunk_size);
     DropoutChunked dropout_2(&cuda_helper, chunk_size);
     GraphConvChunked graph_convolution_2(&cuda_helper, &adjacency, "mean", chunk_size);
     SageLinearChunked linear_2(&cuda_helper, num_hidden_channels, num_classes, chunk_size);
-    LogSoftmax log_softmax(&cuda_helper);
+    LogSoftmaxChunked log_softmax(&cuda_helper, chunk_size);
     NLLLoss loss_layer;
 
     // optimizer

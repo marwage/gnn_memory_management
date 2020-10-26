@@ -105,8 +105,8 @@ matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> a
         last_chunk_size_ = chunk_size_;
     }
 
-    to_row_major(&features);
-    to_row_major(&aggr);
+    matrix<float> features_row = to_row_major(&features);
+    matrix<float> aggr_row = to_row_major(&aggr);
 
     matrix<float> Y;
     Y.rows = features.rows;
@@ -115,29 +115,28 @@ matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> a
     matrix<float> features_chunk;
     matrix<float> aggr_chunk;
     matrix<float> Y_chunk;
+    features_chunk.rows = chunk_size_;
+    aggr_chunk.rows = chunk_size_;
 
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {
             features_chunk.rows = last_chunk_size_;
             aggr_chunk.rows = last_chunk_size_;
-        } else {
-            features_chunk.rows = chunk_size_;
-            aggr_chunk.rows = chunk_size_;
         }
-        features_chunk.columns = features.columns;
-        features_chunk.values = &features.values[i * chunk_size_];
-        to_column_major(&features_chunk);
-        aggr_chunk.columns = aggr.columns;
-        aggr_chunk.values = &aggr.values[i * chunk_size_];
-        to_column_major(&aggr_chunk);
+        features_chunk.columns = features_row.columns;
+        features_chunk.values = &features_row.values[i * chunk_size_ * features_chunk.columns];
+        to_column_major_inplace(&features_chunk);
+        aggr_chunk.columns = aggr_row.columns;
+        aggr_chunk.values = &aggr_row.values[i * chunk_size_ * aggr_row.columns];
+        to_column_major_inplace(&aggr_chunk);
 
         Y_chunk = sage_linear_layer_.forward(features_chunk, aggr_chunk);
-        to_row_major(&Y_chunk);
+        to_row_major_inplace(&Y_chunk);
 
-        std::memcpy(&Y.values[i * chunk_size_], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
+        std::memcpy(&Y.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
     }
 
-    to_column_major(&Y);
+    to_column_major_inplace(&Y);
 
     return Y;
 }

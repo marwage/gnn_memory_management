@@ -1,13 +1,16 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "activation.hpp"
-#include "cuda_helper.hpp"
-
 #include <cuda_runtime.h>
 #include <cudnn.h>
 #include <limits>
 #include <cmath>
+#include <cstring>
 
+#include "activation.hpp"
+#include "cuda_helper.hpp"
+
+
+Relu::Relu() {}
 
 Relu::Relu(CudaHelper *helper) {
     cuda_helper_ = helper;
@@ -122,6 +125,8 @@ matrix<float> Relu::backward(matrix<float> in_gradients) {
     return grad_input;
 }
 
+LogSoftmax::LogSoftmax() {}
+
 LogSoftmax::LogSoftmax(CudaHelper *helper) {
     cuda_helper_ = helper;
     alpha_ = 1.0;
@@ -130,12 +135,12 @@ LogSoftmax::LogSoftmax(CudaHelper *helper) {
 
 matrix<float> LogSoftmax::forward(matrix<float> X) {
     // cudnn Tensor is row-major
-    to_row_major(&X);
+    matrix<float> X_row = to_row_major(&X);
 
     float *d_X;
-    check_cuda(cudaMalloc(&d_X, X.rows * X.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_X, X.values,
-                          X.rows * X.columns * sizeof(float),
+    check_cuda(cudaMalloc(&d_X, X_row.rows * X_row.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_X, X_row.values,
+                          X_row.rows * X_row.columns * sizeof(float),
                           cudaMemcpyHostToDevice));
     cudnnTensorDescriptor_t x_desc;
     check_cudnn(cudnnCreateTensorDescriptor(&x_desc));
@@ -144,8 +149,8 @@ matrix<float> LogSoftmax::forward(matrix<float> X) {
                                            CUDNN_DATA_FLOAT,
                                            X.rows, 1, 1, X.columns));
 
-    y_.rows = X.rows;
-    y_.columns = X.columns;
+    y_.rows = X_row.rows;
+    y_.columns = X_row.columns;
     y_.values = (float *) malloc(y_.rows * y_.columns * sizeof(float));
     for (int i = 0; i < y_.rows * y_.columns; ++i) {
         y_.values[i] = 0.0;
@@ -176,7 +181,7 @@ matrix<float> LogSoftmax::forward(matrix<float> X) {
     check_cuda(cudaFree(d_X));
     check_cuda(cudaFree(d_y));
 
-    to_column_major(&y_);
+    to_column_major_inplace(&y_);
 
     return y_;
 }
@@ -244,7 +249,8 @@ matrix<float> LogSoftmax::backward(matrix<float> in_gradients) {
     return gradients;
 }
 
-ReluChunked::ReluChunked(CudaHelper *helper) {
+ReluChunked::ReluChunked(CudaHelper *helper, int chunk_size) {
+    chunk_size_ = chunk_size;
     relu_layer_ = Relu(helper);
 }
 
@@ -257,7 +263,7 @@ matrix<float> ReluChunked::forward(matrix<float> X) {
         last_chunk_size_ = chunk_size_;
     }
 
-    to_row_major(&X);
+    matrix<float> X_row = to_row_major(&X);
 
     matrix<float> Y;
     Y.rows = X.rows;
@@ -272,8 +278,8 @@ matrix<float> ReluChunked::forward(matrix<float> X) {
         } else {
             X_chunk.rows = chunk_size_;
         }
-        X_chunk.columns = X.columns;
-        X_chunk.values = &X.values[i * chunk_size_];
+        X_chunk.columns = X_row.columns;
+        X_chunk.values = &X_row.values[i * chunk_size_];
 
         Y_chunk = relu_layer_.forward(X_chunk);
 
@@ -286,5 +292,52 @@ matrix<float> ReluChunked::forward(matrix<float> X) {
 }
 
 matrix<float> ReluChunked::backward(matrix<float> in_gradients) {
+
+}
+
+LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, int chunk_size) {
+    chunk_size_ = chunk_size;
+    log_softmax_layer_ = LogSoftmax(helper);
+}
+
+matrix<float> LogSoftmaxChunked::forward(matrix<float> X) {
+    num_chunks_ = ceil((float) X.rows / (float) chunk_size_);
+
+    if (num_chunks_ * chunk_size_ > X.rows) {
+        last_chunk_size_ = X.rows - (num_chunks_ - 1) * chunk_size_;
+    } else {
+        last_chunk_size_ = chunk_size_;
+    }
+
+    matrix<float> X_row = to_row_major(&X);
+
+    matrix<float> Y;
+    Y.rows = X.rows;
+    Y.columns = X.columns;
+    Y.values = reinterpret_cast<float *>(malloc(Y.rows * Y.columns * sizeof(float)));
+    matrix<float> X_chunk;
+    matrix<float> Y_chunk;
+    X_chunk.rows = chunk_size_;
+    X_chunk.columns = X_row.columns;
+
+    for (int i = 0; i < num_chunks_; ++i) {
+        if (i == (num_chunks_ - 1)) {
+            X_chunk.rows = last_chunk_size_;
+        }
+        X_chunk.values = &X_row.values[i * chunk_size_ * X_row.columns];
+        to_column_major_inplace(&X_chunk);
+
+        Y_chunk = log_softmax_layer_.forward(X_chunk);
+        to_row_major_inplace(&Y_chunk);
+
+        std::memcpy(&Y.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
+    }
+
+    to_column_major_inplace(&Y);
+
+    return Y;
+}
+
+matrix<float> LogSoftmaxChunked::backward(matrix<float> in_gradients) {
 
 }
