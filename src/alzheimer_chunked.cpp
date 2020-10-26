@@ -49,16 +49,16 @@ int main() {
     int chunk_size = 1024;
 
     // layers
-    Dropout dropout_0(&cuda_helper);
-    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean");
+    DropoutChunked dropout_0(&cuda_helper, chunk_size);
+    GraphConvChunked graph_convolution_0(&cuda_helper, &adjacency, "mean", chunk_size);
     SageLinear linear_0(features.columns, num_hidden_channels, &cuda_helper);
     Relu relu_0(&cuda_helper);
-    Dropout dropout_1(&cuda_helper);
-    GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean");
+    DropoutChunked dropout_1(&cuda_helper, chunk_size);
+    GraphConvChunked graph_convolution_1(&cuda_helper, &adjacency, "mean", chunk_size);
     SageLinear linear_1(num_hidden_channels, num_hidden_channels, &cuda_helper);
     Relu relu_1(&cuda_helper);
-    Dropout dropout_2(&cuda_helper);
-    GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean");
+    DropoutChunked dropout_2(&cuda_helper, chunk_size);
+    GraphConvChunked graph_convolution_2(&cuda_helper, &adjacency, "mean", chunk_size);
     SageLinear linear_2(num_hidden_channels, num_classes, &cuda_helper);
     LogSoftmax log_softmax(&cuda_helper);
     NLLLoss loss_layer;
@@ -77,7 +77,7 @@ int main() {
     int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
         // dropout 0
-        // signals_dropout = dropout_0.forward_chunked(features, chunk_size);
+        signals_dropout = dropout_0.forward(features);
 
         // graph convolution 0
         signals = graph_convolution_0.forward(signals_dropout);

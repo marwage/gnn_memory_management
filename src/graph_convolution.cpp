@@ -5,6 +5,8 @@
 #include "divmv.h"
 
 
+GraphConvolution::GraphConvolution() {}
+
 GraphConvolution::GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adjacency, std::string reduction) {
     cuda_helper_ = helper;
     adjacency_ = adjacency;
@@ -275,7 +277,7 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, sparse_matrix<float> *adj
 matrix<float> GraphConvChunked::forward(matrix<float> X) {
     num_chunks_ = ceil((float) X.rows / (float) chunk_size_);
 
-    graph_conv_layers_ = reinterpret_cast<GraphConvolution *>(malloc(num_chunks_ * sizeof(GraphConvolution)));
+    graph_conv_layers_ = std::vector<GraphConvolution>(num_chunks_);
     int last_index;
     for (int i = 0; i < num_chunks_; ++i) {
         if ((i + 1) * chunk_size_ > X.rows) {
@@ -284,8 +286,7 @@ matrix<float> GraphConvChunked::forward(matrix<float> X) {
             last_index = (i + 1) * chunk_size_;
         }
         sparse_matrix<float> reduced_adj = get_rows(*adjacency_, i * chunk_size_, last_index);
-        GraphConvolution conv = GraphConvolution(cuda_helper_, &reduced_adj, reduction_);
-        graph_conv_layers_[i] = conv;
+        graph_conv_layers_[i] = GraphConvolution(cuda_helper_, &reduced_adj, reduction_);
     }
 
     if (num_chunks_ * chunk_size_ > X.rows) {
@@ -302,7 +303,6 @@ matrix<float> GraphConvChunked::forward(matrix<float> X) {
     matrix<float> Y_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
-        std::cout << "i " << i << std::endl;
         if (i == (num_chunks_ - 1)) {
             X_chunk.rows = last_chunk_size_;
         } else {
@@ -320,4 +320,8 @@ matrix<float> GraphConvChunked::forward(matrix<float> X) {
     to_column_major(&Y);
 
     return Y;
+}
+
+matrix<float> GraphConvChunked::backward(matrix<float> in_gradients) {
+    return in_gradients;
 }

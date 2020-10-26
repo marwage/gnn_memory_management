@@ -19,6 +19,7 @@ private:
     matrix<float> sum_;
 
 public:
+    GraphConvolution();
     GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adjacency_, std::string reduction);
     matrix<float> forward(matrix<float> B);
     matrix<float> backward(matrix<float> in_gradients);
@@ -31,7 +32,8 @@ private:
     std::string reduction_;
     bool mean_;
     matrix<float> sum_;
-    GraphConvolution *graph_conv_layers_;
+//    GraphConvolution *graph_conv_layers_;
+    std::vector<GraphConvolution> graph_conv_layers_;
     int chunk_size_;
     int last_chunk_size_;
     int num_chunks_;

@@ -19,6 +19,7 @@ private:
     // int num_chunks_;
 
 public:
+    Dropout();
     Dropout(CudaHelper *helper);
     matrix<float> forward(matrix<float> X);
     // matrix<float> forward_chunked(matrix<float> X, int chunk_size);
@@ -32,7 +33,7 @@ private:
     int chunk_size_;
     int last_chunk_size_;
     int num_chunks_;
-    Dropout *dropout_layers_;
+    std::vector<Dropout> dropout_layers_;
 
 public:
     DropoutChunked(CudaHelper *helper, int chunk_size);

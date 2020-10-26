@@ -11,6 +11,8 @@
 #include <iostream>
 
 
+Dropout::Dropout() {}
+
 Dropout::Dropout(CudaHelper *helper) {
     cuda_helper_ = helper;
 }
@@ -132,7 +134,7 @@ DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size) {
 matrix<float> DropoutChunked::forward(matrix<float> X) {
     num_chunks_ = ceil((float) X.rows / (float) chunk_size_);
 
-    dropout_layers_ = (Dropout *) malloc(num_chunks_ * sizeof(Dropout));
+    dropout_layers_ = std::vector<Dropout>(num_chunks_);
     for (int i = 0; i < num_chunks_; ++i) {
         dropout_layers_[i] = Dropout(cuda_helper_);
     }
@@ -153,7 +155,6 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
     matrix<float> Y_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
-        std::cout << "i " << i << std::endl;
         if (i == (num_chunks_ - 1)) {
             X_chunk.rows = last_chunk_size_;
         } else {
@@ -170,4 +171,8 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
     to_column_major(&Y);
 
     return Y;
+}
+
+matrix<float> DropoutChunked::backward(matrix<float> in_gradients) {
+    return in_gradients;
 }
