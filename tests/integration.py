@@ -26,6 +26,14 @@ def check_isclose(A, B):
     return ratio_equal
 
 
+def print_nan_coor(A):
+    for i in range(A.shape[0]):
+        for j in range(A.shape[1]):
+            if np.isnan(A[i, j]):
+                print("NaN at ({}, {})".format(i, j))
+    
+
+
 def test_computations():
     home = os.getenv("HOME")
     dir_path = home + "/gpu_memory_reduction/alzheimer/data"
@@ -96,6 +104,7 @@ def test_computations():
 
         percentage_equal = check_isclose(graph_conv_result, true_graph_conv_result)
         print("Graph convolution: Percentage of equal elements: {}".format(percentage_equal))
+        print_nan_coor(graph_conv_result)
 
         # check sage linear
         path = test_dir_path + "/self_weight.npy"
@@ -139,6 +148,7 @@ def test_computations():
 
         percentage_equal = check_isclose(sage_linear_result, true_sage_linear_result)
         print("SageLinear: Percentage of equal elements: {}".format(percentage_equal))
+        print_nan_coor(sage_linear_result)
 
         # check relu
         #  path = test_dir_path + "/relu_result.npy"
@@ -168,6 +178,7 @@ def test_computations():
 
         percentage_equal = check_isclose(log_softmax_result, true_log_softmax_result)
         print("Log-softmax: Percentage of equal elements: {}".format(percentage_equal))
+        print_nan_coor(log_softmax_result)
 
         # check loss
         path = test_dir_path + "/loss_result.npy"
