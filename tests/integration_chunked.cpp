@@ -12,7 +12,7 @@
 #include "tensors.hpp"
 
 
-int main() {
+void integration_chunked(int chunk_size) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -36,8 +36,6 @@ int main() {
     float learning_rate = 0.003;
     int num_hidden_channels = 128;
     int num_classes = 7;
-    int chunk_size = 1 << 14;
-//    int chunk_size = 1 << 16;
 
     // layers
     DropoutChunked dropout_layer(&cuda_helper, chunk_size);
@@ -164,4 +162,12 @@ int main() {
     // free memory
     free(features.values);
     free(classes.values);
+}
+
+int main() {
+    int chunk_size = 1 << 14;
+    integration_chunked(chunk_size);
+
+    chunk_size = 1 << 30;
+    integration_chunked(chunk_size);
 }

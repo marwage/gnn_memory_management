@@ -6,6 +6,7 @@
 #include "cuda_helper.hpp"
 #include "tensors.hpp"
 
+#include <vector>
 
 class Relu {
 private:
@@ -54,7 +55,8 @@ public:
 
 class LogSoftmaxChunked {
 private:
-    LogSoftmax log_softmax_layer_;
+    std::vector<LogSoftmax> log_softmax_layers_;
+    CudaHelper *cuda_helper_;
     int chunk_size_;
     int last_chunk_size_;
     int num_chunks_;
