@@ -347,8 +347,8 @@ matrix<float> LogSoftmaxChunked::backward(matrix<float> in_gradients) {
     gradients.rows = in_gradients_row.rows;
     gradients.columns = in_gradients_row.columns;
     gradients.values = reinterpret_cast<float *>(malloc(gradients.rows * gradients.columns * sizeof(float)));
-    matrix<float> in_gradients_chunk;
     matrix<float> gradients_chunk;
+    matrix<float> in_gradients_chunk;
     in_gradients_chunk.rows = chunk_size_;
     in_gradients_chunk.columns = in_gradients_row.columns;
 
@@ -362,7 +362,7 @@ matrix<float> LogSoftmaxChunked::backward(matrix<float> in_gradients) {
         gradients_chunk = log_softmax_layers_[i].backward(in_gradients_chunk);
         to_row_major_inplace(&gradients_chunk);
 
-        std::memcpy(&gradients.values[i * chunk_size_ * gradients_chunk.columns], gradients_chunk.values, gradients_chunk.rows * gradients_chunk.columns * sizeof(float));
+        std::memcpy(&gradients.values[i * chunk_size_ * in_gradients_row.columns], gradients_chunk.values, gradients_chunk.rows * gradients_chunk.columns * sizeof(float));
     }
 
     to_column_major_inplace(&gradients);
