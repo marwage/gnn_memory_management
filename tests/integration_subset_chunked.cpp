@@ -3,7 +3,6 @@
 #include <assert.h>
 
 #include "activation.hpp"
-#include "adam.hpp"
 #include "cuda_helper.hpp"
 #include "dropout.hpp"
 #include "graph_convolution.hpp"
@@ -12,7 +11,13 @@
 #include "tensors.hpp"
 
 
-void integration_chunked(int chunk_size) {
+void check_divmv();
+
+void check_log_softmax_forward();
+
+void check_loss();
+
+void check_subset(int chunk_size) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -21,7 +26,7 @@ void integration_chunked(int chunk_size) {
     // read features
     std::string path = flickr_dir_path + "/features.npy";
     matrix<float> features = load_npy_matrix<float>(path);
-    to_column_major_inplace<float>(&features);
+    to_column_major<float>(&features);
 
     // read classes
     path = flickr_dir_path + "/classes.npy";
@@ -39,28 +44,35 @@ void integration_chunked(int chunk_size) {
 
     // layers
     DropoutChunked dropout_layer(&cuda_helper, chunk_size);
-    GraphConvolution graph_convolution_layer(&cuda_helper, "mean");
+    GraphConvChunked graph_convolution_layer(&cuda_helper, "mean", chunk_size);
     SageLinearChunked linear_layer(&cuda_helper, features.columns, num_hidden_channels, chunk_size);
     ReluChunked relu_layer(&cuda_helper, chunk_size);
     LogSoftmaxChunked log_softmax_layer(&cuda_helper, chunk_size);
     NLLLoss loss_layer;
 
-    // optimiser
-    Adam adam(&cuda_helper, learning_rate, linear_layer.get_parameters(), 4);
+    // generate random inputs
+    matrix<float> A;
+    A.rows = features.rows;
+    A.columns = features.columns;
+    A.values = reinterpret_cast<float *>(malloc(A.rows * A.columns * sizeof(float)));
+    for (int i = 0; i < A.rows * A.columns; ++i) {
+        A.values[i] = rand();
+    }
+    matrix<float> B;
+    B.rows = features.rows;
+    B.columns = features.columns;
+    B.values = reinterpret_cast<float *>(malloc(B.rows * B.columns * sizeof(float)));
+    for (int i = 0; i < B.rows * B.columns; ++i) {
+        B.values[i] = rand();
+    }
+    path = test_dir_path + "/A.npy";
+    save_npy_matrix(A, path);
+    path = test_dir_path + "/B.npy";
+    save_npy_matrix(B, path);
 
-    // dropout
-    //    matrix<float> dropout_result = dropout_layer.forward(features);
-    matrix<float> dropout_result = features;// test without dropout
-    path = test_dir_path + "/dropout_result.npy";
-    save_npy_matrix(dropout_result, path);
-
-    // graph convolution
-    matrix<float> graph_convolution_result = graph_convolution_layer.forward(&adjacency, dropout_result);
-    path = test_dir_path + "/graph_convolution_result.npy";
-    save_npy_matrix(graph_convolution_result, path);
 
     // linear layer
-    matrix<float> linear_result = linear_layer.forward(dropout_result, graph_convolution_result);
+    matrix<float> linear_result = linear_layer.forward(A, B);
     path = test_dir_path + "/linear_result.npy";
     save_npy_matrix(linear_result, path);
     matrix<float> *parameters = linear_layer.get_parameters();
@@ -73,11 +85,6 @@ void integration_chunked(int chunk_size) {
     path = test_dir_path + "/neigh_bias.npy";
     save_npy_matrix(parameters[3], path);
 
-    // ReLU
-    matrix<float> relu_result = relu_layer.forward(linear_result);
-    path = test_dir_path + "/relu_result.npy";
-    save_npy_matrix(relu_result, path);
-
     // log-softmax
     matrix<float> log_softmax_result = log_softmax_layer.forward(linear_result);
     path = test_dir_path + "/log_softmax_result.npy";
@@ -85,7 +92,6 @@ void integration_chunked(int chunk_size) {
 
     // loss
     float loss = loss_layer.forward(log_softmax_result, classes);
-    std::cout << "loss " << loss << std::endl;
     matrix<float> loss_mat;
     loss_mat.rows = 1;
     loss_mat.columns = 1;
@@ -120,39 +126,8 @@ void integration_chunked(int chunk_size) {
     path = test_dir_path + "/neigh_bias_grads.npy";
     save_npy_matrix(gradients[3], path);
 
-    // graph convolution
-    matrix<float> graph_convolution_grads = graph_convolution_layer.backward(linear_grads.neigh_grads);
-    path = test_dir_path + "/graph_convolution_grads.npy";
-    save_npy_matrix(graph_convolution_grads, path);
-
-    // add sage_linear_gradients.self_grads + gradients
-    matrix<float> add_grads = add_matrices(&cuda_helper, linear_grads.self_grads, graph_convolution_grads);
-    path = test_dir_path + "/add_grads.npy";
-    save_npy_matrix(add_grads, path);
-
-    // dropout
-    //    matrix<float> dropout_grads = dropout_layer.backward(add_grads);
-    //    path = test_dir_path + "/dropout_grads.npy";
-    //    save_npy_matrix(dropout_grads, path);
-
-    // ReLU
-    assert(relu_result.rows == log_softmax_grads.rows);
-    assert(relu_result.columns == log_softmax_grads.columns);
-    matrix<float> relu_grads = relu_layer.backward(log_softmax_grads);
-    path = test_dir_path + "/relu_grads.npy";
-    save_npy_matrix(relu_grads, path);
-
-    // Adam
-    gradients = adam.step(linear_layer.get_gradients());
-    for (int i = 0; i < 4; ++i) {
-        path = test_dir_path + "/adam_grads_" + std::to_string(i) + ".npy";
-        save_npy_matrix(gradients[i], path);
-    }
-
-    linear_layer.update_weights(gradients);
-
     // compare with Pytorch, Numpy, SciPy
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/integration.py";
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/integration_subset.py";
     system(command);
 
     // CLEAN-UP
@@ -165,10 +140,11 @@ void integration_chunked(int chunk_size) {
 }
 
 int main() {
-//    int chunk_size = 1 << 14;
-//    integration_chunked(chunk_size);
-
     int chunk_size = 1 << 30;
-//    chunk_size = 1 << 30;
-    integration_chunked(chunk_size);
+    std::cout << "Chunk size " << chunk_size << std::endl;
+    check_subset(chunk_size);
+
+    chunk_size = 1 << 14;
+    std::cout << "Chunk size " << chunk_size << std::endl;
+    check_subset(chunk_size);
 }
