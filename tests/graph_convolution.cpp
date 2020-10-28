@@ -21,9 +21,9 @@ void check_chunked_graph_conv(int chunk_size) {
     sparse_matrix<float> adjacency = load_mtx_matrix<float>(path);
 
     CudaHelper cuda_helper;
-    GraphConvChunked graph_conv_chunked(&cuda_helper, &adjacency, "mean", chunk_size);
+    GraphConvChunked graph_conv_chunked(&cuda_helper, "mean", chunk_size);
 
-    graph_conv_chunked.forward(features);
+    graph_conv_chunked.forward(adjacency, features);
 }
 
 int main() {
