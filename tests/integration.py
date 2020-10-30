@@ -96,8 +96,6 @@ def test_computations():
     adj_torch = adj_torch.to(device)
 
     graph_conv_result_torch = torch.sparse.mm(adj_torch, dropout_result_torch)
-    graph_conv_result_torch.requires_grad_()
-    graph_conv_result_torch.retain_grad()
 
     true_graph_conv_result = graph_conv_result_torch.detach().cpu().numpy()
 
@@ -108,6 +106,9 @@ def test_computations():
     for i in range(graph_conv_result_torch.shape[1]):
         graph_conv_result_torch[:, i] = graph_conv_result_torch[:, i] / sum_torch
         true_graph_conv_result[:, i] = true_graph_conv_result[:, i] / sum_np
+
+    graph_conv_result_torch.requires_grad_()
+    graph_conv_result_torch.retain_grad()
 
     percentage_equal = check_isclose(graph_conv_result, true_graph_conv_result)
     print("Graph convolution: Percentage of equal elements: {}".format(percentage_equal))
