@@ -187,32 +187,32 @@ matrix<float> LogSoftmax::forward(matrix<float> X) {
 }
 
 matrix<float> LogSoftmax::backward(matrix<float> in_gradients) {
-    to_row_major(&in_gradients);
-    to_row_major(&y_);
+    matrix<float> in_gradients_row = to_row_major(&in_gradients);
+    matrix<float> y_row = to_row_major(&y_);
 
     cudnnTensorDescriptor_t y_desc;
     float *d_y;
-    check_cuda(cudaMalloc(&d_y, y_.rows * y_.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_y, y_.values,
-                          y_.rows * y_.columns * sizeof(float),
+    check_cuda(cudaMalloc(&d_y, y_row.rows * y_row.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_y, y_row.values,
+                          y_row.rows * y_row.columns * sizeof(float),
                           cudaMemcpyHostToDevice));
     check_cudnn(cudnnCreateTensorDescriptor(&y_desc));
     check_cudnn(cudnnSetTensor4dDescriptor(y_desc,
                                            CUDNN_TENSOR_NCHW,
                                            CUDNN_DATA_FLOAT,
-                                           y_.rows, 1, 1, y_.columns));
+                                           y_row.rows, 1, 1, y_row.columns));
 
     cudnnTensorDescriptor_t dy_desc;
     float *d_dy;
-    check_cuda(cudaMalloc(&d_dy, y_.rows * y_.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_dy, in_gradients.values,
-                          in_gradients.rows * in_gradients.columns * sizeof(float),
+    check_cuda(cudaMalloc(&d_dy, y_row.rows * y_row.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_dy, in_gradients_row.values,
+                          in_gradients_row.rows * in_gradients_row.columns * sizeof(float),
                           cudaMemcpyHostToDevice));
     check_cudnn(cudnnCreateTensorDescriptor(&dy_desc));
     check_cudnn(cudnnSetTensor4dDescriptor(dy_desc,
                                            CUDNN_TENSOR_NCHW,
                                            CUDNN_DATA_FLOAT,
-                                           in_gradients.rows, 1, 1, in_gradients.columns));
+                                           in_gradients_row.rows, 1, 1, in_gradients_row.columns));
 
     cudnnTensorDescriptor_t dx_desc;
     float *d_dx;
@@ -221,7 +221,7 @@ matrix<float> LogSoftmax::backward(matrix<float> in_gradients) {
     check_cudnn(cudnnSetTensor4dDescriptor(dx_desc,
                                            CUDNN_TENSOR_NCHW,
                                            CUDNN_DATA_FLOAT,
-                                           y_.rows, 1, 1, y_.columns));
+                                           y_row.rows, 1, 1, y_row.columns));
 
     check_cudnn(cudnnSoftmaxBackward(cuda_helper_->cudnn_handle,
                                      CUDNN_SOFTMAX_LOG,
@@ -231,15 +231,15 @@ matrix<float> LogSoftmax::backward(matrix<float> in_gradients) {
                                      &beta_, dx_desc, d_dx));
 
     matrix<float> gradients;
-    gradients.rows = y_.rows;
-    gradients.columns = y_.columns;
+    gradients.rows = y_row.rows;
+    gradients.columns = y_row.columns;
     gradients.values = reinterpret_cast<float *>(
             malloc(gradients.rows * gradients.columns * sizeof(float)));
     check_cuda(cudaMemcpy(gradients.values, d_dx,
                           gradients.rows * gradients.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
-    to_column_major(&gradients);
+    to_column_major_inplace(&gradients);
 
     // free GPU memory
     check_cuda(cudaFree(d_y));
