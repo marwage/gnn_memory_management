@@ -24,12 +24,16 @@ def check_isclose(A, B):
     return ratio_equal
 
 
-def num_equal_rows(A, B):
+def num_close_rows(A, B):
     num_rows = 0
     for i in range(A.shape[0]):
         if np.isclose(A[i], B[i]).sum() == A[i].size:
             num_rows = num_rows + 1
     return num_rows
+
+def num_rows_zero(A):
+    sum_rows = np.sum(A, axis=1)
+    return (sum_rows == 0).sum()
 
 
 def main():
@@ -66,6 +70,12 @@ def main():
 
     ratio = check_isclose(dropout_grads, true_dropout_grads)
     print("Dropout gradients: Ratio equal: {}".format(ratio))
+
+    # debug
+    num_equal_rows = num_close_rows(dropout_grads, true_dropout_grads)
+    print("Dropout gradients: Number of equal rows {}".format(num_equal_rows))
+    num_zero = num_rows_zero(dropout_grads)
+    print("Dropout gradients: Number of rows zero {}".format(num_zero))
 
 
 if __name__ == "__main__":

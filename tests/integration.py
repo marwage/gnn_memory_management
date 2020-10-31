@@ -229,10 +229,6 @@ def test_computations():
     ratio_equal = check_isclose(log_softmax_grads, true_log_softmax_grads)
     print("Log-softmax backward: Ratio of equal elements: {}".format(ratio_equal))
 
-    # debug
-    print("Log-softmax backward: Number of close rows: {}".format(num_close_rows(log_softmax_grads,
-        true_log_softmax_grads)))
-
     # check relu
     path = test_dir_path + "/relu_grads.npy"
     relu_grads = load_col_major(path)
@@ -264,6 +260,8 @@ def test_computations():
     #  print("Linear self: Ratio of equal elements {}".format(ratio_equal))
     ratio_equal = check_isclose(neigh_grads, true_neigh_grads)
     print("Linear neigh: Ratio of equal elements {}".format(ratio_equal))
+    num_equal_rows = num_close_rows(neigh_grads, true_neigh_grads)
+    print("Linear neigh: Number of equal rows {}".format(num_equal_rows))
     ratio_equal = check_isclose(self_weight_grads, true_self_weight_grads)
     print("Linear self weight: Ratio {}".format(ratio_equal))
     ratio_equal = check_isclose(self_bias_grads, true_self_bias_grads)
@@ -279,10 +277,10 @@ def test_computations():
     path = test_dir_path + "/graph_convolution_grads.npy"
     graph_conv_grads = load_col_major(path)
 
-    # NOT possible
+    true_graph_conv_grads = dropout_result_torch.grad.cpu().numpy()
 
-    #  ratio_equal = check_isclose(graph_conv_grads, true_graph_conv_grads)
-    #  print("Graph convolution: Ratio {}".format(ratio_equal))
+    ratio_equal = check_isclose(graph_conv_grads, true_graph_conv_grads)
+    print("Graph convolution: Ratio {}".format(ratio_equal))
 
     # check add
     path = test_dir_path + "/add_grads.npy"
