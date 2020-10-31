@@ -40,13 +40,11 @@ void integration_chunked(int chunk_size) {
     // layers
     DropoutChunked dropout_layer(&cuda_helper, chunk_size);
     GraphConvolution graph_convolution_layer(&cuda_helper, "mean");
+//    GraphConvChunked graph_convolution_layer(&cuda_helper, "mean", chunk_size);
     SageLinearChunked linear_layer(&cuda_helper, features.columns, num_hidden_channels, chunk_size);
     ReluChunked relu_layer(&cuda_helper, chunk_size);
     LogSoftmaxChunked log_softmax_layer(&cuda_helper, chunk_size);
     NLLLoss loss_layer;
-
-    // optimiser
-    Adam adam(&cuda_helper, learning_rate, linear_layer.get_parameters(), 4);
 
     // dropout
     //    matrix<float> dropout_result = dropout_layer.forward(features);
@@ -142,7 +140,8 @@ void integration_chunked(int chunk_size) {
     path = test_dir_path + "/relu_grads.npy";
     save_npy_matrix(relu_grads, path);
 
-    // Adam
+    // optimiser
+    Adam adam(&cuda_helper, learning_rate, linear_layer.get_parameters(), 4);
     gradients = adam.step(linear_layer.get_gradients());
     for (int i = 0; i < 4; ++i) {
         path = test_dir_path + "/adam_grads_" + std::to_string(i) + ".npy";
@@ -165,10 +164,10 @@ void integration_chunked(int chunk_size) {
 }
 
 int main() {
-//    int chunk_size = 1 << 14;
-//    integration_chunked(chunk_size);
+    int chunk_size = 1 << 14;
+    integration_chunked(chunk_size);
 
-    int chunk_size = 1 << 30;
-//    chunk_size = 1 << 30;
+//    int chunk_size = 1 << 30;
+    chunk_size = 1 << 30;
     integration_chunked(chunk_size);
 }

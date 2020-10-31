@@ -59,12 +59,22 @@ matrix<float> *Linear::get_parameters() {
     return parameters;
 }
 
+void Linear::set_parameters(matrix<float> *parameters) {
+    weight_ = parameters[0];
+    bias_ = parameters[1];
+}
+
 matrix<float> *Linear::get_gradients() {
     matrix<float> *grads = (matrix<float> *) malloc(2 * sizeof(matrix<float>));
     grads[0] = grad_weight_;
     grads[1] = grad_bias_;
 
     return grads;
+}
+
+void Linear::set_gradients(matrix<float> *grads) {
+    grad_weight_ = grads[0];
+    grad_bias_ = grads[1];
 }
 
 matrix<float> Linear::expand_bias(int num_rows) {

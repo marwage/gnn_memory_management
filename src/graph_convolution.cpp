@@ -287,6 +287,7 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, std::string reduction, in
 }
 
 // TODO completely broken; chunking needs to be done be columns of adj
+// TODO if time
 matrix<float> GraphConvChunked::forward(sparse_matrix<float> adj, matrix<float> X) {
     num_chunks_ = ceil((float) X.rows / (float) chunk_size_);
 

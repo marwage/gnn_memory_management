@@ -129,43 +129,47 @@ matrix<float> Dropout::backward(matrix<float> in_gradients) {
 DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size) {
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
+    num_chunks_ = 0;
 }
 
 matrix<float> DropoutChunked::forward(matrix<float> X) {
-    num_chunks_ = ceil((float) X.rows / (float) chunk_size_);
+    if (num_chunks_ == 0) {
+        num_chunks_ = ceil((float) X.rows / (float) chunk_size_);
 
-    dropout_layers_ = std::vector<Dropout>(num_chunks_);
-    for (int i = 0; i < num_chunks_; ++i) {
-        dropout_layers_[i] = Dropout(cuda_helper_);
-    }
+        dropout_layers_ = std::vector<Dropout>(num_chunks_);
+        for (int i = 0; i < num_chunks_; ++i) {
+            dropout_layers_[i] = Dropout(cuda_helper_);
+        }
 
-    if (num_chunks_ * chunk_size_ > X.rows) {
-        last_chunk_size_ = X.rows - (num_chunks_ - 1) * chunk_size_;
-    } else {
-        last_chunk_size_ = chunk_size_;
+        if (num_chunks_ * chunk_size_ > X.rows) {
+            last_chunk_size_ = X.rows - (num_chunks_ - 1) * chunk_size_;
+        } else {
+            last_chunk_size_ = chunk_size_;
+        }
     }
 
     matrix<float> X_row = to_row_major(&X);
 
     matrix<float> Y;
-    Y.rows = X.rows;
-    Y.columns = X.columns;
+    Y.rows = X_row.rows;
+    Y.columns = X_row.columns;
     Y.values = reinterpret_cast<float *>(malloc(Y.rows * Y.columns * sizeof(float)));
     matrix<float> X_chunk;
+    X_chunk.rows = chunk_size_;
     matrix<float> Y_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {
             X_chunk.rows = last_chunk_size_;
-        } else {
-            X_chunk.rows = chunk_size_;
         }
         X_chunk.columns = X_row.columns;
-        X_chunk.values = &X_row.values[i * chunk_size_];
+        X_chunk.values = &X_row.values[i * chunk_size_ *  X_row.columns];
+        to_column_major_inplace(&X_chunk);
 
         Y_chunk = dropout_layers_[i].forward(X_chunk);
+        to_row_major_inplace(&Y_chunk);
 
-        std::memcpy(&Y.values[i * chunk_size_], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
+        std::memcpy(&Y.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
     }
 
     to_column_major_inplace(&Y);
@@ -174,5 +178,32 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
 }
 
 matrix<float> DropoutChunked::backward(matrix<float> in_gradients) {
-    return in_gradients;
+    matrix<float> in_gradients_row = to_row_major(&in_gradients);
+
+    matrix<float> gradients;
+    gradients.rows = in_gradients_row.rows;
+    gradients.columns = in_gradients_row.columns;
+    gradients.values = reinterpret_cast<float *>(malloc(gradients.rows * gradients.columns * sizeof(float)));
+    matrix<float> in_gradients_chunk;
+    matrix<float> gradients_chunk;
+
+    for (int i = 0; i < num_chunks_; ++i) {
+        if (i == (num_chunks_ - 1)) {
+            in_gradients_chunk.rows = last_chunk_size_;
+        } else {
+            in_gradients_chunk.rows = chunk_size_;
+        }
+        in_gradients_chunk.columns = in_gradients_row.columns;
+        in_gradients_chunk.values = &in_gradients_row.values[i * chunk_size_ * in_gradients_row.columns];
+        to_column_major_inplace(&in_gradients_chunk);
+
+        gradients_chunk = dropout_layers_[i].backward(in_gradients_chunk);
+        to_row_major_inplace(&gradients_chunk);
+
+        std::memcpy(&gradients.values[i * chunk_size_ * gradients_chunk.columns], gradients_chunk.values, gradients_chunk.rows * gradients_chunk.columns * sizeof(float));
+    }
+
+    to_column_major_inplace(&gradients);
+
+    return gradients;
 }
