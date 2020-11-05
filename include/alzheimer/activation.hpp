@@ -48,7 +48,7 @@ private:
     int num_chunks_;
 
 public:
-    ReluChunked(CudaHelper *helper, int chunk_size);
+    ReluChunked(CudaHelper *helper, int chunk_size, int num_nodes);
     matrix<float> forward(matrix<float> X);
     matrix<float> backward(matrix<float> in_gradients);
 };
@@ -62,7 +62,7 @@ private:
     int num_chunks_;
 
 public:
-    LogSoftmaxChunked(CudaHelper *helper, int chunk_size);
+    LogSoftmaxChunked(CudaHelper *helper, int chunk_size, int num_nodes);
     matrix<float> forward(matrix<float> X);
     matrix<float> backward(matrix<float> in_gradients);
 };

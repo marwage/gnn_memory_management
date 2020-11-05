@@ -29,7 +29,7 @@ matrix<float> *SageLinear::get_parameters() {
     return params;
 }
 
-// assume number of paramters is 4
+// assume number of parameters is 4
 void SageLinear::set_parameters(matrix<float> *parameters) {
     linear_self_.set_parameters(parameters);
     linear_neigh_.set_parameters(&parameters[2]);
@@ -101,35 +101,33 @@ void SageLinear::update_weights(matrix<float> *gradients) {
     linear_neigh_.update_weights(&gradients[2]);
 }
 
-SageLinearChunked::SageLinearChunked(CudaHelper *helper, int num_in_features, int num_out_features, int chunk_size) {
+SageLinearChunked::SageLinearChunked(CudaHelper *helper, int num_in_features, int num_out_features, int chunk_size, int num_nodes) {
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
     num_in_features_ = num_in_features;
     num_out_features_ = num_out_features;
-    num_chunks_ = 0;
     input_shape_ = std::vector<int>(2);
+
+    num_chunks_ = ceil((float) num_nodes / (float) chunk_size_);
+    if (num_chunks_ * chunk_size_ > num_nodes) {
+        last_chunk_size_ = num_nodes - (num_chunks_ - 1) * chunk_size_;
+    } else {
+        last_chunk_size_ = chunk_size_;
+    }
+
+    sage_linear_layers_ = std::vector<SageLinear>(num_chunks_);
+    for (int i = 0; i < num_chunks_; ++i) {
+        sage_linear_layers_[i] = SageLinear(num_in_features_, num_out_features_, cuda_helper_);
+    }
+    if (num_chunks_ > 1) {
+        for (int i = 1; i < num_chunks_; ++i) {
+            sage_linear_layers_[i].set_parameters(sage_linear_layers_[0].get_parameters());
+        }
+    }
 }
 
 matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> aggr){
-    if (num_chunks_ == 0) {
-        input_shape_ = {features.rows, features.columns};
-        num_chunks_ = ceil((float) features.rows / (float) chunk_size_);
-        if (num_chunks_ * chunk_size_ > features.rows) {
-            last_chunk_size_ = features.rows - (num_chunks_ - 1) * chunk_size_;
-        } else {
-            last_chunk_size_ = chunk_size_;
-        }
-
-        sage_linear_layers_ = std::vector<SageLinear>(num_chunks_);
-        for (int i = 0; i < num_chunks_; ++i) {
-            sage_linear_layers_[i] = SageLinear(num_in_features_, num_out_features_, cuda_helper_);
-        }
-        if (num_chunks_ > 1) {
-            for (int i = 1; i < num_chunks_; ++i) {
-                sage_linear_layers_[i].set_parameters(sage_linear_layers_[0].get_parameters());
-            }
-        }
-    }
+    input_shape_ = {features.rows, features.columns};
 
     matrix<float> features_row = to_row_major(&features);
     matrix<float> aggr_row = to_row_major(&aggr);

@@ -47,7 +47,7 @@ private:
     std::vector<int> input_shape_;
 
 public:
-    SageLinearChunked(CudaHelper *helper, int num_in_features, int num_out_features, int chunk_size);
+    SageLinearChunked(CudaHelper *helper, int num_in_features, int num_out_features, int chunk_size, int num_nodes);
     matrix<float> forward(matrix<float> features, matrix<float> aggr);
     SageLinear::SageLinearGradients backward(matrix<float> in_gradients);
     matrix<float> *get_parameters();

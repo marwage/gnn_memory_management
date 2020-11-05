@@ -126,28 +126,24 @@ matrix<float> Dropout::backward(matrix<float> in_gradients) {
     return grad_input;
 }
 
-DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size) {
+DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes) {
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
-    num_chunks_ = 0;
+    num_chunks_ = ceil((float) num_nodes / (float) chunk_size_);
+
+    dropout_layers_ = std::vector<Dropout>(num_chunks_);
+    for (int i = 0; i < num_chunks_; ++i) {
+        dropout_layers_[i] = Dropout(cuda_helper_);
+    }
+
+    if (num_chunks_ * chunk_size_ > num_nodes) {
+        last_chunk_size_ = num_nodes - (num_chunks_ - 1) * chunk_size_;
+    } else {
+        last_chunk_size_ = chunk_size_;
+    }
 }
 
 matrix<float> DropoutChunked::forward(matrix<float> X) {
-    if (num_chunks_ == 0) {
-        num_chunks_ = ceil((float) X.rows / (float) chunk_size_);
-
-        dropout_layers_ = std::vector<Dropout>(num_chunks_);
-        for (int i = 0; i < num_chunks_; ++i) {
-            dropout_layers_[i] = Dropout(cuda_helper_);
-        }
-
-        if (num_chunks_ * chunk_size_ > X.rows) {
-            last_chunk_size_ = X.rows - (num_chunks_ - 1) * chunk_size_;
-        } else {
-            last_chunk_size_ = chunk_size_;
-        }
-    }
-
     matrix<float> X_row = to_row_major(&X);
 
     matrix<float> Y;

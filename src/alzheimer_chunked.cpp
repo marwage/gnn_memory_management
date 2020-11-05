@@ -46,21 +46,26 @@ int main() {
     float learning_rate = 0.003;
     int num_hidden_channels = 128;
     int num_classes = 7;
-    int chunk_size = 1024;
+    int chunk_size = 1 << 14;
+//    int chunk_size = 1 << 30;
+    int num_nodes = adjacency.rows;
 
     // layers
-    DropoutChunked dropout_0(&cuda_helper, chunk_size);
-    GraphConvChunked graph_convolution_0(&cuda_helper, &adjacency, "mean", chunk_size);
-    SageLinearChunked linear_0(&cuda_helper, features.columns, num_hidden_channels, chunk_size);
-    ReluChunked relu_0(&cuda_helper, chunk_size);
-    DropoutChunked dropout_1(&cuda_helper, chunk_size);
-    GraphConvChunked graph_convolution_1(&cuda_helper, &adjacency, "mean", chunk_size);
-    SageLinearChunked linear_1(&cuda_helper, num_hidden_channels, num_hidden_channels, chunk_size);
-    ReluChunked relu_1(&cuda_helper, chunk_size);
-    DropoutChunked dropout_2(&cuda_helper, chunk_size);
-    GraphConvChunked graph_convolution_2(&cuda_helper, &adjacency, "mean", chunk_size);
-    SageLinearChunked linear_2(&cuda_helper, num_hidden_channels, num_classes, chunk_size);
-    LogSoftmaxChunked log_softmax(&cuda_helper, chunk_size);
+    DropoutChunked dropout_0(&cuda_helper, chunk_size, num_nodes);
+//    GraphConvChunked graph_convolution_0(&cuda_helper, "mean", chunk_size);
+    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean");
+    SageLinearChunked linear_0(&cuda_helper, features.columns, num_hidden_channels, chunk_size, num_nodes);
+    ReluChunked relu_0(&cuda_helper, chunk_size, num_nodes);
+    DropoutChunked dropout_1(&cuda_helper, chunk_size, num_nodes);
+//    GraphConvChunked graph_convolution_1(&cuda_helper, "mean", chunk_size);
+    GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean");
+    SageLinearChunked linear_1(&cuda_helper, num_hidden_channels, num_hidden_channels, chunk_size, num_nodes);
+    ReluChunked relu_1(&cuda_helper, chunk_size, num_nodes);
+    DropoutChunked dropout_2(&cuda_helper, chunk_size, num_nodes);
+//    GraphConvChunked graph_convolution_2(&cuda_helper, "mean", chunk_size);
+    GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean");
+    SageLinearChunked linear_2(&cuda_helper, num_hidden_channels, num_classes, chunk_size, num_nodes);
+    LogSoftmaxChunked log_softmax(&cuda_helper, chunk_size, num_nodes);
     NLLLoss loss_layer;
 
     // optimizer
@@ -117,56 +122,56 @@ int main() {
         std::cout << "loss " << loss << std::endl;
 
         // BACKPROPAGATION
-//        //loss
-//        gradients = loss_layer.backward();
-//
-//        // log-softmax
-//        gradients = log_softmax.backward(gradients);
-//
-//        // linear layer 2
-//        sage_linear_gradients = linear_2.backward(gradients);
-//
-//        // graph convolution 2
-//        gradients = graph_convolution_2.backward(sage_linear_gradients.neigh_grads);
-//
-//        // add sage_linear_gradients.self_grads + gradients
-//        gradients = add_matrices(&cuda_helper, sage_linear_gradients.self_grads, gradients);
-//
-//        // dropout 2
-//        gradients = dropout_2.backward(gradients);
-//
-//        // relu 1
-//        gradients = relu_1.backward(gradients);
-//
-//        // linear layer 1
-//        sage_linear_gradients = linear_1.backward(gradients);
-//
-//        // graph convolution 1
-//        gradients = graph_convolution_1.backward(gradients);
-//
-//        // add sage_linear_gradients.self_grads + gradients
-//        gradients = add_matrices(&cuda_helper, sage_linear_gradients.self_grads, gradients);
-//
-//        // dropout 1
-//        gradients = dropout_1.backward(gradients);
-//
-//        // relu 0
-//        gradients = relu_0.backward(gradients);
-//
-//        // linear layer 0
-//        sage_linear_gradients = linear_0.backward(gradients);
-//
-//        // no need for graph conv 0 and dropout 0
-//
-//        // optimiser
-//        matrix<float> *gradient_0 = adam_0.step(linear_0.get_gradients());
-//        matrix<float> *gradient_1 = adam_1.step(linear_1.get_gradients());
-//        matrix<float> *gradient_2 = adam_2.step(linear_2.get_gradients());
-//
-//        // update weights
-//        linear_0.update_weights(gradient_0);
-//        linear_1.update_weights(gradient_1);
-//        linear_2.update_weights(gradient_2);
+        //loss
+        gradients = loss_layer.backward();
+
+        // log-softmax
+        gradients = log_softmax.backward(gradients);
+
+        // linear layer 2
+        sage_linear_gradients = linear_2.backward(gradients);
+
+        // graph convolution 2
+        gradients = graph_convolution_2.backward(sage_linear_gradients.neigh_grads);
+
+        // add sage_linear_gradients.self_grads + gradients
+        gradients = add_matrices(&cuda_helper, sage_linear_gradients.self_grads, gradients);
+
+        // dropout 2
+        gradients = dropout_2.backward(gradients);
+
+        // relu 1
+        gradients = relu_1.backward(gradients);
+
+        // linear layer 1
+        sage_linear_gradients = linear_1.backward(gradients);
+
+        // graph convolution 1
+        gradients = graph_convolution_1.backward(gradients);
+
+        // add sage_linear_gradients.self_grads + gradients
+        gradients = add_matrices(&cuda_helper, sage_linear_gradients.self_grads, gradients);
+
+        // dropout 1
+        gradients = dropout_1.backward(gradients);
+
+        // relu 0
+        gradients = relu_0.backward(gradients);
+
+        // linear layer 0
+        sage_linear_gradients = linear_0.backward(gradients);
+
+        // no need for graph conv 0 and dropout 0
+
+        // optimiser
+        matrix<float> *gradient_0 = adam_0.step(linear_0.get_gradients());
+        matrix<float> *gradient_1 = adam_1.step(linear_1.get_gradients());
+        matrix<float> *gradient_2 = adam_2.step(linear_2.get_gradients());
+
+        // update weights
+        linear_0.update_weights(gradient_0);
+        linear_1.update_weights(gradient_1);
+        linear_2.update_weights(gradient_2);
     }// end training loop
 
     // CLEAN-UP

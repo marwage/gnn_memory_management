@@ -32,7 +32,7 @@ private:
     std::vector<Dropout> dropout_layers_;
 
 public:
-    DropoutChunked(CudaHelper *helper, int chunk_size);
+    DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes);
     matrix<float> forward(matrix<float> X);
     matrix<float> backward(matrix<float> in_gradients);
 };
