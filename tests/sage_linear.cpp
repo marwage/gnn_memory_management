@@ -4,6 +4,43 @@
 #include "cuda_helper.hpp"
 #include "tensors.hpp"
 
+void save_params(matrix<float> *parameters) {
+    std::string home = std::getenv("HOME");
+    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
+    std::string test_dir_path = dir_path + "/tests";
+    std::string path;
+
+    path = test_dir_path + "/self_weight.npy";
+    save_npy_matrix(parameters[0], path);
+    path = test_dir_path + "/self_bias.npy";
+    save_npy_matrix(parameters[1], path);
+    path = test_dir_path + "/neigh_weight.npy";
+    save_npy_matrix(parameters[2], path);
+    path = test_dir_path + "/neigh_bias.npy";
+    save_npy_matrix(parameters[3], path);
+}
+
+void save_grads(SageLinear::SageLinearGradients *gradients, matrix<float> *weight_gradients) {
+    std::string home = std::getenv("HOME");
+    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
+    std::string test_dir_path = dir_path + "/tests";
+    std::string path;
+
+    path = test_dir_path + "/self_grads.npy";
+    save_npy_matrix(gradients->self_grads, path);
+    path = test_dir_path + "/neigh_grads.npy";
+    save_npy_matrix(gradients->neigh_grads, path);
+
+    path = test_dir_path + "/self_weight_grads.npy";
+    save_npy_matrix(weight_gradients[0], path);
+    path = test_dir_path + "/self_bias_grads.npy";
+    save_npy_matrix(weight_gradients[1], path);
+    path = test_dir_path + "/neigh_weight_grads.npy";
+    save_npy_matrix(weight_gradients[2], path);
+    path = test_dir_path + "/neigh_bias_grads.npy";
+    save_npy_matrix(weight_gradients[3], path);
+}
+
 
 int main() {
     std::string home = std::getenv("HOME");
@@ -42,7 +79,7 @@ int main() {
 
     matrix<float> in_gradients;
     in_gradients.rows = rows;
-    in_gradients.columns = columns;
+    in_gradients.columns = num_out_features;
     in_gradients.values = reinterpret_cast<float *>(
             malloc(in_gradients.rows * in_gradients.columns * sizeof(float)));
     for (int i = 0; i < in_gradients.rows * in_gradients.columns; ++i) {
@@ -61,30 +98,27 @@ int main() {
     path = test_dir_path + "/result.npy";
     save_npy_matrix(result, path);
 
-    matrix<float> *parameters = sage_linear.get_parameters();
-    path = test_dir_path + "/self_weight.npy";
-    save_npy_matrix(parameters[0], path);
-    path = test_dir_path + "/self_bias.npy";
-    save_npy_matrix(parameters[1], path);
-    path = test_dir_path + "/neigh_weight.npy";
-    save_npy_matrix(parameters[2], path);
-    path = test_dir_path + "/neigh_bias.npy";
-    save_npy_matrix(parameters[3], path);
+    save_params(sage_linear.get_parameters());
 
-    path = test_dir_path + "/self_grads.npy";
-    save_npy_matrix(gradients.self_grads, path);
-    path = test_dir_path + "/neigh_grads.npy";
-    save_npy_matrix(gradients.neigh_grads, path);
-    matrix<float> *weight_gradients = sage_linear.get_gradients();
-    path = test_dir_path + "/self_weight_grads.npy";
-    save_npy_matrix(weight_gradients[0], path);
-    path = test_dir_path + "/self_bias_grads.npy";
-    save_npy_matrix(weight_gradients[1], path);
-    path = test_dir_path + "/neigh_weight_grads.npy";
-    save_npy_matrix(weight_gradients[2], path);
-    path = test_dir_path + "/neigh_bias_grads.npy";
-    save_npy_matrix(weight_gradients[3], path);
+    save_grads(&gradients, sage_linear.get_gradients());
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear.py";
     system(command);
+
+    int chunk_size = 128;
+    int num_nodes = rows;
+    SageLinearChunked sage_linear_chunked(&cuda_helper, columns, num_out_features, chunk_size, num_nodes);
+
+    result = sage_linear_chunked.forward(input_self, input_neigh);
+    gradients = sage_linear_chunked.backward(in_gradients);
+
+    path = test_dir_path + "/result.npy";
+    save_npy_matrix(result, path);
+
+    save_params(sage_linear.get_parameters());
+
+    save_grads(&gradients, sage_linear.get_gradients());
+
+    char command_chunked[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear.py";
+    system(command_chunked);
 }
