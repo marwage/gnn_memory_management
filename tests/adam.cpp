@@ -80,4 +80,7 @@ int main() {
         path = test_dir_path + "/weight_chunked_" + std::to_string(i) + ".npy";
         save_npy_matrix(chunked_weights[i], path);
     }
+
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/adam.py";
+    system(command);
 }
