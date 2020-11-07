@@ -129,8 +129,6 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, int num_in_features, in
 matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> aggr){
     input_shape_ = {features.rows, features.columns};
 
-    return sage_linear_layers_[0].forward(features, aggr);
-
     matrix<float> features_row = to_row_major(&features);
     matrix<float> aggr_row = to_row_major(&aggr);
 
@@ -168,8 +166,6 @@ matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> a
 }
 
 SageLinear::SageLinearGradients SageLinearChunked::backward(matrix<float> in_gradients) {
-    return sage_linear_layers_[0].backward(in_gradients);
-
     matrix<float> in_gradients_row = to_row_major(&in_gradients);
 
     SageLinear::SageLinearGradients input_gradients;
@@ -199,7 +195,7 @@ SageLinear::SageLinearGradients SageLinearChunked::backward(matrix<float> in_gra
         std::memcpy(&input_gradients.neigh_grads.values[i * chunk_size_ * gradients_chunk.neigh_grads.columns], gradients_chunk.neigh_grads.values, gradients_chunk.neigh_grads.rows * gradients_chunk.neigh_grads.columns * sizeof(float));
     }
 
-    // TODO add gradients of all layers
+    // add gradients of all layers
     if (num_chunks_ > 1) {
         matrix<float> *gradients = sage_linear_layers_[0].get_gradients();
         int num_parameters = 4;
