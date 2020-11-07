@@ -103,6 +103,8 @@ def test_sage_linear():
 
     percentage_equal = check_isclose(sage_linear_result, true_sage_linear_result)
     print("SageLinear: Percentage of equal elements: {}".format(percentage_equal))
+    print(sage_linear_result[0:3, 0:3])
+    print(true_sage_linear_result[0:3, 0:3])
 
     # BACKPROPAGATION
     true_sage_linear_result_torch.backward(in_gradients_torch)
