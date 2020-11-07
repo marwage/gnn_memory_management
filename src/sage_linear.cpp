@@ -129,6 +129,8 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, int num_in_features, in
 matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> aggr){
     input_shape_ = {features.rows, features.columns};
 
+    return sage_linear_layers_[0].forward(features, aggr);
+
     matrix<float> features_row = to_row_major(&features);
     matrix<float> aggr_row = to_row_major(&aggr);
 
@@ -166,6 +168,8 @@ matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> a
 }
 
 SageLinear::SageLinearGradients SageLinearChunked::backward(matrix<float> in_gradients) {
+    return sage_linear_layers_[0].backward(in_gradients);
+
     matrix<float> in_gradients_row = to_row_major(&in_gradients);
 
     SageLinear::SageLinearGradients input_gradients;

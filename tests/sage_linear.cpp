@@ -4,6 +4,9 @@
 #include "cuda_helper.hpp"
 #include "tensors.hpp"
 
+#include <iostream>
+
+
 void save_params(matrix<float> *parameters) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
@@ -105,6 +108,8 @@ int main() {
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear.py";
     system(command);
 
+    std::cout << "---------- chunked ----------" << std::endl;
+
     int chunk_size = 128;
     int num_nodes = rows;
     SageLinearChunked sage_linear_chunked(&cuda_helper, columns, num_out_features, chunk_size, num_nodes);
@@ -115,9 +120,9 @@ int main() {
     path = test_dir_path + "/result.npy";
     save_npy_matrix(result, path);
 
-    save_params(sage_linear.get_parameters());
+    save_params(sage_linear_chunked.get_parameters());
 
-    save_grads(&gradients, sage_linear.get_gradients());
+    save_grads(&gradients, sage_linear_chunked.get_gradients());
 
     char command_chunked[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear.py";
     system(command_chunked);
