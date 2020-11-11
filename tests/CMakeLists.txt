@@ -1,352 +1,101 @@
 set(TEST_NAME test_integration)
-
 add_executable(${TEST_NAME}
-        tests/integration.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/integration.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_integration_subset)
-
 add_executable(${TEST_NAME}
-        tests/integration_subset.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/integration_subset.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_divmv)
-
 add_executable(${TEST_NAME}
-        tests/divmv.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/divmv.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_log_softmax)
-
 add_executable(${TEST_NAME}
-        tests/log_softmax.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/log_softmax.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_loss)
-
 add_executable(${TEST_NAME}
-        tests/loss.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/loss.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_dropout)
-
 add_executable(${TEST_NAME}
-        tests/dropout.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/dropout.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_relu)
-
 add_executable(${TEST_NAME}
-        tests/relu.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/relu.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_axpby)
-
 add_executable(${TEST_NAME}
-        tests/axpby.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/axpby.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_invsqrt)
-
 add_executable(${TEST_NAME}
-        tests/invsqrt.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/invsqrt.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_elesq)
-
 add_executable(${TEST_NAME}
-        tests/elesq.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/elesq.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_tensors)
-
 add_executable(${TEST_NAME}
-        tests/tensors.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/tensors.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_graph_conv)
-
 add_executable(${TEST_NAME}
-        tests/graph_convolution.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/graph_convolution.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_integration_chunked)
-
 add_executable(${TEST_NAME}
-        tests/integration_chunked.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/integration_chunked.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_integration_subset_chunked)
-
 add_executable(${TEST_NAME}
-        tests/integration_subset_chunked.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/integration_subset_chunked.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
-
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_adam)
-
 add_executable(${TEST_NAME}
-        tests/adam.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/adam.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_sage_linear)
-
 add_executable(${TEST_NAME}
-        tests/sage_linear.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/sage_linear.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
+        ${PROJECT_NAME})
 
 set(TEST_NAME test_sage_linear_adam)
-
 add_executable(${TEST_NAME}
-        tests/sage_linear_adam.cpp
-        ${SOURCE_FILES})
-
-target_include_directories(${TEST_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
-
-target_link_directories(${TEST_NAME}
-        PRIVATE /usr/local/lib)
-
+        tests/sage_linear_adam.cpp)
 target_link_libraries(${TEST_NAME}
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
+        ${PROJECT_NAME})

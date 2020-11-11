@@ -1,5 +1,3 @@
-# set(CMAKE_VERBOSE_MAKEFILE on)
-
 cmake_minimum_required(VERSION 3.17)
 
 project(alzheimer VERSION 0.1
@@ -25,7 +23,8 @@ set(HEADER_FILES
         include/alzheimer/divmv.h
         include/alzheimer/axpby.h
         include/alzheimer/invsqrt.h
-        include/alzheimer/elesq.h)
+        include/alzheimer/elesq.h
+        include/alzheimer/axdy.h)
 
 set(SOURCE_FILES
         src/tensors.cpp
@@ -41,45 +40,48 @@ set(SOURCE_FILES
         src/mmio.c
         src/divmv.cu
         src/axpby.cu
-        src/invsqrt.cu src/elesq.cu src/axdy.cu)
+        src/invsqrt.cu
+        src/elesq.cu
+        src/axdy.cu)
 
-add_executable(${PROJECT_NAME}
-        src/alzheimer.cpp
-        ${SOURCE_FILES})
+
+add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME}
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
+        PUBLIC ${PROJECT_SOURCE_DIR}/include/alzheimer
+        PUBLIC ${CUDA_INCLUDE_DIRS})
 
 target_link_directories(${PROJECT_NAME}
         PRIVATE /usr/local/lib)
 
 target_link_libraries(${PROJECT_NAME}
         cnpy
+        cudnn
         ${CUDA_LIBRARIES}
         ${CUDA_cusparse_LIBRARY}
-        cudnn
         ${CUDA_CUBLAS_LIBRARIES})
 
 
-add_executable(${PROJECT_NAME}_chunked
-        src/alzheimer_chunked.cpp
-        ${SOURCE_FILES})
+install(TARGETS ${PROJECT_NAME} DESTINATION lib)
+install(FILES ${HEADER_FILES} DESTINATION include)
 
-target_include_directories(${PROJECT_NAME}_chunked
-        PRIVATE ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PRIVATE /usr/local/cuda/include)
 
-target_link_directories(${PROJECT_NAME}_chunked
-        PRIVATE /usr/local/lib)
+set(EXECUTABLE_NAME run_${PROJECT_NAME})
 
-target_link_libraries(${PROJECT_NAME}_chunked
-        cnpy
-        ${CUDA_LIBRARIES}
-        ${CUDA_cusparse_LIBRARY}
-        cudnn
-        ${CUDA_CUBLAS_LIBRARIES})
+add_executable(${EXECUTABLE_NAME}
+        src/alzheimer.cpp)
+
+target_link_libraries(${EXECUTABLE_NAME}
+        ${PROJECT_NAME})
+
+
+set(EXECUTABLE_NAME run_${PROJECT_NAME}_chunked)
+
+add_executable(${EXECUTABLE_NAME}
+        src/alzheimer_chunked.cpp)
+
+target_link_libraries(${EXECUTABLE_NAME}
+        ${PROJECT_NAME})
 
 
 include(tests/CMakeLists.txt)
-
