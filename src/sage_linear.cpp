@@ -244,6 +244,12 @@ matrix<float> *SageLinearChunked::get_parameters() {
     return sage_linear_layers_[0].get_parameters();
 }
 
+void SageLinearChunked::set_parameters(matrix<float> *parameters) {
+    for (int i = 0; i < num_chunks_; ++i) {
+        sage_linear_layers_[i].set_parameters(parameters);
+    }
+}
+
 matrix<float> *SageLinearChunked::get_gradients() {
     return sage_linear_layers_[0].get_gradients();
 }

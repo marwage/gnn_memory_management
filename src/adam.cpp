@@ -4,11 +4,11 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-#include "adam.hpp"
 #include "axdy.h"
 #include "axpby.h"
 #include "elesq.h"
 #include "invsqrt.h"
+#include "sage_linear_adam.hpp"
 
 
 Adam::Adam(CudaHelper *helper, float learning_rate, matrix<float> *parameters, int num_parameters) {

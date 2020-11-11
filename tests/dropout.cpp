@@ -75,7 +75,7 @@ void check_dropout_chunked(int chunk_size) {
     to_column_major_inplace<float>(&features);
 
     CudaHelper cuda_helper;
-    DropoutChunked dropout_layer(&cuda_helper, chunk_size);
+    DropoutChunked dropout_layer(&cuda_helper, chunk_size, features.rows);
 
     matrix<float> dropout_result = dropout_layer.forward(features);
     path = test_dir_path + "/dropout_result.npy";
@@ -94,9 +94,5 @@ void check_dropout_chunked(int chunk_size) {
 
 int main() {
     check_dropout();
-    int chunk_size = 1 << 14;
-    check_dropout_chunked(chunk_size);
-    chunk_size = 1 << 30;
-    check_dropout_chunked(chunk_size);
 }
 

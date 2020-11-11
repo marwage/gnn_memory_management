@@ -41,13 +41,14 @@ void check_subset(int chunk_size) {
     float learning_rate = 0.003;
     int num_hidden_channels = 128;
     int num_classes = 7;
+    int num_nodes = features.rows;
 
     // layers
-    DropoutChunked dropout_layer(&cuda_helper, chunk_size);
+    DropoutChunked dropout_layer(&cuda_helper, chunk_size, num_nodes);
     GraphConvChunked graph_convolution_layer(&cuda_helper, "mean", chunk_size);
-    SageLinearChunked linear_layer(&cuda_helper, features.columns, num_hidden_channels, chunk_size);
-    ReluChunked relu_layer(&cuda_helper, chunk_size);
-    LogSoftmaxChunked log_softmax_layer(&cuda_helper, chunk_size);
+    SageLinearChunked linear_layer(&cuda_helper, features.columns, num_hidden_channels, chunk_size, num_nodes);
+    ReluChunked relu_layer(&cuda_helper, chunk_size, num_nodes);
+    LogSoftmaxChunked log_softmax_layer(&cuda_helper, chunk_size, num_nodes);
     NLLLoss loss_layer;
 
     // generate random inputs

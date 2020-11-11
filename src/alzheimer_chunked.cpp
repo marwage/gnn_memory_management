@@ -7,7 +7,7 @@
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
-#include <adam.hpp>
+#include <sage_linear_adam.hpp>
 
 
 int main() {

@@ -3,12 +3,12 @@
 #include <assert.h>
 
 #include "activation.hpp"
-#include "adam.hpp"
 #include "cuda_helper.hpp"
 #include "dropout.hpp"
 #include "graph_convolution.hpp"
 #include "loss.hpp"
 #include "sage_linear.hpp"
+#include "sage_linear_adam.hpp"
 #include "tensors.hpp"
 
 

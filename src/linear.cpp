@@ -285,7 +285,6 @@ void Linear::update_weights(matrix<float> *gradients) {
     check_cuda(cudaFree(d_grads));
     check_cuda(cudaFree(d_weight));
 
-    *d_grads;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_grads),
                           grad_bias_.rows * grad_bias_.columns * sizeof(float)));
     check_cuda(cudaMemcpy(d_grads, grad_bias_.values,
@@ -295,7 +294,7 @@ void Linear::update_weights(matrix<float> *gradients) {
     float *d_bias;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_bias),
                           bias_.rows * bias_.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_bias, weight_.values,
+    check_cuda(cudaMemcpy(d_bias, bias_.values,
                           bias_.rows * bias_.columns * sizeof(float),
                           cudaMemcpyHostToDevice));
 

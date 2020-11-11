@@ -19,7 +19,7 @@ set(HEADER_FILES
         include/alzheimer/activation.hpp
         include/alzheimer/loss.hpp
         include/alzheimer/sage_linear.hpp
-        include/alzheimer/adam.hpp
+        include/alzheimer/sage_linear_adam.hpp
         include/alzheimer/mmio_wrapper.hpp
         include/alzheimer/mmio.h
         include/alzheimer/divmv.h

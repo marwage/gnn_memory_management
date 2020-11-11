@@ -51,6 +51,7 @@ public:
     matrix<float> forward(matrix<float> features, matrix<float> aggr);
     SageLinear::SageLinearGradients backward(matrix<float> in_gradients);
     matrix<float> *get_parameters();
+    void set_parameters(matrix<float> *parameters);
     matrix<float> *get_gradients();
     void update_weights(matrix<float> *gradients);
 };
