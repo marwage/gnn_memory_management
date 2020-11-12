@@ -39,8 +39,13 @@ def num_close_rows(A, B):
     
     return close_rows.sum()
 
+def breakpoint():
+    import os, signal
+    os.kill(os.getpid(), signal.SIGTRAP)
+
 
 def test_sage_linear():
+    product_equals = 1.0
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     home = os.getenv("HOME")
@@ -101,8 +106,9 @@ def test_sage_linear():
 
     true_sage_linear_result = true_sage_linear_result_torch.detach().cpu().numpy()
 
-    percentage_equal = check_isclose(sage_linear_result, true_sage_linear_result)
-    print("SageLinear: Percentage of equal elements: {}".format(percentage_equal))
+    ratio_equal = check_isclose(sage_linear_result, true_sage_linear_result)
+    print("SageLinear: Percentage of equal elements: {}".format(ratio_equal))
+    product_equals = product_equals * ratio_equal
 
     # BACKPROPAGATION
     true_sage_linear_result_torch.backward(in_gradients_torch)
@@ -130,16 +136,29 @@ def test_sage_linear():
 
     ratio_equal = check_isclose(self_grads, true_self_grads)
     print("Linear self: Ratio of equal elements {}".format(ratio_equal))
+    product_equals = product_equals * ratio_equal
     ratio_equal = check_isclose(neigh_grads, true_neigh_grads)
     print("Linear neigh: Ratio of equal elements {}".format(ratio_equal))
+    product_equals = product_equals * ratio_equal
     ratio_equal = check_isclose(self_weight_grads, true_self_weight_grads)
     print("Linear self weight: Ratio {}".format(ratio_equal))
+    product_equals = product_equals * ratio_equal
     ratio_equal = check_isclose(self_bias_grads, true_self_bias_grads)
     print("Linear self bias: Ratio {}".format(ratio_equal))
+    product_equals = product_equals * ratio_equal
     ratio_equal = check_isclose(neigh_weight_grads, true_neigh_weight_grads)
     print("Linear neigh weight: Ratio {}".format(ratio_equal))
+    product_equals = product_equals * ratio_equal
     ratio_equal = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
     print("Linear neigh bias: Ratio {}".format(ratio_equal))
+    product_equals = product_equals * ratio_equal
+
+    if (product_equals == 1.0):
+        value = np.array([1], dtype=np.int32)
+    else:
+        value = np.array([0], dtype=np.int32)
+    path = test_dir_path + "/value.npy"
+    np.save(path, value)
 
 
 if __name__ == "__main__":
