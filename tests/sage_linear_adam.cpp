@@ -6,17 +6,7 @@
 #include "tensors.hpp"
 
 
-matrix<float> gen_rand_matrix(int num_rows, int num_columns) {
-    matrix<float> mat;
-    mat.rows = num_rows;
-    mat.columns = num_columns;
-    mat.values = (float *) malloc(mat.rows * mat.columns * sizeof(float));
-    for (int i = 0; i < mat.rows * mat.columns; ++i) {
-        mat.values[i] = rand();
-    }
-
-    return mat;
-}
+matrix<float> gen_rand_matrix(int num_rows, int num_columns);
 
 int check_adam() {
     std::string home = std::getenv("HOME");

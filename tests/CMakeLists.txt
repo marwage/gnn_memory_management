@@ -1,3 +1,10 @@
+find_package(Catch2 REQUIRED)
+find_package(Python3 REQUIRED
+        COMPONENTS Interpreter Development)
+
+set(HELPER_FILES
+        tests/helper.cpp)
+
 set(TEST_NAME test_integration)
 add_executable(${TEST_NAME}
         tests/integration.cpp)
@@ -90,12 +97,16 @@ target_link_libraries(${TEST_NAME}
 
 set(TEST_NAME test_sage_linear)
 add_executable(${TEST_NAME}
-        tests/sage_linear.cpp)
+        tests/sage_linear.cpp
+        ${HELPER_FILES})
 target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
+        ${PROJECT_NAME}
+        Catch2::Catch2
+        ${Python3_LIBRARIES})
 
 set(TEST_NAME test_sage_linear_adam)
 add_executable(${TEST_NAME}
-        tests/sage_linear_adam.cpp)
+        tests/sage_linear_adam.cpp
+        ${HELPER_FILES})
 target_link_libraries(${TEST_NAME}
         ${PROJECT_NAME})

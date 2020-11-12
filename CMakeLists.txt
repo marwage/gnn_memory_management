@@ -6,6 +6,8 @@ project(alzheimer VERSION 0.1
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+
 find_package(CUDA 10.2 REQUIRED)
 
 set(HEADER_FILES
@@ -49,7 +51,8 @@ add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${PROJECT_SOURCE_DIR}/include/alzheimer
-        PUBLIC ${CUDA_INCLUDE_DIRS})
+        PUBLIC ${CUDA_INCLUDE_DIRS}
+        PUBLIC /usr/include/python3.6m)
 
 target_link_directories(${PROJECT_NAME}
         PRIVATE /usr/local/lib)
