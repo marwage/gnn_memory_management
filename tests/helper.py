@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 
 def load_col_major(path):
