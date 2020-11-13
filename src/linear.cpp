@@ -95,6 +95,9 @@ matrix<float> Linear::expand_bias(int num_rows) {
 
 // assume X is column-major
 matrix<float> Linear::forward(matrix<float> X) {
+    if (X.rows < 1) {
+        throw "Input to Linear::forward has a non-positive number of rows";
+    }
     x_ = X;
 
     float *d_X, *d_weight, *d_bias;
@@ -247,8 +250,9 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
 
     check_cuda(cudaFree(d_g));
     check_cuda(cudaFree(d_weight));
-    check_cuda(cudaFree(d_dinput));
     check_cuda(cudaFree(d_dweight));
+    check_cuda(cudaFree(d_input));
+    check_cuda(cudaFree(d_dinput));
 
     return grad_input;
 }

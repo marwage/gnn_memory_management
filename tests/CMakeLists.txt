@@ -5,6 +5,11 @@ find_package(Python3 REQUIRED
 set(HELPER_FILES
         tests/helper.cpp)
 
+set(LIBS
+        ${PROJECT_NAME}
+        Catch2::Catch2
+        ${Python3_LIBRARIES})
+
 set(TEST_NAME test_integration)
 add_executable(${TEST_NAME}
         tests/integration.cpp)
@@ -100,13 +105,25 @@ add_executable(${TEST_NAME}
         tests/sage_linear.cpp
         ${HELPER_FILES})
 target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME}
-        Catch2::Catch2
-        ${Python3_LIBRARIES})
+        ${LIBS})
 
 set(TEST_NAME test_sage_linear_adam)
 add_executable(${TEST_NAME}
         tests/sage_linear_adam.cpp
         ${HELPER_FILES})
 target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
+        ${LIBS})
+
+set(TEST_NAME test_sage_linear_forward)
+add_executable(${TEST_NAME}
+        tests/sage_linear_forward.cpp
+        ${HELPER_FILES})
+target_link_libraries(${TEST_NAME}
+        ${LIBS})
+
+set(TEST_NAME test_transpose)
+add_executable(${TEST_NAME}
+        tests/transpose.cpp
+        ${HELPER_FILES})
+target_link_libraries(${TEST_NAME}
+        ${LIBS})
