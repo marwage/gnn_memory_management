@@ -3,45 +3,7 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-
-
-def load_col_major(path):
-    mat = np.load(path)
-    n, m = mat.shape
-    mat = mat.reshape((m, n))
-    mat = mat.transpose()
-
-    return mat
-
-
-def check_isclose(A, B):
-    if (A.shape == B.shape):
-        is_close = np.isclose(A, B)
-        ratio_equal = is_close.sum() / B.size
-    else:
-        print(A.shape)
-        print(B.shape)
-        return 0
-
-    return ratio_equal
-
-
-def print_nan_coor(A):
-    for i in range(A.shape[0]):
-        for j in range(A.shape[1]):
-            if np.isnan(A[i, j]):
-                print("NaN at ({}, {})".format(i, j))
-
-def num_close_rows(A, B):
-    is_close = np.isclose(A, B)
-    is_close_sum = is_close.sum(axis=1)
-    close_rows = is_close_sum == A.shape[1]
-    
-    return close_rows.sum()
-
-def breakpoint():
-    import os, signal
-    os.kill(os.getpid(), signal.SIGTRAP)
+from helper import check_equal, check_isclose, load_col_major, save_return_value
 
 
 def test_sage_linear():
@@ -106,8 +68,9 @@ def test_sage_linear():
 
     true_sage_linear_result = true_sage_linear_result_torch.detach().cpu().numpy()
 
-    ratio_equal = check_isclose(sage_linear_result, true_sage_linear_result)
-    print("SageLinear: Percentage of equal elements: {}".format(ratio_equal))
+    ratio_close = check_isclose(sage_linear_result, true_sage_linear_result)
+    ratio_equal = check_equal(sage_linear_result, true_sage_linear_result)
+    print("SageLinear: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     product_equals = product_equals * ratio_equal
 
     # BACKPROPAGATION
@@ -134,31 +97,39 @@ def test_sage_linear():
     true_neigh_weight_grads = neigh_weight_torch.grad.cpu().numpy()
     true_neigh_bias_grads = neigh_bias_torch.grad.cpu().numpy()
 
-    ratio_equal = check_isclose(self_grads, true_self_grads)
-    print("Linear self: Ratio of equal elements {}".format(ratio_equal))
-    product_equals = product_equals * ratio_equal
-    ratio_equal = check_isclose(neigh_grads, true_neigh_grads)
-    print("Linear neigh: Ratio of equal elements {}".format(ratio_equal))
-    product_equals = product_equals * ratio_equal
-    ratio_equal = check_isclose(self_weight_grads, true_self_weight_grads)
-    print("Linear self weight: Ratio {}".format(ratio_equal))
-    product_equals = product_equals * ratio_equal
-    ratio_equal = check_isclose(self_bias_grads, true_self_bias_grads)
-    print("Linear self bias: Ratio {}".format(ratio_equal))
-    product_equals = product_equals * ratio_equal
-    ratio_equal = check_isclose(neigh_weight_grads, true_neigh_weight_grads)
-    print("Linear neigh weight: Ratio {}".format(ratio_equal))
-    product_equals = product_equals * ratio_equal
-    ratio_equal = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
-    print("Linear neigh bias: Ratio {}".format(ratio_equal))
+    ratio_close = check_isclose(self_grads, true_self_grads)
+    ratio_equal = check_equal(self_grads, true_self_grads)
+    print("Linear self: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     product_equals = product_equals * ratio_equal
 
-    if (product_equals == 1.0):
-        value = np.array([1], dtype=np.int32)
-    else:
-        value = np.array([0], dtype=np.int32)
+    ratio_close = check_isclose(neigh_grads, true_neigh_grads)
+    ratio_equal = check_equal(neigh_grads, true_neigh_grads)
+    print("Linear neigh: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    product_equals = product_equals * ratio_equal
+
+    ratio_close = check_isclose(self_weight_grads, true_self_weight_grads)
+    ratio_equal = check_equal(self_weight_grads, true_self_weight_grads)
+    print("Linear self weight: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    product_equals = product_equals * ratio_equal
+
+    ratio_close = check_isclose(self_bias_grads, true_self_bias_grads)
+    ratio_equal = check_equal(self_bias_grads, true_self_bias_grads)
+    print("Linear self bias: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    product_equals = product_equals * ratio_equal
+
+    ratio_close = check_isclose(neigh_weight_grads, true_neigh_weight_grads)
+    ratio_equal = check_equal(neigh_weight_grads, true_neigh_weight_grads)
+    print("Linear neigh weight: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    product_equals = product_equals * ratio_equal
+
+    ratio_close = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
+    ratio_equal = check_equal(neigh_bias_grads, true_neigh_bias_grads)
+    print("Linear neigh bias: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    product_equals = product_equals * ratio_equal
+
     path = test_dir_path + "/value.npy"
-    np.save(path, value)
+    value = 1 if product_equals == 1.0 else 0
+    save_return_value(value, path)
 
 
 if __name__ == "__main__":

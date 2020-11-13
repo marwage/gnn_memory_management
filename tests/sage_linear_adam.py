@@ -169,21 +169,16 @@ def test_sage_linear_adam():
     true_self_weight = self_weight_torch.detach().cpu().numpy()
     ratio_equal = check_isclose(self_weight_updated, true_self_weight)
     print("Adam self weight: Ratio of equal elements {}".format(ratio_equal))
-    #  print_small(weight_self)
-    #  print_small(true_self_weight)
     true_self_bias = self_bias_torch.detach().cpu().numpy()
     ratio_equal = check_isclose(self_bias_updated, true_self_bias)
     print("Adam self bias: Ratio of equal elements {}".format(ratio_equal))
-    #  print_small(weight_self_bias)
-    #  print_small(true_self_bias)
+    print_small(self_bias_updated)
+    print_small(true_self_bias)
     ratio_equal = check_isclose(neigh_weight_updated, neigh_weight_torch.detach().cpu().numpy())
     print("Adam neigh weight: Ratio of equal elements {}".format(ratio_equal))
     true_neigh_bias = neigh_bias_torch.detach().cpu().numpy()
     ratio_equal = check_isclose(neigh_bias_updated, true_neigh_bias) 
     print("Adam neigh bias: Ratio of equal elements {}".format(ratio_equal))
-    #  print_small(weight_neigh_bias)
-    #  print_small(true_neigh_bias)
-
 
 def compare_adam():
     home = os.getenv("HOME")

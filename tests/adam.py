@@ -3,53 +3,7 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-
-
-def load_col_major(path):
-    mat = np.load(path)
-    n, m = mat.shape
-    mat = mat.reshape((m, n))
-    mat = mat.transpose()
-
-    return mat
-
-def check_isclose(A, B):
-    if (A.shape == B.shape):
-        is_close = np.isclose(A, B)
-        ratio_equal = is_close.sum() / B.size
-    else:
-        print(A.shape)
-        print(B.shape)
-        return 0
-
-    return ratio_equal
-
-
-def print_nan_coor(A):
-    for i in range(A.shape[0]):
-        for j in range(A.shape[1]):
-            if np.isnan(A[i, j]):
-                print("NaN at ({}, {})".format(i, j))
-
-def num_close_rows(A, B):
-    is_close = np.isclose(A, B)
-    is_close_sum = is_close.sum(axis=1)
-    close_rows = is_close_sum == A.shape[1]
-    
-    return close_rows.sum()
-
-def print_small(A):
-    print(A[0:3, 0:3])
-
-def to_torch(a):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    a_torch = torch.from_numpy(a)
-    a_torch = a_torch.to(device)
-    a_torch.requires_grad_()
-    a_torch.retain_grad()
-
-    return a_torch
+from helper import load_col_major, check_isclose, print_nan_coor, num_close_rows, print_small, to_torch
 
 
 def test_adam():
