@@ -127,3 +127,10 @@ add_executable(${TEST_NAME}
         ${HELPER_FILES})
 target_link_libraries(${TEST_NAME}
         ${LIBS})
+
+set(TEST_NAME test_linear)
+add_executable(${TEST_NAME}
+        tests/linear.cpp
+        ${HELPER_FILES})
+target_link_libraries(${TEST_NAME}
+        ${LIBS})

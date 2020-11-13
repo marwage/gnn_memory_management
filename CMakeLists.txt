@@ -11,22 +11,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(CUDA 10.2 REQUIRED)
 
 set(HEADER_FILES
-        include/alzheimer/tensors.hpp
-        include/alzheimer/cuda_helper.hpp
-        include/alzheimer/graph_convolution.hpp
-        include/alzheimer/dropout.hpp
-        include/alzheimer/linear.hpp
-        include/alzheimer/activation.hpp
-        include/alzheimer/loss.hpp
-        include/alzheimer/sage_linear.hpp
-        include/alzheimer/sage_linear_adam.hpp
-        include/alzheimer/mmio_wrapper.hpp
-        include/alzheimer/mmio.h
-        include/alzheimer/divmv.h
-        include/alzheimer/axpby.h
-        include/alzheimer/invsqrt.h
-        include/alzheimer/elesq.h
-        include/alzheimer/axdy.h)
+        include/tensors.hpp
+        include/cuda_helper.hpp
+        include/graph_convolution.hpp
+        include/dropout.hpp
+        include/linear.hpp
+        include/activation.hpp
+        include/loss.hpp
+        include/sage_linear.hpp
+        include/sage_linear_adam.hpp
+        include/mmio_wrapper.hpp
+        include/mmio.h
+        include/divmv.h
+        include/axpby.h
+        include/invsqrt.h
+        include/elesq.h
+        include/axdy.h)
 
 set(SOURCE_FILES
         src/tensors.cpp
@@ -50,7 +50,7 @@ set(SOURCE_FILES
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME}
-        PUBLIC ${PROJECT_SOURCE_DIR}/include/alzheimer
+        PUBLIC ${PROJECT_SOURCE_DIR}/include
         PUBLIC ${CUDA_INCLUDE_DIRS}
         PUBLIC /usr/include/python3.6m)
 
