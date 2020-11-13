@@ -1,7 +1,5 @@
 // Copyright Marcel Wagenländer 2020
 
-#include "tensors.hpp"
-#include "sage_linear.hpp"
 #include "helper.hpp"
 
 #include <string>
@@ -90,4 +88,9 @@ int run_python(std::string module_name, std::string function_name) {
 
     std::cout << "Return value " << return_value << std::endl;
     return return_value;
+}
+
+int read_return_value(std::string path) {
+    matrix<int> return_mat = load_npy_matrix<int>(path);
+    return return_mat.values[0];
 }

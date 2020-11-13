@@ -54,6 +54,7 @@ public:
     void set_parameters(matrix<float> *parameters);
     matrix<float> *get_gradients();
     void update_weights(matrix<float> *gradients);
+    std::vector<SageLinear> get_layers();
 };
 
 #endif
