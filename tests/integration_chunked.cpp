@@ -1,18 +1,19 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <assert.h>
-
 #include "activation.hpp"
 #include "cuda_helper.hpp"
 #include "dropout.hpp"
 #include "graph_convolution.hpp"
 #include "loss.hpp"
 #include "sage_linear.hpp"
-#include "sage_linear_adam.hpp"
+#include "adam.hpp"
 #include "tensors.hpp"
 
+#include <assert.h>
+#include "catch2/catch.hpp"
 
-void integration_chunked(int chunk_size) {
+
+int integration_test_chunked(int chunk_size) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -162,13 +163,14 @@ void integration_chunked(int chunk_size) {
     // free memory
     free(features.values);
     free(classes.values);
+
+    return 1; // TODO
 }
 
-int main() {
-    int chunk_size = 1 << 14;
-    integration_chunked(chunk_size);
 
-//    int chunk_size = 1 << 30;
-    chunk_size = 1 << 30;
-    integration_chunked(chunk_size);
+TEST_CASE("Integration test chunked", "[integration][chunked") {
+    CHECK(integration_test_chunked(1 << 12));
+    CHECK(integration_test_chunked(1 << 10));
+    CHECK(integration_test_chunked(1 << 8));
+    CHECK(integration_test_chunked(1 << 4));
 }

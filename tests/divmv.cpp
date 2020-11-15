@@ -1,14 +1,14 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <cuda_runtime.h>
-#include <iostream>
-
 #include "cuda_helper.hpp"
 #include "divmv.h"
 #include "tensors.hpp"
 
+#include <cuda_runtime.h>
+#include "catch2/catch.hpp"
 
-void check_divmv() {
+
+int test_divmv() {
     float *d_X, *d_y;
     int n = 5;
     int m = 7;
@@ -55,20 +55,17 @@ void check_divmv() {
     check_cuda(cudaFree(d_X));
     check_cuda(cudaFree(d_y));
 
-    bool equal = true;
+    int equal = 1;
     for (int i = 0; i < Z_mat.rows * Z_mat.columns; ++i) {
         if (Z_mat.values[i] != Z_mat.values[i]) {
-            equal = false;
+            equal = 0;
             break;
         }
     }
-    if (equal) {
-        std::cout << "divmv works" << std::endl;
-    } else {
-        std::cout << "divmv does not work" << std::endl;
-    }
+
+    return equal;
 }
 
-int main() {
-    check_divmv();
+TEST_CASE("Divide matrix vector", "[divmv]") {
+    CHECK(test_divmv());
 }

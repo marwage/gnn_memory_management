@@ -4,10 +4,10 @@
 #include "helper.hpp"
 
 #include <string>
-#include <iostream>
+#include "catch2/catch.hpp"
 
 
-int check_to_column_major(int rows, int columns) {
+int test_to_column_major(int rows, int columns) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -28,9 +28,11 @@ int check_to_column_major(int rows, int columns) {
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/transpose_to_col.py";
     system(command);
+
+    return 1; // TODO
 }
 
-int check_to_row_major(int rows, int columns) {
+int test_to_row_major(int rows, int columns) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -51,18 +53,21 @@ int check_to_row_major(int rows, int columns) {
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/transpose_to_row.py";
     system(command);
+
+    return 1; // TODO
 }
 
-int main() {
-    check_to_column_major(512, 1024);
-    check_to_column_major(4096, 256);
-    check_to_column_major(2003, 661);
-    check_to_column_major(2017, 389);
-    check_to_column_major(7919, 4007);
 
-    check_to_row_major(512, 1024);
-    check_to_row_major(4096, 256);
-    check_to_row_major(2003, 661);
-    check_to_row_major(2017, 389);
-    check_to_row_major(7919, 4007);
+TEST_CASE("Transpose", "[transpose]") {
+    CHECK(test_to_column_major(512, 1024));
+    CHECK(test_to_column_major(4096, 256));
+    CHECK(test_to_column_major(2003, 661));
+    CHECK(test_to_column_major(2017, 389));
+    CHECK(test_to_column_major(7919, 4007));
+
+    CHECK(test_to_row_major(512, 1024));
+    CHECK(test_to_row_major(4096, 256));
+    CHECK(test_to_row_major(2003, 661));
+    CHECK(test_to_row_major(2017, 389));
+    CHECK(test_to_row_major(7919, 4007));
 }

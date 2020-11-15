@@ -2,12 +2,13 @@
 
 #include "cuda_helper.hpp"
 #include "sage_linear.hpp"
-#include "sage_linear_adam.hpp"
+#include "adam.hpp"
 
 #include <iostream>
+#include "catch2/catch.hpp"
 
 
-int main() {
+int test_adam() {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -89,4 +90,10 @@ int main() {
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/adam.py";
     system(command);
+
+    return 1; // TODO
+}
+
+TEST_CASE( "Adam", "[adam]" ) {
+    CHECK(test_adam());
 }

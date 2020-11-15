@@ -1,7 +1,5 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <assert.h>
-
 #include "activation.hpp"
 #include "cuda_helper.hpp"
 #include "dropout.hpp"
@@ -10,14 +8,10 @@
 #include "sage_linear.hpp"
 #include "tensors.hpp"
 
+#include "catch2/catch.hpp"
 
-void check_divmv();
 
-void check_log_softmax_forward();
-
-void check_loss();
-
-void check_subset(int chunk_size) {
+int integration_test_subset_chunked(int chunk_size) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -138,14 +132,14 @@ void check_subset(int chunk_size) {
     // free memory
     free(features.values);
     free(classes.values);
+
+    return 1; // TODO
 }
 
-int main() {
-    int chunk_size = 1 << 30;
-    std::cout << "Chunk size " << chunk_size << std::endl;
-    check_subset(chunk_size);
 
-    chunk_size = 1 << 14;
-    std::cout << "Chunk size " << chunk_size << std::endl;
-    check_subset(chunk_size);
+TEST_CASE("Integration test subset chunked", "[integration][subset][chunked]") {
+    CHECK(integration_test_subset_chunked(1 << 12));
+    CHECK(integration_test_subset_chunked(1 << 10));
+    CHECK(integration_test_subset_chunked(1 << 8));
+    CHECK(integration_test_subset_chunked(1 << 4));
 }

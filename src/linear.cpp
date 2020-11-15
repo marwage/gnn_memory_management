@@ -1,12 +1,13 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <cstring>
 #include <cuda_runtime.h>
 #include <random>
 
 #include "cuda_helper.hpp"
 #include "linear.hpp"
 #include "tensors.hpp"
+
+#include <assert.h> // DEBUGGING
 
 
 Linear::Linear() {}
@@ -153,6 +154,9 @@ matrix<float> Linear::forward(matrix<float> X) {
 }
 
 matrix<float> Linear::backward(matrix<float> in_gradients) {
+    float alpha = 1.0;
+    float beta = 0.0;
+
     // gradients of bias
     float *d_g;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_g),
@@ -176,8 +180,7 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_db),
                           in_gradients.columns * sizeof(float)));
 
-    float alpha = 1.0;
-    float beta = 0.0;
+
     check_cublas(cublasSgemv(cuda_helper_->cublas_handle,
                              CUBLAS_OP_T,
                              in_gradients.rows, in_gradients.columns,
@@ -191,6 +194,16 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
 
     check_cuda(cudaFree(d_ones));
     check_cuda(cudaFree(d_db));
+
+    // DEBUGGING
+//    assert(grad_bias_.rows == in_gradients.columns);
+//    assert(grad_bias_.columns == 1);
+//    for (int i = 0; i < in_gradients.columns; ++i) {
+//        grad_bias_.values[i] = 0.0;
+//        for (int j = 0; j < in_gradients.rows; ++j) {
+//            grad_bias_.values[i] += in_gradients.values[i * in_gradients.rows + j];
+//        }
+//    }
 
     // gradient of weight
     // gradients_input = in_gradients * weight.T

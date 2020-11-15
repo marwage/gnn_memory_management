@@ -1,18 +1,19 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <assert.h>
-
 #include "activation.hpp"
 #include "cuda_helper.hpp"
 #include "dropout.hpp"
 #include "graph_convolution.hpp"
 #include "loss.hpp"
 #include "sage_linear.hpp"
-#include "sage_linear_adam.hpp"
+#include "adam.hpp"
 #include "tensors.hpp"
 
+#include <assert.h>
+#include "catch2/catch.hpp"
 
-int main() {
+
+int integration_test() {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -161,4 +162,11 @@ int main() {
     // free memory
     free(features.values);
     free(classes.values);
+
+    return 1; // TODO
+}
+
+
+TEST_CASE("Integration test", "[integration]") {
+    CHECK(integration_test());
 }

@@ -5,8 +5,8 @@
 #include "tensors.hpp"
 #include "helper.hpp"
 
-#include <iostream>
-#include <Python.h>
+#include <string>
+#include "catch2/catch.hpp"
 
 const std::string home = std::getenv("HOME");
 const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
@@ -76,11 +76,13 @@ int test_sage_linear_forward_chunked(matrix<float> input_self, matrix<float> inp
     return value.values[0];
 }
 
-int main() {
-    std::string path;
 
-//    int rows = 1009;
-//    int columns = 211;
+TEST_CASE("SageLinear forward", "[sagelinear][forward]") {
+    CHECK(test_sage_linear_forward());
+}
+
+TEST_CASE("SageLinear forward chunked", "[sagelinear][forward][chunked]") {
+    std::string path;
     int rows = 1024;
     int columns = 211;
 
@@ -92,9 +94,9 @@ int main() {
     path = test_dir_path + "/input_neigh.npy";
     save_npy_matrix(input_neigh, path);
 
-    test_sage_linear_forward_chunked(input_self, input_neigh, 1024);
-    test_sage_linear_forward_chunked(input_self, input_neigh, 512);
-    test_sage_linear_forward_chunked(input_self, input_neigh, 256);
-    test_sage_linear_forward_chunked(input_self, input_neigh, 128);
-    test_sage_linear_forward_chunked(input_self, input_neigh, 64);
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1024));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 512));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 256));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 128));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 64));
 }

@@ -4,8 +4,10 @@
 #include "tensors.hpp"
 #include "cuda_helper.hpp"
 
+#include "catch2/catch.hpp"
 
-void check_chunked_graph_conv(int chunk_size) {
+
+int test_graph_conv_chunked(int chunk_size) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -24,12 +26,14 @@ void check_chunked_graph_conv(int chunk_size) {
     GraphConvChunked graph_conv_chunked(&cuda_helper, "mean", chunk_size);
 
     graph_conv_chunked.forward(adjacency, features);
+
+    return 1; // TODO
 }
 
-int main() {
-    int chunk_size = 1 << 14;
-    for (int i = 1; i < 10; ++i) {
-        std::cout << "Chunk size " << i * chunk_size << std::endl;
-        check_chunked_graph_conv(i * chunk_size);
-    }
+
+TEST_CASE("Graph convolution chunked", "[graphconv][chunked]") {
+    CHECK(test_graph_conv_chunked(1 << 12));
+    CHECK(test_graph_conv_chunked(1 << 10));
+    CHECK(test_graph_conv_chunked(1 << 8));
+    CHECK(test_graph_conv_chunked(1 << 4));
 }

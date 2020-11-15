@@ -1,12 +1,13 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <iostream>
-
 #include "activation.hpp"
 #include "tensors.hpp"
 
+#include <string>
+#include "catch2/catch.hpp"
 
-void check_dropout() {
+
+int test_relu() {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -42,8 +43,11 @@ void check_dropout() {
     // compare with Pytorch, Numpy, SciPy
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/relu.py";
     system(command);
+
+    return 1; // TODO
 }
 
-int main() {
-    check_dropout();
+
+TEST_CASE("ReLU", "[relu]") {
+    CHECK(test_relu());
 }

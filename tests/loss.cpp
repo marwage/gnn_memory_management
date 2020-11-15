@@ -1,12 +1,13 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <iostream>
-
 #include "loss.hpp"
 #include "tensors.hpp"
 
+#include <iostream>
+#include "catch2/catch.hpp"
 
-void check_loss() {
+
+int test_loss() {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data/flickr";
 
@@ -26,8 +27,11 @@ void check_loss() {
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/loss.py";
     system(command);
+
+    return 1; // TODO
 }
 
-int main() {
-    check_loss();
+
+TEST_CASE("Loss", "[loss]") {
+    CHECK(test_loss());
 }

@@ -2,6 +2,29 @@ find_package(Catch2 REQUIRED)
 find_package(Python3 REQUIRED
         COMPONENTS Interpreter Development)
 
+set(TEST_FILES
+        tests/adam.cpp
+        tests/axpby.cpp
+        tests/divmv.cpp
+        tests/dropout.cpp
+        tests/elesq.cpp
+        tests/graph_convolution.cpp
+        tests/integration.cpp
+        tests/integration_chunked.cpp
+        tests/integration_subset.cpp
+        tests/integration_subset_chunked.cpp
+        tests/invsqrt.cpp
+        tests/linear.cpp
+        tests/log_softmax.cpp
+        tests/loss.cpp
+        tests/relu.cpp
+        tests/sage_linear.cpp
+        tests/sage_linear_adam.cpp
+        tests/sage_linear_forward.cpp
+        tests/sum_rows.cpp
+        tests/tensors.cpp
+        tests/transpose.cpp)
+
 set(HELPER_FILES
         tests/helper.cpp)
 
@@ -10,127 +33,10 @@ set(LIBS
         Catch2::Catch2
         ${Python3_LIBRARIES})
 
-set(TEST_NAME test_integration)
+set(TEST_NAME tests)
 add_executable(${TEST_NAME}
-        tests/integration.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_integration_subset)
-add_executable(${TEST_NAME}
-        tests/integration_subset.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_divmv)
-add_executable(${TEST_NAME}
-        tests/divmv.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_log_softmax)
-add_executable(${TEST_NAME}
-        tests/log_softmax.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_loss)
-add_executable(${TEST_NAME}
-        tests/loss.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_dropout)
-add_executable(${TEST_NAME}
-        tests/dropout.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_relu)
-add_executable(${TEST_NAME}
-        tests/relu.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_axpby)
-add_executable(${TEST_NAME}
-        tests/axpby.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_invsqrt)
-add_executable(${TEST_NAME}
-        tests/invsqrt.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_elesq)
-add_executable(${TEST_NAME}
-        tests/elesq.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_tensors)
-add_executable(${TEST_NAME}
-        tests/tensors.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_graph_conv)
-add_executable(${TEST_NAME}
-        tests/graph_convolution.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_integration_chunked)
-add_executable(${TEST_NAME}
-        tests/integration_chunked.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_integration_subset_chunked)
-add_executable(${TEST_NAME}
-        tests/integration_subset_chunked.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_adam)
-add_executable(${TEST_NAME}
-        tests/adam.cpp)
-target_link_libraries(${TEST_NAME}
-        ${PROJECT_NAME})
-
-set(TEST_NAME test_sage_linear)
-add_executable(${TEST_NAME}
-        tests/sage_linear.cpp
-        ${HELPER_FILES})
-target_link_libraries(${TEST_NAME}
-        ${LIBS})
-
-set(TEST_NAME test_sage_linear_adam)
-add_executable(${TEST_NAME}
-        tests/sage_linear_adam.cpp
-        ${HELPER_FILES})
-target_link_libraries(${TEST_NAME}
-        ${LIBS})
-
-set(TEST_NAME test_sage_linear_forward)
-add_executable(${TEST_NAME}
-        tests/sage_linear_forward.cpp
-        ${HELPER_FILES})
-target_link_libraries(${TEST_NAME}
-        ${LIBS})
-
-set(TEST_NAME test_transpose)
-add_executable(${TEST_NAME}
-        tests/transpose.cpp
-        ${HELPER_FILES})
-target_link_libraries(${TEST_NAME}
-        ${LIBS})
-
-set(TEST_NAME test_linear)
-add_executable(${TEST_NAME}
-        tests/linear.cpp
+        tests/tests.cpp
+        ${TEST_FILES}
         ${HELPER_FILES})
 target_link_libraries(${TEST_NAME}
         ${LIBS})

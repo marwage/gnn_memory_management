@@ -1,12 +1,13 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <iostream>
-
 #include "dropout.hpp"
 #include "tensors.hpp"
 
+#include <string>
+#include "catch2/catch.hpp"
 
-void check_dropout() {
+
+int test_dropout() {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -42,6 +43,8 @@ void check_dropout() {
     // compare with Pytorch, Numpy, SciPy
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/dropout.py";
     system(command);
+
+    return 1; // TODO
 }
 
 int num_equal_rows(matrix<float> A, matrix<float> B) {
@@ -63,7 +66,7 @@ int num_equal_rows(matrix<float> A, matrix<float> B) {
     return num_rows;
 }
 
-void check_dropout_chunked(int chunk_size) {
+int test_dropout_chunked(int chunk_size) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -90,9 +93,18 @@ void check_dropout_chunked(int chunk_size) {
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/dropout.py";
     system(command);
+
+    return 1; // TODO
 }
 
-int main() {
-    check_dropout();
+
+TEST_CASE("Dropout", "[dropout]") {
+    CHECK(test_dropout());
 }
 
+TEST_CASE("Dropout chunked", "[dropout][chunked]") {
+    CHECK(test_dropout_chunked(1 << 12));
+    CHECK(test_dropout_chunked(1 << 10));
+    CHECK(test_dropout_chunked(1 << 8));
+    CHECK(test_dropout_chunked(1 << 4));
+}

@@ -3,9 +3,10 @@
 #include "tensors.hpp"
 
 #include <iostream>
+#include "catch2/catch.hpp"
 
 
-void check_get_rows() {
+int test_get_rows() {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -23,9 +24,11 @@ void check_get_rows() {
     sparse_matrix<float> adj_rows = get_rows(adjacency, 5, 10);
 
     print_sparse_matrix(adj_rows);
+
+    return 1; // TODO
 }
 
-int main() {
-    check_get_rows();
-}
 
+TEST_CASE("Sparse matrix get rows", "[sparsematrix][getrows]") {
+    CHECK(test_get_rows());
+}

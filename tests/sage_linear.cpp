@@ -1,15 +1,12 @@
 // Copyright 2020 Marcel Wagenländer
 
-#define CATCH_CONFIG_MAIN
-#include "catch2/catch.hpp"
-
 #include "sage_linear.hpp"
 #include "cuda_helper.hpp"
 #include "tensors.hpp"
 #include "helper.hpp"
 
 #include <iostream>
-#include <Python.h>
+#include "catch2/catch.hpp"
 
 
 int test_sage_linear() {

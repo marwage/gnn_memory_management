@@ -1,7 +1,5 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include <assert.h>
-
 #include "activation.hpp"
 #include "cuda_helper.hpp"
 #include "dropout.hpp"
@@ -10,14 +8,10 @@
 #include "sage_linear.hpp"
 #include "tensors.hpp"
 
+#include "catch2/catch.hpp"
 
-void check_divmv();
 
-void check_log_softmax_forward();
-
-void check_loss();
-
-int main() {
+int integration_test_subset() {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -137,4 +131,11 @@ int main() {
     // free memory
     free(features.values);
     free(classes.values);
+
+    return 1; // TODO
+}
+
+
+TEST_CASE("Integration test subset", "[integration][subset]") {
+    CHECK(integration_test_subset());
 }

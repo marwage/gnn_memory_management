@@ -1,16 +1,17 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "sage_linear_adam.hpp"
+#include "adam.hpp"
 #include "cuda_helper.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
 
-#include <iostream>
+#include <string>
+#include "catch2/catch.hpp"
 
 
 matrix<float> gen_rand_matrix(int num_rows, int num_columns);
 
-int check_adam() {
+int test_sage_linear_adam() {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -69,9 +70,11 @@ int check_adam() {
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear_adam.py";
     system(command);
+
+    return 1; // TODO
 }
 
-int check_adam_chunked() {
+int test_sage_linear_adam_chunked(int chunk_size) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -82,7 +85,6 @@ int check_adam_chunked() {
     int columns = 512;
 
     int num_out_features = 256;
-    int chunk_size = 128;
     float learning_rate = 0.003;
 
     matrix<float> input_self = gen_rand_matrix(rows, columns);
@@ -130,11 +132,18 @@ int check_adam_chunked() {
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear_adam.py";
     system(command);
+
+    return 1; // TODO
 }
 
-int main() {
-    check_adam();
 
-    std::cout << "------ chunked ------" << std::endl;
-    check_adam_chunked();
+TEST_CASE("SageLinear and Adam", "[sagelinear][adam]") {
+    CHECK(test_sage_linear_adam());
+}
+
+TEST_CASE("SageLinear and Adam chunked", "[sagelinear][adam][chunked]") {
+    CHECK(test_sage_linear_adam_chunked(1 << 12));
+    CHECK(test_sage_linear_adam_chunked(1 << 10));
+    CHECK(test_sage_linear_adam_chunked(1 << 8));
+    CHECK(test_sage_linear_adam_chunked(1 << 4));
 }
