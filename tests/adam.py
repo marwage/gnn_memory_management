@@ -3,12 +3,13 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import load_col_major, check_isclose, print_nan_coor, num_close_rows, print_small, to_torch
+from helper import (load_col_major, check_isclose, write_equal,
+        to_torch, check_equal, print_close_equal)
 
 
 def test_adam():
+    all_equal = True
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     home = os.getenv("HOME")
     dir_path = home + "/gpu_memory_reduction/alzheimer/data"
     flickr_dir_path = dir_path + "/flickr"
@@ -46,15 +47,20 @@ def test_adam():
     bias_updated = load_col_major(path)
 
     true_weight = weight_torch.detach().cpu().numpy()
-    ratio_equal = check_isclose(weight_updated, true_weight)
-    print("Adam weight: Ratio of equal elements {}".format(ratio_equal))
+    ratio_close = check_isclose(weight_updated, true_weight)
+    ratio_equal = check_equal(weight_updated, true_weight)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("Adam weight", ratio_close, ratio_equal)
 
     true_bias = bias_torch.detach().cpu().numpy()
-    ratio_equal = check_isclose(bias_updated, true_bias)
-    print("Adam bias: Ratio of equal elements {}".format(ratio_equal))
-    #  print_small(bias_updated)
-    #  print_small(true_bias)
+    ratio_close = check_isclose(bias_updated, true_bias)
+    ratio_equal = check_equal(bias_updated, true_bias)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("Adam bias", ratio_close, ratio_equal)
 
+    path = test_dir_path + "/value.npy"
+    write_equal(all_equal, path)
+ 
 
 if __name__ == "__main__":
     test_adam()

@@ -3,44 +3,12 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
+from helper import (load_col_major, print_close_equal, check_close_equal,
+        to_torch, print_not_close, write_return, update_return)
 
 
-def load_col_major(path):
-    mat = np.load(path)
-    n, m = mat.shape
-    mat = mat.reshape((m, n))
-    mat = mat.transpose()
-
-    return mat
-
-
-def check_isclose(A, B):
-    if (A.shape == B.shape):
-        is_close = np.isclose(A, B)
-        ratio_equal = is_close.sum() / B.size
-    else:
-        print(A.shape)
-        print(B.shape)
-        return 0
-
-    return ratio_equal
-
-
-def print_nan_coor(A):
-    for i in range(A.shape[0]):
-        for j in range(A.shape[1]):
-            if np.isnan(A[i, j]):
-                print("NaN at ({}, {})".format(i, j))
-
-def num_close_rows(A, B):
-    is_close = np.isclose(A, B)
-    is_close_sum = is_close.sum(axis=1)
-    close_rows = is_close_sum == A.shape[1]
-    
-    return close_rows.sum()
-
-
-def test_computations():
+def integration_test():
+    all_close = True
     home = os.getenv("HOME")
     dir_path = home + "/gpu_memory_reduction/alzheimer/data"
     flickr_dir_path = dir_path + "/flickr"
@@ -59,32 +27,11 @@ def test_computations():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # FORWARD PASS
-    # check dropout
-    # to degree it is possible
-    path = test_dir_path + "/dropout_result.npy"
-    dropout_result = load_col_major(path)
-
-    #  probability = 0.2
-    #  dropout_layer = torch.nn.Dropout(p=probability)
-    #  features_torch = torch.from_numpy(features)
-    #  features_torch.requires_grad_()
-    #  features_torch.retain_grad()
-    #  dropout_result_torch = dropout_layer(features_torch)
-    #  dropout_result_torch.requires_grad_()
-    #  dropout_result_torch.retain_grad()
-    #  true_dropout_result = dropout_result_torch.detach().numpy()  # Not really true
-
-    #  percentage_equal = check_isclose(dropout_result, true_dropout_result)
-    #  print("Dropout: Percentage of equal elements: {}".format(percentage_equal))
-
-    dropout_result_torch = torch.from_numpy(dropout_result)
-    dropout_result_torch = dropout_result_torch.to(device)
-    dropout_result_torch.requires_grad_()
-    dropout_result_torch.retain_grad()
-
     # check graph convolution
     path = test_dir_path + "/graph_convolution_result.npy"
     graph_conv_result = load_col_major(path)
+
+    features_torch = to_torch(features)
 
     assert (sp.isspmatrix_coo(adj))
     values = adj.data
@@ -95,24 +42,22 @@ def test_computations():
     adj_torch = torch.sparse.FloatTensor(indices, values, torch.Size(shape))
     adj_torch = adj_torch.to(device)
 
-    graph_conv_result_torch = torch.sparse.mm(adj_torch, dropout_result_torch)
-
-    true_graph_conv_result = graph_conv_result_torch.detach().cpu().numpy()
+    graph_conv_result_torch = torch.sparse.mm(adj_torch, features_torch)
 
     # mean
     sum_torch = torch.sparse.sum(adj_torch, dim=-1)
     sum_torch = sum_torch.to_dense()
-    sum_np = sum_torch.cpu().numpy()
     for i in range(graph_conv_result_torch.shape[1]):
         graph_conv_result_torch[:, i] = graph_conv_result_torch[:, i] / sum_torch
-        true_graph_conv_result[:, i] = true_graph_conv_result[:, i] / sum_np
 
     graph_conv_result_torch.requires_grad_()
     graph_conv_result_torch.retain_grad()
 
-    percentage_equal = check_isclose(graph_conv_result, true_graph_conv_result)
-    print("Graph convolution: Percentage of equal elements: {}".format(percentage_equal))
-    print_nan_coor(graph_conv_result)
+    true_graph_conv_result = graph_conv_result_torch.detach().cpu().numpy()
+
+    ratio_close, ratio_equal = check_close_equal(graph_conv_result, true_graph_conv_result)
+    all_close = update_return(ratio_close)
+    print_close_equal("Graph convolution", ratio_close, ratio_equal)
 
     # check sage linear
     path = test_dir_path + "/self_weight.npy"
@@ -126,23 +71,10 @@ def test_computations():
     path = test_dir_path + "/linear_result.npy"
     sage_linear_result = load_col_major(path)
 
-    self_weight_torch = torch.from_numpy(self_weight)
-    self_weight_torch = self_weight_torch.to(device)
-    self_weight_torch.requires_grad_()
-    self_weight_torch.retain_grad()
-    self_bias_torch = torch.from_numpy(self_bias)
-    self_bias_torch = self_bias_torch.to(device)
-    self_bias_torch.requires_grad_()
-    self_bias_torch.retain_grad()
-
-    neigh_weight_torch = torch.from_numpy(neigh_weight)
-    neigh_weight_torch = neigh_weight_torch.to(device)
-    neigh_weight_torch.requires_grad_()
-    neigh_weight_torch.retain_grad()
-    neigh_bias_torch = torch.from_numpy(neigh_bias)
-    neigh_bias_torch = neigh_bias_torch.to(device)
-    neigh_bias_torch.requires_grad_()
-    neigh_bias_torch.retain_grad()
+    self_weight_torch = to_torch(self_weight)
+    self_bias_torch = to_torch(self_bias)
+    neigh_weight_torch = to_torch(neigh_weight)
+    neigh_bias_torch = to_torch(neigh_bias)
 
     learning_rate = 0.003
     params = [self_weight_torch,
@@ -152,45 +84,50 @@ def test_computations():
     optimiser = torch.optim.Adam(params, lr=learning_rate)
     optimiser.zero_grad()
 
-    self_result_torch = torch.matmul(dropout_result_torch, self_weight_torch) + self_bias_torch.T
+    self_result_torch = torch.matmul(features_torch, self_weight_torch) + self_bias_torch.T
     neigh_result_torch = torch.matmul(graph_conv_result_torch, neigh_weight_torch) + neigh_bias_torch.T
-    true_sage_linear_result_torch = self_result_torch + neigh_result_torch
+    sage_linear_result_torch = self_result_torch + neigh_result_torch
 
-    true_sage_linear_result = true_sage_linear_result_torch.detach().cpu().numpy()
+    sage_linear_result_torch.requires_grad_()
+    sage_linear_result_torch.retain_grad()
 
-    percentage_equal = check_isclose(sage_linear_result, true_sage_linear_result)
-    print("SageLinear: Percentage of equal elements: {}".format(percentage_equal))
-    print_nan_coor(sage_linear_result)
+    true_sage_linear_result = sage_linear_result_torch.detach().cpu().numpy()
+
+    ratio_close, ratio_equal = check_close_equal(sage_linear_result, true_sage_linear_result)
+    all_close = update_return(ratio_close)
+    print_close_equal("SageLinear", ratio_close, ratio_equal)
 
     # check relu
-    #  path = test_dir_path + "/relu_result.npy"
-    #  relu_result = load_col_major(path)
+    path = test_dir_path + "/relu_result.npy"
+    relu_result = load_col_major(path)
 
-    #  relu_layer = torch.nn.ReLU()
-    #  sage_linear_result_torch = torch.from_numpy(sage_linear_result)
-    #  sage_linear_result_torch.requires_grad_()
-    #  sage_linear_result_torch = sage_linear_result_torch.retain_grad()
-    #  true_relu_result = relu_layer(sage_linear_result_torch)
-    #  true_relu_result = true_relu_result.detach().numpy()
+    relu_layer = torch.nn.ReLU()
+    relu_result_torch = relu_layer(sage_linear_result_torch)
 
-    #  percentage_equal = check_isclose(relu_result, true_relu_result)
-    #  print("ReLU: Percentage of equal elements: {}".format(percentage_equal))
+    relu_result_torch.requires_grad_()
+    relu_result_torch.retain_grad()
+
+    true_relu_result = relu_result_torch.detach().cpu().numpy()
+
+    ratio_close, ratio_equal =check_close_equal(relu_result, true_relu_result)
+    all_close = update_return(ratio_close)
+    print_close_equal("ReLU", ratio_close, ratio_equal)
 
     # check log-softmax
     path = test_dir_path + "/log_softmax_result.npy"
     log_softmax_result = load_col_major(path)
 
     log_softmax_layer = torch.nn.LogSoftmax(dim=-1)
-    true_sage_linear_result_torch.requires_grad_()
-    true_sage_linear_result_torch.retain_grad()
-    true_log_softmax_result_torch = log_softmax_layer(true_sage_linear_result_torch)
-    true_log_softmax_result_torch.requires_grad_()
-    true_log_softmax_result_torch.retain_grad()
-    true_log_softmax_result = true_log_softmax_result_torch.detach().cpu().numpy()
+    log_softmax_result_torch = log_softmax_layer(relu_result_torch)
 
-    percentage_equal = check_isclose(log_softmax_result, true_log_softmax_result)
-    print("Log-softmax: Percentage of equal elements: {}".format(percentage_equal))
-    print_nan_coor(log_softmax_result)
+    log_softmax_result_torch.requires_grad_()
+    log_softmax_result_torch.retain_grad()
+
+    true_log_softmax_result = log_softmax_result_torch.detach().cpu().numpy()
+
+    ratio_close, ratio_equal = check_close_equal(log_softmax_result, true_log_softmax_result)
+    all_close = update_return(ratio_close)
+    print_close_equal("Log-softmax", ratio_close, ratio_equal)
 
     # check loss
     path = test_dir_path + "/loss_result.npy"
@@ -200,39 +137,46 @@ def test_computations():
     loss_layer = torch.nn.NLLLoss()
     classes_torch = torch.from_numpy(classes).long()
     classes_torch = classes_torch.to(device)
-    true_loss_result_torch = loss_layer(true_log_softmax_result_torch, classes_torch)
-    true_loss_result = true_loss_result_torch.detach().cpu().numpy()
+    loss_result_torch = loss_layer(log_softmax_result_torch, classes_torch)
 
-    loss_diff = true_loss_result - loss_result
-    print("Loss: Difference between loss and true loss: {}".format(loss_diff))
-    ratio_off = loss_diff / true_loss_result
-    print("Loss: Ratio off: {}".format(ratio_off))
+    true_loss_result = loss_result_torch.detach().cpu().numpy()
+
+    ratio_close, ratio_equal = check_close_equal(loss_result, true_loss_result)
+    all_close = update_return(ratio_close)
+    print_close_equal("Loss", ratio_close, ratio_equal)
 
     # BACKPROPAGATION
     # check loss
     path = test_dir_path + "/loss_grads.npy"
     loss_grads = load_col_major(path)
 
-    true_loss_result_torch.backward()
+    loss_result_torch.backward()
 
-    true_loss_grads = true_log_softmax_result_torch.grad.cpu().numpy()
+    true_loss_grads = log_softmax_result_torch.grad.cpu().numpy()
 
-    ratio_equal = check_isclose(loss_grads, true_loss_grads)
-    print("Loss backward: Ratio of equal elements: {}".format(ratio_equal))
+    ratio_close, ratio_equal = check_close_equal(loss_grads, true_loss_grads)
+    all_close = update_return(ratio_close)
+    print_close_equal("Loss gradients", ratio_close, ratio_equal)
 
     # check log-softmax
     path = test_dir_path + "/log_softmax_grads.npy"
     log_softmax_grads = load_col_major(path)
 
-    true_log_softmax_grads = true_sage_linear_result_torch.grad.cpu().numpy()
+    true_log_softmax_grads = relu_result_torch.grad.cpu().numpy()
 
-    ratio_equal = check_isclose(log_softmax_grads, true_log_softmax_grads)
-    print("Log-softmax backward: Ratio of equal elements: {}".format(ratio_equal))
+    ratio_close, ratio_equal = check_close_equal(log_softmax_grads, true_log_softmax_grads)
+    all_close = update_return(ratio_close)
+    print_close_equal("Log-softmax gradients", ratio_close, ratio_equal)
 
     # check relu
     path = test_dir_path + "/relu_grads.npy"
     relu_grads = load_col_major(path)
-    # TODO last
+
+    true_relu_grads = sage_linear_result_torch.grad.cpu().numpy()
+
+    ratio_close, ratio_equal = check_close_equal(relu_grads, true_relu_grads)
+    all_close = update_return(ratio_close)
+    print_close_equal("ReLU gradients", ratio_close, ratio_equal)
 
     # check linear layer
     path = test_dir_path + "/self_grads.npy"
@@ -249,51 +193,55 @@ def test_computations():
     path = test_dir_path + "/neigh_bias_grads.npy"
     neigh_bias_grads = load_col_major(path)
 
-    # true_self_grads NOT POSSIBLE
+    #  true_self_grads = features_torch.grad.cpu().numpy()
     true_neigh_grads = graph_conv_result_torch.grad.cpu().numpy()
     true_self_weight_grads = self_weight_torch.grad.cpu().numpy()
     true_self_bias_grads = self_bias_torch.grad.cpu().numpy()
     true_neigh_weight_grads = neigh_weight_torch.grad.cpu().numpy()
     true_neigh_bias_grads = neigh_bias_torch.grad.cpu().numpy()
 
-    #  ratio_equal = check_isclose(self_grads, true_self_grads)
-    #  print("Linear self: Ratio of equal elements {}".format(ratio_equal))
-    ratio_equal = check_isclose(neigh_grads, true_neigh_grads)
-    print("Linear neigh: Ratio of equal elements {}".format(ratio_equal))
-    num_equal_rows = num_close_rows(neigh_grads, true_neigh_grads)
-    print("Linear neigh: Number of equal rows {}".format(num_equal_rows))
-    ratio_equal = check_isclose(self_weight_grads, true_self_weight_grads)
-    print("Linear self weight: Ratio {}".format(ratio_equal))
-    ratio_equal = check_isclose(self_bias_grads, true_self_bias_grads)
-    print("Linear self bias: Ratio {}".format(ratio_equal))
-    print("Linear self bias: !!! Currently, it looks good by the eye !!!")
-    ratio_equal = check_isclose(neigh_weight_grads, true_neigh_weight_grads)
-    print("Linear neigh weight: Ratio {}".format(ratio_equal))
-    ratio_equal = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
-    print("Linear neigh bias: Ratio {}".format(ratio_equal))
-    print("Linear neigh bias: !!! Currently, it looks good by the eye !!!")
+    #  ratio_close, ratio_equal = check_close_equal(self_grads, true_self_grads)
+    #  all_close = update_return(ratio_close)
+    #  print_close_equal("SageLinear self gradients", ratio_close, ratio_equal)
+    ratio_close, ratio_equal = check_close_equal(neigh_grads, true_neigh_grads)
+    all_close = update_return(ratio_close)
+    print_close_equal("SageLinear neigh gradients", ratio_close, ratio_equal)
+    ratio_close, ratio_equal = check_close_equal(self_weight_grads, true_self_weight_grads)
+    all_close = update_return(ratio_close)
+    print_close_equal("SageLinear self weight", ratio_close , ratio_equal)
+    ratio_close, ratio_equal = check_close_equal(self_bias_grads, true_self_bias_grads)
+    all_close = update_return(ratio_close)
+    print_close_equal("SageLinear self bias", ratio_close, ratio_equal)
+    ratio_close, ratio_equal = check_close_equal(neigh_weight_grads, true_neigh_weight_grads)
+    all_close = update_return(ratio_close)
+    print_close_equal("SageLinear neigh weight", ratio_close, ratio_equal)
+    ratio_close, ratio_equal = check_close_equal(neigh_bias_grads, true_neigh_bias_grads)
+    all_close = update_return(ratio_close)
+    print_close_equal("Linear neigh bias", ratio_close, ratio_equal)
 
     # check graph convolution
-    path = test_dir_path + "/graph_convolution_grads.npy"
-    graph_conv_grads = load_col_major(path)
+    #  path = test_dir_path + "/graph_convolution_grads.npy"
+    #  graph_conv_grads = load_col_major(path)
 
-    true_graph_conv_grads = dropout_result_torch.grad.cpu().numpy()
+    #  true_graph_conv_grads = features_torch.grad.cpu().numpy()
 
-    ratio_equal = check_isclose(graph_conv_grads, true_graph_conv_grads)
-    print("Graph convolution: Ratio {}".format(ratio_equal))
+    #  ratio_close, ratio_equal = check_close_equal(graph_conv_grads, true_graph_conv_grads)
+    #  if (ratio_close <= 0.98): all_close = False
+    #  print_close_equal("Graph convolution gradients", ratio_close, ratio_equal)
 
     # check add
     path = test_dir_path + "/add_grads.npy"
-    add_grads = load_col_major(path)
+    input_grads = load_col_major(path)
+    true_input_grads = features_torch.grad.cpu().numpy()
+    
+    ratio_close, ratio_equal = check_close_equal(input_grads, true_input_grads)
+    all_close = update_return(ratio_close)
+    print_close_equal("Input gradients", ratio_close, ratio_equal)
 
-    true_add_grads = dropout_result_torch.grad.cpu().numpy()
-
-    ratio_equal = check_isclose(add_grads, true_add_grads)
-    print("Add gradients: Ratio {}".format(ratio_equal))
-
-    # check Adam
-    optimiser.step()
+    path = test_dir_path + "/value.npy"
+    write_return(all_close, path)
 
 
 if __name__ == "__main__":
-    test_computations()
+    integration_test()
+

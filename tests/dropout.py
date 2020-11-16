@@ -1,42 +1,11 @@
 import numpy as np
 import os
 import torch
+from helper import (load_col_major, check_close_equal, print_close_equal, write_equal)
 
 
-def load_col_major(path):
-    mat = np.load(path)
-    n, m = mat.shape
-    mat = mat.reshape((m, n))
-    mat = mat.transpose()
-
-    return mat
-
-
-def check_isclose(A, B):
-    if (A.shape == B.shape):
-        is_close = np.isclose(A, B)
-        ratio_equal = is_close.sum() / B.size
-    else:
-        print(A.shape)
-        print(B.shape)
-        return 0
-
-    return ratio_equal
-
-
-def num_close_rows(A, B):
-    num_rows = 0
-    for i in range(A.shape[0]):
-        if np.isclose(A[i], B[i]).sum() == A[i].size:
-            num_rows = num_rows + 1
-    return num_rows
-
-def num_rows_zero(A):
-    sum_rows = np.sum(A, axis=1)
-    return (sum_rows == 0).sum()
-
-
-def main():
+def test_dropout():
+    all_equal = 1.0
     home = os.getenv("HOME")
     dir_path = home + "/gpu_memory_reduction/alzheimer/data"
     flickr_dir_path = dir_path + "/flickr"
@@ -54,10 +23,11 @@ def main():
     features_torch.requires_grad_()
     features_torch.retain_grad()
     dropout_result_torch = dropout_layer(features_torch)
-    true_dropout_result = dropout_result_torch.detach().numpy()  # Not really true
+    true_dropout_result = dropout_result_torch.detach().numpy()  # Not really true due to randomness
 
-    ratio = check_isclose(dropout_result, true_dropout_result)
-    print("Dropout: Ratio equal: {}".format(ratio))
+    ratio_close, ratio_equal = check_close_equal(dropout_result, true_dropout_result)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("Dropout", ratio_close, ratio_equal)
 
     path = test_dir_path + "/dropout_gradients.npy"
     dropout_grads = load_col_major(path)
@@ -68,15 +38,13 @@ def main():
     dropout_result_torch.backward(in_gradients_torch)
     true_dropout_grads = features_torch.grad.numpy()
 
-    ratio = check_isclose(dropout_grads, true_dropout_grads)
-    print("Dropout gradients: Ratio equal: {}".format(ratio))
+    ratio_close, ratio_equal = check_close_equal(dropout_grads, true_dropout_grads)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("Dropout gradients", ratio_close, ratio_equal)
 
-    # debug
-    num_equal_rows = num_close_rows(dropout_grads, true_dropout_grads)
-    print("Dropout gradients: Number of equal rows {}".format(num_equal_rows))
-    num_zero = num_rows_zero(dropout_grads)
-    print("Dropout gradients: Number of rows zero {}".format(num_zero))
+    path = test_dir_path + "/value.npy"
+    write_equal(all_equal, path)
 
 
 if __name__ == "__main__":
-    main()
+    test_dropout()

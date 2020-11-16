@@ -32,6 +32,9 @@ def check_equal(A, B):
 
     return ratio_equal
 
+def check_close_equal(A, B):
+    return check_isclose(A, B), check_equal(A, B)
+
 def print_nan_coor(A):
     for i in range(A.shape[0]):
         for j in range(A.shape[1]):
@@ -74,4 +77,34 @@ def to_torch(a):
 def save_return_value(value, path):
     value_np = np.array([value], dtype=np.int32)
     np.save(path, value_np)
+
+def write_equal(value, path):
+    if value == 1.0:
+        save_return_value(1, path)
+    else:
+        save_return_value(0, path)
+
+def write_return(positive, path):
+    if positive:
+        save_return_value(1, path)
+    else:
+        save_return_value(0, path)
+
+def print_not_equal(A, B):
+    is_equal = (A == B)
+    num_rows, num_columns = A.shape
+    for i in range(num_rows):
+        for j in range(num_columns):
+            if not is_equal[i, j]:
+                print("Coordinate: ({}, {}); Values: {}, {}; Diff: {}".format(
+                    i, j, A[i, j], B[i, j], A[i, j] - B[i, j]))
+
+def print_close_equal(matrix_name, close, equal):
+    print("{}: ratio close: {}, ratio equal: {}".format(matrix_name, close, equal))
+
+def update_return(ratio):
+    if ratio < 0.99:
+        return False
+    else:
+        return True
 

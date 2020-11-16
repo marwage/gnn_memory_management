@@ -3,57 +3,8 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-
-
-def load_col_major(path):
-    mat = np.load(path)
-    n, m = mat.shape
-    mat = mat.reshape((m, n))
-    mat = mat.transpose()
-
-    return mat
-
-
-def check_isclose(A, B):
-    if (A.shape == B.shape):
-        is_close = np.isclose(A, B)
-        ratio_equal = is_close.sum() / B.size
-    else:
-        print(A.shape)
-        print(B.shape)
-        return 0
-
-    return ratio_equal
-
-
-def print_nan_coor(A):
-    for i in range(A.shape[0]):
-        for j in range(A.shape[1]):
-            if np.isnan(A[i, j]):
-                print("NaN at ({}, {})".format(i, j))
-
-def num_close_rows(A, B):
-    is_close = np.isclose(A, B)
-    is_close_sum = is_close.sum(axis=1)
-    close_rows = is_close_sum == A.shape[1]
-    
-    return close_rows.sum()
-
-def print_small(A):
-    print(A[0:3, 0:3])
-
-def breakpoint():
-    import os, signal
-    os.kill(os.getpid(), signal.SIGTRAP)
-
-def print_unequal(A, B):
-    is_close = np.isclose(A, B)
-    num_rows, num_columns = A.shape
-    for i in range(num_rows):
-        for j in range(num_columns):
-            if not is_close[i, j]:
-                print("Coordinate: ({}, {})".format(i, j))
-                print("Values: {}, {}; Diff: {}".format(A[i, j], B[i, j], A[i, j] - B[i, j]))
+from helper import (load_col_major, write_equal, check_isclose, check_equal, print_close_equal,
+        print_not_equal)
 
 
 def test_sage_linear():
@@ -93,7 +44,6 @@ def test_sage_linear():
     neigh_bias = load_col_major(path)
     path = test_dir_path + "/result.npy"
     sage_linear_result = load_col_major(path)
-    #  sage_linear_result = np.load(path) # DEBUGGING result is row major
 
     self_weight_torch = torch.from_numpy(self_weight)
     self_weight_torch = self_weight_torch.to(device)
@@ -119,16 +69,14 @@ def test_sage_linear():
 
     true_sage_linear_result = true_sage_linear_result_torch.detach().cpu().numpy()
 
+    ratio_close = check_isclose(sage_linear_result, true_sage_linear_result)
     ratio_equal = check_isclose(sage_linear_result, true_sage_linear_result)
-    print("SageLinear: Percentage of equal elements: {}".format(ratio_equal))
-    #  print_unequal(sage_linear_result, true_sage_linear_result)
+    print_close_equal("SageLinear", ratio_close, ratio_equal)
 
-    if (ratio_equal == 1.0):
-        value = np.array([1], dtype=np.int32)
-    else:
-        value = np.array([0], dtype=np.int32)
+    #  print_not_equal(sage_linear_result, true_sage_linear_result) # DEBUGGING
+
     path = test_dir_path + "/value.npy"
-    np.save(path, value)
+    write_equal(ratio_equal, path)
 
 
 if __name__ == "__main__":

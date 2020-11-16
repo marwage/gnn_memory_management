@@ -3,47 +3,13 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-
-
-def load_col_major(path):
-    mat = np.load(path)
-    n, m = mat.shape
-    mat = mat.reshape((m, n))
-    mat = mat.transpose()
-
-    return mat
-
-def check_isclose(A, B):
-    if (A.shape == B.shape):
-        is_close = np.isclose(A, B)
-        ratio_equal = is_close.sum() / B.size
-    else:
-        print(A.shape)
-        print(B.shape)
-        return 0
-
-    return ratio_equal
-
-
-def print_nan_coor(A):
-    for i in range(A.shape[0]):
-        for j in range(A.shape[1]):
-            if np.isnan(A[i, j]):
-                print("NaN at ({}, {})".format(i, j))
-
-def num_close_rows(A, B):
-    is_close = np.isclose(A, B)
-    is_close_sum = is_close.sum(axis=1)
-    close_rows = is_close_sum == A.shape[1]
-    
-    return close_rows.sum()
-
-def print_small(A):
-    print(A[0:3, 0:3])
+from helper import (load_col_major, check_isclose, check_equal, write_equal, print_close_equal,
+        check_close_equal)
 
 
 def test_sage_linear_adam():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    all_equal = 1.0
 
     home = os.getenv("HOME")
     dir_path = home + "/gpu_memory_reduction/alzheimer/data"
@@ -108,8 +74,10 @@ def test_sage_linear_adam():
     true_sage_linear_result_torch = self_result_torch + neigh_result_torch
 
     true_sage_linear_result = true_sage_linear_result_torch.detach().cpu().numpy()
-    percentage_equal = check_isclose(activations, true_sage_linear_result)
-    print("SageLinear: Percentage of equal elements: {}".format(percentage_equal))
+    ratio_close = check_isclose(activations, true_sage_linear_result)
+    ratio_equal = check_equal(activations, true_sage_linear_result)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("SageLinear", ratio_close, ratio_equal)
 
     # BACKPROPAGATION
     in_gradients_torch = torch.from_numpy(in_gradients)
@@ -137,22 +105,30 @@ def test_sage_linear_adam():
     true_neigh_weight_grads = neigh_weight_torch.grad.cpu().numpy()
     true_neigh_bias_grads = neigh_bias_torch.grad.cpu().numpy()
 
-    ratio_equal = check_isclose(self_grads, true_self_grads)
-    print("Linear self: Ratio of equal elements {}".format(ratio_equal))
-    ratio_equal = check_isclose(neigh_grads, true_neigh_grads)
-    print("Linear neigh: Ratio of equal elements {}".format(ratio_equal))
-    ratio_equal = check_isclose(self_weight_grads, true_self_weight_grads)
-    print("Linear self weight: Ratio {}".format(ratio_equal))
-    ratio_equal = check_isclose(self_bias_grads, true_self_bias_grads)
-    print("Linear self bias: Ratio {}".format(ratio_equal))
-    #  print_small(self_bias_grads)
-    #  print_small(true_self_bias_grads)
-    ratio_equal = check_isclose(neigh_weight_grads, true_neigh_weight_grads)
-    print("Linear neigh weight: Ratio {}".format(ratio_equal))
-    ratio_equal = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
-    print("Linear neigh bias: Ratio {}".format(ratio_equal))
-    #  print_small(neigh_bias_grads)
-    #  print_small(true_neigh_bias_grads)
+    ratio_close = check_isclose(self_grads, true_self_grads)
+    ratio_equal = check_equal(self_grads, true_self_grads)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("LinearSage self", ratio_close, ratio_equal)
+    ratio_close = check_isclose(neigh_grads, true_neigh_grads)
+    ratio_equal = check_equal(neigh_grads, true_neigh_grads)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("LinearSage neighbourhood", ratio_close, ratio_equal)
+    ratio_close = check_isclose(self_weight_grads, true_self_weight_grads)
+    ratio_equal = check_equal(self_weight_grads, true_self_weight_grads)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("LinearSage self weight", ratio_close, ratio_equal)
+    ratio_close = check_isclose(self_bias_grads, true_self_bias_grads)
+    ratio_equal = check_equal(self_bias_grads, true_self_bias_grads)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("LinearSage self bias", ratio_close, ratio_equal)
+    ratio_close = check_isclose(neigh_weight_grads, true_neigh_weight_grads)
+    ratio_equal = check_equal(neigh_weight_grads, true_neigh_weight_grads)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("LinearSage neighbourhood weight", ratio_close, ratio_equal)
+    ratio_close = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
+    ratio_equal = check_equal(neigh_bias_grads, true_neigh_bias_grads)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("LinearSage neighbourhood bias", ratio_close, ratio_equal)
 
     # ADAM
     optimiser.step()
@@ -167,24 +143,31 @@ def test_sage_linear_adam():
     neigh_bias_updated = load_col_major(path)
 
     true_self_weight = self_weight_torch.detach().cpu().numpy()
-    ratio_equal = check_isclose(self_weight_updated, true_self_weight)
-    print("Adam self weight: Ratio of equal elements {}".format(ratio_equal))
+    ratio_close, ratio_equal = check_close_equal(self_weight_updated, true_self_weight)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("Adam self weight", ratio_close, ratio_equal)
     true_self_bias = self_bias_torch.detach().cpu().numpy()
-    ratio_equal = check_isclose(self_bias_updated, true_self_bias)
-    print("Adam self bias: Ratio of equal elements {}".format(ratio_equal))
-    print_small(self_bias_updated)
-    print_small(true_self_bias)
-    ratio_equal = check_isclose(neigh_weight_updated, neigh_weight_torch.detach().cpu().numpy())
-    print("Adam neigh weight: Ratio of equal elements {}".format(ratio_equal))
+    ratio_close, ratio_equal = check_close_equal(self_bias_updated, true_self_bias)
+    all_equal = all_equal * ratio_equal
+    print_close_equal("Adam self bias", ratio_close, ratio_equal)
+    ratio_close, ratio_equal = check_close_equal(neigh_weight_updated, neigh_weight_torch.detach().cpu().numpy())
+    all_equal = all_equal * ratio_equal
+    print_close_equal("Adam neighbourhood weight", ratio_close, ratio_equal)
     true_neigh_bias = neigh_bias_torch.detach().cpu().numpy()
-    ratio_equal = check_isclose(neigh_bias_updated, true_neigh_bias) 
-    print("Adam neigh bias: Ratio of equal elements {}".format(ratio_equal))
+    ratio_close, ratio_equal = check_close_equal(neigh_bias_updated, true_neigh_bias) 
+    all_equal = all_equal * ratio_equal
+    print_close_equal("Adam neighbourhood bias", ratio_close, ratio_equal)
+
+    path = test_dir_path + "/value.npy"
+    write_equal(all_equal, path)
+
 
 def compare_adam():
     home = os.getenv("HOME")
     dir_path = home + "/gpu_memory_reduction/alzheimer/data"
     flickr_dir_path = dir_path + "/flickr"
     test_dir_path = dir_path + "/tests"
+    all_equal = 1.0
 
     for i in range(4):
         path = test_dir_path + "/gradient_" + str(i) + ".npy"
@@ -193,8 +176,9 @@ def compare_adam():
         path = test_dir_path + "/gradient_chunked_" + str(i) + ".npy"
         gradient_chunked = load_col_major(path)
 
-        ratio = check_isclose(gradient, gradient_chunked)
-        print("Gradient of layer {}: Ratio {}".format(i, ratio))
+        ratio_close, ratio_equal = check_close_equal(gradient, gradient_chunked)
+        all_equal = all_equal * ratio_equal
+        print_close_equal("Gradient layer {}".format(i), ratio_close, ratio_equal)
 
         path = test_dir_path + "/weight_" + str(i) + ".npy"
         weight = load_col_major(path)
@@ -202,8 +186,12 @@ def compare_adam():
         path = test_dir_path + "/weight_chunked_" + str(i) + ".npy"
         weight_chunked = load_col_major(path)
 
-        ratio = check_isclose(weight, weight_chunked)
-        print("Weight of layer {}: Ratio {}".format(i, ratio))
+        ratio_close, ratio_equal = check_close_equal(weight, weight_chunked)
+        all_equal = all_equal * ratio_equal
+        print_close_equal("Weight layer {}".format(i), ratio_close, ratio_equal)
+
+    path = test_dir_path + "/value.npy"
+    write_equal(all_equal, path)
 
 
 if __name__ == "__main__":

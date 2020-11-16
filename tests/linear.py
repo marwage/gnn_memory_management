@@ -3,11 +3,13 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import check_equal, check_isclose, load_col_major, save_return_value, to_torch
+from helper import (check_equal, check_isclose, load_col_major,
+        save_return_value, to_torch, print_small, print_not_equal,
+        write_equal)
 
 
 def test_linear():
-    product_equals = 1.0
+    all_close = 1.0
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     home = os.getenv("HOME")
@@ -41,7 +43,7 @@ def test_linear():
     ratio_close = check_isclose(activations, true_activations)
     ratio_equal = check_equal(activations, true_activations)
     print("SageLinear: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     # BACKPROPAGATION
     true_activations_torch.backward(in_gradients_torch)
@@ -61,21 +63,20 @@ def test_linear():
     ratio_close = check_isclose(input_gradients, true_input_gradients)
     ratio_equal = check_equal(input_gradients, true_input_gradients)
     print("Input gradients: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     ratio_close = check_isclose(weight_gradients, true_weight_gradients)
     ratio_equal = check_equal(weight_gradients, true_weight_gradients)
     print("Weight gradients: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     ratio_close = check_isclose(bias_gradients, true_bias_gradients)
     ratio_equal = check_equal(bias_gradients, true_bias_gradients)
     print("Bias gradients: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     path = test_dir_path + "/value.npy"
-    value = 1 if product_equals == 1.0 else 0
-    save_return_value(value, path)
+    write_equal(all_close, path)
 
 
 if __name__ == "__main__":
