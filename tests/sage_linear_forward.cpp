@@ -14,27 +14,12 @@ const std::string flickr_dir_path = dir_path + "/flickr";
 const std::string test_dir_path = dir_path + "/tests";
 
 
-int test_sage_linear_forward() {
+int test_sage_linear_forward(matrix<float> input_self, matrix<float> input_neigh) {
     std::string path;
 
-    int rows = 1024;
-    int columns = 512;
-    int num_out_features = 256;
-
-    matrix<float> input_self = gen_rand_matrix(rows, columns);
-    path = test_dir_path + "/input_self.npy";
-    save_npy_matrix(input_self, path);
-
-    matrix<float> input_neigh = gen_rand_matrix(rows, columns);
-    path = test_dir_path + "/input_neigh.npy";
-    save_npy_matrix(input_neigh, path);
-
-    matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
-    path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(in_gradients, path);
-
     CudaHelper cuda_helper;
-    SageLinear sage_linear(columns, num_out_features, &cuda_helper);
+int num_out_features = 256;
+    SageLinear sage_linear(input_self.columns, num_out_features, &cuda_helper);
 
     matrix<float> result = sage_linear.forward(input_self, input_neigh);
 
@@ -78,13 +63,9 @@ int test_sage_linear_forward_chunked(matrix<float> input_self, matrix<float> inp
 
 
 TEST_CASE("SageLinear forward", "[sagelinear][forward]") {
-    CHECK(test_sage_linear_forward());
-}
-
-TEST_CASE("SageLinear forward chunked", "[sagelinear][forward][chunked]") {
     std::string path;
-    int rows = 1024;
-    int columns = 211;
+    int rows = 1 << 15;
+    int columns = 1 << 9;
 
     matrix<float> input_self = gen_rand_matrix(rows, columns);
     path = test_dir_path + "/input_self.npy";
@@ -94,9 +75,94 @@ TEST_CASE("SageLinear forward chunked", "[sagelinear][forward][chunked]") {
     path = test_dir_path + "/input_neigh.npy";
     save_npy_matrix(input_neigh, path);
 
-    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1024));
-    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 512));
-    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 256));
-    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 128));
-    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 64));
+    CHECK(test_sage_linear_forward(input_self, input_neigh));
+}
+
+TEST_CASE("SageLinear forward, non-random input", "[sagelinear][forward][nonrandom]") {
+    std::string path;
+    int rows = 1 << 15;
+    int columns = 1 << 9;
+
+    matrix<float> input_self = gen_non_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_self.npy";
+    save_npy_matrix(input_self, path);
+
+    matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_neigh.npy";
+    save_npy_matrix(input_neigh, path);
+
+    CHECK(test_sage_linear_forward(input_self, input_neigh));
+}
+
+TEST_CASE("SageLinear forward, chunked", "[sagelinear][forward][chunked]") {
+    std::string path;
+    int rows = 1 << 15;
+    int columns = 1 << 9;
+
+    matrix<float> input_self = gen_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_self.npy";
+    save_npy_matrix(input_self, path);
+
+    matrix<float> input_neigh = gen_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_neigh.npy";
+    save_npy_matrix(input_neigh, path);
+
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 15));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 12));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 8));
+}
+
+
+TEST_CASE("SageLinear forward, chunked, small", "[sagelinear][forward][chunked][small]") {
+    std::string path;
+    int rows = 1 << 5;
+    int columns = 1 << 4;
+
+    matrix<float> input_self = gen_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_self.npy";
+    save_npy_matrix(input_self, path);
+
+    matrix<float> input_neigh = gen_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_neigh.npy";
+    save_npy_matrix(input_neigh, path);
+
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 5));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 2));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 1));
+}
+
+TEST_CASE("SageLinear forward, chunked, non-random input", "[sagelinear][forward][chunked][nonrandom]") {
+    std::string path;
+    int rows = 1 << 15;
+    int columns = 1 << 9;
+
+    matrix<float> input_self = gen_non_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_self.npy";
+    save_npy_matrix(input_self, path);
+
+    matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_neigh.npy";
+    save_npy_matrix(input_neigh, path);
+
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 15));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 12));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 8));
+}
+
+TEST_CASE("SageLinear forward, chunked,non-random input, small", "[sagelinear][forward][chunked][nonrandom][small]") {
+    std::string path;
+    int rows = 1 << 5;
+    int columns = 1 << 4;
+
+    matrix<float> input_self = gen_non_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_self.npy";
+    save_npy_matrix(input_self, path);
+
+    matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_neigh.npy";
+    save_npy_matrix(input_neigh, path);
+
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 5));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 2));
+    CHECK(test_sage_linear_forward_chunked(input_self, input_neigh, 1 << 1));
 }

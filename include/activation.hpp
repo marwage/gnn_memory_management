@@ -8,7 +8,14 @@
 
 #include <vector>
 
-class Relu {
+
+class ReluParent {
+public:
+    virtual matrix<float> forward(matrix<float> X) = 0;
+    virtual matrix<float> backward(matrix<float> in_gradients) = 0;
+};
+
+class Relu : public ReluParent {
 private:
     float alpha_;
     float beta_;
@@ -26,7 +33,26 @@ public:
     matrix<float> backward(matrix<float> in_gradients);
 };
 
-class LogSoftmax {
+class ReluChunked : public ReluParent {
+private:
+    Relu relu_layer_;
+    int chunk_size_;
+    int last_chunk_size_;
+    int num_chunks_;
+
+public:
+    ReluChunked(CudaHelper *helper, int chunk_size, int num_nodes);
+    matrix<float> forward(matrix<float> X);
+    matrix<float> backward(matrix<float> in_gradients);
+};
+
+class LogSoftmaxParent {
+public:
+    virtual matrix<float> forward(matrix<float> X) = 0;
+    virtual matrix<float> backward(matrix<float> in_gradients) = 0;
+};
+
+class LogSoftmax : public LogSoftmaxParent {
 private:
     float alpha_;
     float beta_;
@@ -40,20 +66,7 @@ public:
     matrix<float> backward(matrix<float> in_gradients);
 };
 
-class ReluChunked {
-private:
-    Relu relu_layer_;
-    int chunk_size_;
-    int last_chunk_size_;
-    int num_chunks_;
-
-public:
-    ReluChunked(CudaHelper *helper, int chunk_size, int num_nodes);
-    matrix<float> forward(matrix<float> X);
-    matrix<float> backward(matrix<float> in_gradients);
-};
-
-class LogSoftmaxChunked {
+class LogSoftmaxChunked : public LogSoftmaxParent {
 private:
     std::vector<LogSoftmax> log_softmax_layers_;
     CudaHelper *cuda_helper_;

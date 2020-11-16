@@ -7,7 +7,14 @@
 #include "tensors.hpp"
 #include <vector>
 
-class Dropout {
+
+class DropoutParent {
+public:
+    virtual matrix<float> forward(matrix<float> X) = 0;
+    virtual matrix<float> backward(matrix<float> in_gradients) = 0;
+};
+
+class Dropout: public DropoutParent {
 private:
     CudaHelper *cuda_helper_;
     void *reserve_space_;
@@ -23,7 +30,7 @@ public:
     matrix<float> backward(matrix<float> in_gradients);
 };
 
-class DropoutChunked {
+class DropoutChunked: public DropoutParent {
 private:
     CudaHelper *cuda_helper_;
     int chunk_size_;

@@ -2,18 +2,17 @@
 
 #include "activation.hpp"
 #include "cuda_helper.hpp"
-#include "dropout.hpp"
 #include "graph_convolution.hpp"
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "adam.hpp"
 #include "tensors.hpp"
+#include "helper.hpp"
 
-#include <assert.h>
 #include "catch2/catch.hpp"
 
 
-int integration_test() {
+int integration_test(int chunk_size) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -39,32 +38,34 @@ int integration_test() {
     int num_classes = 7;
 
     // layers
-    Dropout dropout_layer(&cuda_helper);
     GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean");
-    SageLinear linear_layer(features.columns, num_hidden_channels, &cuda_helper);
-    Relu relu_layer(&cuda_helper);
-    LogSoftmax log_softmax_layer(&cuda_helper);
+    SageLinearParent *sage_linear_layer;
+    ReluParent *relu_layer;
+    LogSoftmaxParent *log_softmax_layer;
+    if (chunk_size == 0) { // no chunking
+        sage_linear_layer = new SageLinear(features.columns, num_hidden_channels, &cuda_helper);
+        relu_layer = new Relu(&cuda_helper);
+        log_softmax_layer = new LogSoftmax(&cuda_helper);
+    } else {
+        sage_linear_layer = new SageLinearChunked(&cuda_helper, features.columns, num_hidden_channels, chunk_size, features.rows);
+        relu_layer = new ReluChunked(&cuda_helper, chunk_size, features.rows);
+        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.rows);
+    }
     NLLLoss loss_layer;
 
     // optimiser
-    Adam adam(&cuda_helper, learning_rate, linear_layer.get_parameters(), 4);
-
-    // dropout
-    //    matrix<float> dropout_result = dropout_layer.forward(features);
-    matrix<float> dropout_result = features;// test without dropout
-    path = test_dir_path + "/dropout_result.npy";
-    save_npy_matrix(dropout_result, path);
+    Adam adam(&cuda_helper, learning_rate, sage_linear_layer->get_parameters(), 4);
 
     // graph convolution
-    matrix<float> graph_convolution_result = graph_convolution_layer.forward(dropout_result);
+    matrix<float> graph_convolution_result = graph_convolution_layer.forward(features);
     path = test_dir_path + "/graph_convolution_result.npy";
     save_npy_matrix(graph_convolution_result, path);
 
     // linear layer
-    matrix<float> linear_result = linear_layer.forward(dropout_result, graph_convolution_result);
+    matrix<float> linear_result = sage_linear_layer->forward(features, graph_convolution_result);
     path = test_dir_path + "/linear_result.npy";
     save_npy_matrix(linear_result, path);
-    matrix<float> *parameters = linear_layer.get_parameters();
+    matrix<float> *parameters = sage_linear_layer->get_parameters();
     path = test_dir_path + "/self_weight.npy";
     save_npy_matrix(parameters[0], path);
     path = test_dir_path + "/self_bias.npy";
@@ -75,12 +76,12 @@ int integration_test() {
     save_npy_matrix(parameters[3], path);
 
     // ReLU
-    matrix<float> relu_result = relu_layer.forward(linear_result);
+    matrix<float> relu_result = relu_layer->forward(linear_result);
     path = test_dir_path + "/relu_result.npy";
     save_npy_matrix(relu_result, path);
 
     // log-softmax
-    matrix<float> log_softmax_result = log_softmax_layer.forward(linear_result);
+    matrix<float> log_softmax_result = log_softmax_layer->forward(relu_result);
     path = test_dir_path + "/log_softmax_result.npy";
     save_npy_matrix(log_softmax_result, path);
 
@@ -100,17 +101,22 @@ int integration_test() {
     save_npy_matrix(loss_grads, path);
 
     // log-softmax
-    matrix<float> log_softmax_grads = log_softmax_layer.backward(loss_grads);
+    matrix<float> log_softmax_grads = log_softmax_layer->backward(loss_grads);
     path = test_dir_path + "/log_softmax_grads.npy";
     save_npy_matrix(log_softmax_grads, path);
 
+    // ReLU
+    matrix<float> relu_grads = relu_layer->backward(log_softmax_grads);
+    path = test_dir_path + "/relu_grads.npy";
+    save_npy_matrix(relu_grads, path);
+
     // linear layer
-    SageLinear::SageLinearGradients linear_grads = linear_layer.backward(log_softmax_grads);
+    SageLinearGradients linear_grads = sage_linear_layer->backward(relu_grads);
     path = test_dir_path + "/self_grads.npy";
     save_npy_matrix(linear_grads.self_grads, path);
     path = test_dir_path + "/neigh_grads.npy";
     save_npy_matrix(linear_grads.neigh_grads, path);
-    matrix<float> *gradients = linear_layer.get_gradients();
+    matrix<float> *gradients = sage_linear_layer->get_gradients();
     path = test_dir_path + "/self_weight_grads.npy";
     save_npy_matrix(gradients[0], path);
     path = test_dir_path + "/self_bias_grads.npy";
@@ -130,28 +136,6 @@ int integration_test() {
     path = test_dir_path + "/add_grads.npy";
     save_npy_matrix(add_grads, path);
 
-    // dropout
-    //    matrix<float> dropout_grads = dropout_layer.backward(add_grads);
-    //    path = test_dir_path + "/dropout_grads.npy";
-    //    save_npy_matrix(dropout_grads, path);
-
-    // ReLU
-    assert(relu_result.rows == log_softmax_grads.rows);
-    assert(relu_result.columns == log_softmax_grads.columns);
-    matrix<float> relu_grads = relu_layer.backward(log_softmax_grads);
-    path = test_dir_path + "/relu_grads.npy";
-    save_npy_matrix(relu_grads, path);
-
-    // Adam
-    gradients = adam.step(linear_layer.get_gradients());
-    for (int i = 0; i < 4; ++i) {
-        path = test_dir_path + "/adam_grads_" + std::to_string(i) + ".npy";
-        save_npy_matrix(gradients[i], path);
-    }
-
-    linear_layer.update_weights(gradients);
-
-    // compare with Pytorch, Numpy, SciPy
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/integration.py";
     system(command);
 
@@ -163,10 +147,17 @@ int integration_test() {
     free(features.values);
     free(classes.values);
 
-    return 1; // TODO
+    path = test_dir_path + "/value.npy";
+    return read_return_value(path);
 }
 
 
 TEST_CASE("Integration test", "[integration]") {
-    CHECK(integration_test());
+    CHECK(integration_test(0));
+}
+
+TEST_CASE("Integration test, chunked", "[integration][chunked]") {
+    CHECK(integration_test(1 < 15));
+    CHECK(integration_test(1 < 12));
+    CHECK(integration_test(1 < 8));
 }

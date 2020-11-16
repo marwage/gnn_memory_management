@@ -38,6 +38,7 @@ int test_elesq(int num_elements) {
     return equal;
 }
 
+
 TEST_CASE("Element-wise squared", "[elesq]") {
     CHECK(test_elesq(1e3));
     CHECK(test_elesq(1e4));

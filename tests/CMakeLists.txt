@@ -10,9 +10,6 @@ set(TEST_FILES
         tests/elesq.cpp
         tests/graph_convolution.cpp
         tests/integration.cpp
-        tests/integration_chunked.cpp
-        tests/integration_subset.cpp
-        tests/integration_subset_chunked.cpp
         tests/invsqrt.cpp
         tests/linear.cpp
         tests/log_softmax.cpp

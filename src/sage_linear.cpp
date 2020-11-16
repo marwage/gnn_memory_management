@@ -88,7 +88,7 @@ matrix<float> SageLinear::forward(matrix<float> features,
     return self_result;
 }
 
-SageLinear::SageLinearGradients SageLinear::backward(matrix<float> in_gradients) {
+SageLinearGradients SageLinear::backward(matrix<float> in_gradients) {
     SageLinearGradients grads;
 
     grads.self_grads = linear_self_.backward(in_gradients);
@@ -167,17 +167,17 @@ matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> a
     return Y;
 }
 
-SageLinear::SageLinearGradients SageLinearChunked::backward(matrix<float> in_gradients) {
+SageLinearGradients SageLinearChunked::backward(matrix<float> in_gradients) {
     matrix<float> in_gradients_row = to_row_major(&in_gradients);
 
-    SageLinear::SageLinearGradients input_gradients;
+    SageLinearGradients input_gradients;
     input_gradients.self_grads.rows = input_shape_[0];
     input_gradients.self_grads.columns = input_shape_[1];
     input_gradients.self_grads.values = reinterpret_cast<float *>(malloc(input_gradients.self_grads.rows * input_gradients.self_grads.columns * sizeof(float)));
     input_gradients.neigh_grads.rows = input_shape_[0];
     input_gradients.neigh_grads.columns = input_shape_[1];
     input_gradients.neigh_grads.values = reinterpret_cast<float *>(malloc(input_gradients.neigh_grads.rows * input_gradients.neigh_grads.columns * sizeof(float)));
-    SageLinear::SageLinearGradients gradients_chunk;
+    SageLinearGradients gradients_chunk;
     matrix<float> in_gradients_chunk;
     in_gradients_chunk.rows = chunk_size_;
     in_gradients_chunk.columns = in_gradients_row.columns;

@@ -24,7 +24,7 @@ void save_params(matrix<float> *parameters) {
     save_npy_matrix(parameters[3], path);
 }
 
-void save_grads(SageLinear::SageLinearGradients *gradients, matrix<float> *weight_gradients) {
+void save_grads(SageLinearGradients *gradients, matrix<float> *weight_gradients) {
     std::string path;
 
     path = test_dir_path + "/self_grads.npy";
@@ -49,6 +49,19 @@ matrix<float> gen_rand_matrix(int num_rows, int num_columns) {
     mat.values = (float *) malloc(mat.rows * mat.columns * sizeof(float));
     for (int i = 0; i < mat.rows * mat.columns; ++i) {
         mat.values[i] = rand();
+    }
+
+    return mat;
+}
+
+matrix<float> gen_non_rand_matrix(int num_rows, int num_columns) {
+    int max = 5;
+    matrix<float> mat;
+    mat.rows = num_rows;
+    mat.columns = num_columns;
+    mat.values = (float *) malloc(mat.rows * mat.columns * sizeof(float));
+    for (int i = 0; i < mat.rows * mat.columns; ++i) {
+        mat.values[i] = (float) ((i % max) + 1);
     }
 
     return mat;
@@ -93,4 +106,23 @@ int run_python(std::string module_name, std::string function_name) {
 int read_return_value(std::string path) {
     matrix<int> return_mat = load_npy_matrix<int>(path);
     return return_mat.values[0];
+}
+
+int num_equal_rows(matrix<float> A, matrix<float> B) {
+    int num_rows = 0;
+    bool equal_row = true;
+
+    for (int i = 0; i < A.rows; ++i) {
+        equal_row = true;
+        for (int j = 0; j < A.columns; ++j) {
+            if (A.values[j * A.rows + i] != B.values[j * A.rows + i]) {
+                equal_row = false;
+            }
+        }
+        if (equal_row) {
+            num_rows = num_rows + 1;
+        }
+    }
+
+    return num_rows;
 }

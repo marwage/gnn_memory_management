@@ -3,6 +3,7 @@
 #include "cuda_helper.hpp"
 #include "sage_linear.hpp"
 #include "adam.hpp"
+#include "helper.hpp"
 
 #include <iostream>
 #include "catch2/catch.hpp"
@@ -91,7 +92,8 @@ int test_adam() {
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/adam.py";
     system(command);
 
-    return 1; // TODO
+    path = test_dir_path + "/value.npy";
+    return read_return_value(path);
 }
 
 TEST_CASE( "Adam", "[adam]" ) {
