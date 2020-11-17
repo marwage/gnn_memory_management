@@ -4,7 +4,7 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (load_col_major, check_isclose, check_equal, write_equal, print_close_equal,
-        check_close_equal)
+                    check_close_equal)
 
 
 def test_sage_linear_adam():
@@ -63,9 +63,9 @@ def test_sage_linear_adam():
 
     learning_rate = 0.003
     params = [self_weight_torch,
-        self_bias_torch,
-        neigh_weight_torch,
-        neigh_bias_torch]
+              self_bias_torch,
+              neigh_weight_torch,
+              neigh_bias_torch]
     optimiser = torch.optim.Adam(params, lr=learning_rate)
     optimiser.zero_grad()
 
@@ -154,7 +154,7 @@ def test_sage_linear_adam():
     all_equal = all_equal * ratio_equal
     print_close_equal("Adam neighbourhood weight", ratio_close, ratio_equal)
     true_neigh_bias = neigh_bias_torch.detach().cpu().numpy()
-    ratio_close, ratio_equal = check_close_equal(neigh_bias_updated, true_neigh_bias) 
+    ratio_close, ratio_equal = check_close_equal(neigh_bias_updated, true_neigh_bias)
     all_equal = all_equal * ratio_equal
     print_close_equal("Adam neighbourhood bias", ratio_close, ratio_equal)
 
@@ -196,4 +196,3 @@ def compare_adam():
 
 if __name__ == "__main__":
     test_sage_linear_adam()
-

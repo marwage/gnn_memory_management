@@ -1,10 +1,10 @@
 // Copyright 2020 Marcel Wagenländer
 
+#include <cmath>
+#include <cstring>
 #include <cuda_runtime.h>
 #include <cudnn.h>
 #include <limits>
-#include <cmath>
-#include <cstring>
 
 #include "activation.hpp"
 #include "cuda_helper.hpp"
@@ -292,7 +292,6 @@ matrix<float> ReluChunked::forward(matrix<float> X) {
 }
 
 matrix<float> ReluChunked::backward(matrix<float> in_gradients) {
-
 }
 
 LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, int chunk_size, int num_nodes) {

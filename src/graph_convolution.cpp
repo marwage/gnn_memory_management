@@ -332,7 +332,7 @@ matrix<float> GraphConvChunked::forward(sparse_matrix<float> adj, matrix<float> 
         to_row_major_inplace(&Y_chunk);
 
         // debug
-        for(int k = 0; k < Y_chunk.rows; ++k) {
+        for (int k = 0; k < Y_chunk.rows; ++k) {
             for (int j = 0; j < Y_chunk.columns; ++j) {
                 if (isnan(Y_chunk.values[k * Y_chunk.columns + j])) {
                     std::cout << "Chunk " << i << ", Row " << k << ", Column " << j << std::endl;
@@ -340,7 +340,7 @@ matrix<float> GraphConvChunked::forward(sparse_matrix<float> adj, matrix<float> 
             }
         }
 
-        std::memcpy(&Y.values[i * chunk_size_* Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
+        std::memcpy(&Y.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
     }
 
     to_column_major_inplace(&Y);

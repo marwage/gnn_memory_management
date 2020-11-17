@@ -1,12 +1,12 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "cuda_helper.hpp"
-#include "sage_linear.hpp"
 #include "adam.hpp"
+#include "cuda_helper.hpp"
 #include "helper.hpp"
+#include "sage_linear.hpp"
 
-#include <iostream>
 #include "catch2/catch.hpp"
+#include <iostream>
 
 
 int test_adam() {
@@ -58,7 +58,7 @@ int test_adam() {
     bias_grads.rows = bias.rows;
     bias_grads.columns = bias.columns;
     bias_grads.values = reinterpret_cast<float *>(
-                        malloc(bias_grads.rows * bias_grads.columns * sizeof(float)));
+            malloc(bias_grads.rows * bias_grads.columns * sizeof(float)));
     for (int i = 0; i < bias_grads.rows * bias_grads.columns; ++i) {
         bias_grads.values[i] = rand();
     }
@@ -96,6 +96,6 @@ int test_adam() {
     return read_return_value(path);
 }
 
-TEST_CASE( "Adam", "[adam]" ) {
+TEST_CASE("Adam", "[adam]") {
     CHECK(test_adam());
 }

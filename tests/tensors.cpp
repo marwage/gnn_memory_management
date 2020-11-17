@@ -2,8 +2,8 @@
 
 #include "tensors.hpp"
 
-#include <iostream>
 #include "catch2/catch.hpp"
+#include <iostream>
 
 
 int test_get_rows() {
@@ -25,7 +25,7 @@ int test_get_rows() {
 
     print_sparse_matrix(adj_rows);
 
-    return 1; // TODO
+    return 1;// TODO
 }
 
 

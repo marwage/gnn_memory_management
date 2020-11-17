@@ -1,10 +1,10 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "tensors.hpp"
 #include "helper.hpp"
+#include "tensors.hpp"
 
-#include <string>
 #include "catch2/catch.hpp"
+#include <string>
 
 
 int test_to_column_major(int rows, int columns) {
@@ -29,7 +29,7 @@ int test_to_column_major(int rows, int columns) {
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/transpose_to_col.py";
     system(command);
 
-    return 1; // TODO
+    return 1;// TODO
 }
 
 int test_to_row_major(int rows, int columns) {
@@ -54,7 +54,7 @@ int test_to_row_major(int rows, int columns) {
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/transpose_to_row.py";
     system(command);
 
-    return 1; // TODO
+    return 1;// TODO
 }
 
 

@@ -1,13 +1,13 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "activation.hpp"
+#include "adam.hpp"
 #include "cuda_helper.hpp"
 #include "graph_convolution.hpp"
+#include "helper.hpp"
 #include "loss.hpp"
 #include "sage_linear.hpp"
-#include "adam.hpp"
 #include "tensors.hpp"
-#include "helper.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -42,7 +42,7 @@ int integration_test(int chunk_size) {
     SageLinearParent *sage_linear_layer;
     ReluParent *relu_layer;
     LogSoftmaxParent *log_softmax_layer;
-    if (chunk_size == 0) { // no chunking
+    if (chunk_size == 0) {// no chunking
         sage_linear_layer = new SageLinear(features.columns, num_hidden_channels, &cuda_helper);
         relu_layer = new Relu(&cuda_helper);
         log_softmax_layer = new LogSoftmax(&cuda_helper);

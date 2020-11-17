@@ -4,7 +4,7 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (load_col_major, write_equal, check_isclose, check_equal, print_close_equal,
-        print_not_equal)
+                    print_not_equal)
 
 
 def test_sage_linear():
@@ -81,4 +81,3 @@ def test_sage_linear():
 
 if __name__ == "__main__":
     test_sage_linear()
-

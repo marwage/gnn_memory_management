@@ -4,7 +4,7 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (load_col_major, print_close_equal, check_close_equal,
-        to_torch, print_not_close, write_return, update_return)
+                    to_torch, print_not_close, write_return, update_return)
 
 
 def integration_test():
@@ -78,9 +78,9 @@ def integration_test():
 
     learning_rate = 0.003
     params = [self_weight_torch,
-        self_bias_torch,
-        neigh_weight_torch,
-        neigh_bias_torch]
+              self_bias_torch,
+              neigh_weight_torch,
+              neigh_bias_torch]
     optimiser = torch.optim.Adam(params, lr=learning_rate)
     optimiser.zero_grad()
 
@@ -109,7 +109,7 @@ def integration_test():
 
     true_relu_result = relu_result_torch.detach().cpu().numpy()
 
-    ratio_close, ratio_equal =check_close_equal(relu_result, true_relu_result)
+    ratio_close, ratio_equal = check_close_equal(relu_result, true_relu_result)
     all_close = update_return(ratio_close)
     print_close_equal("ReLU", ratio_close, ratio_equal)
 
@@ -208,7 +208,7 @@ def integration_test():
     print_close_equal("SageLinear neigh gradients", ratio_close, ratio_equal)
     ratio_close, ratio_equal = check_close_equal(self_weight_grads, true_self_weight_grads)
     all_close = update_return(ratio_close)
-    print_close_equal("SageLinear self weight", ratio_close , ratio_equal)
+    print_close_equal("SageLinear self weight", ratio_close, ratio_equal)
     ratio_close, ratio_equal = check_close_equal(self_bias_grads, true_self_bias_grads)
     all_close = update_return(ratio_close)
     print_close_equal("SageLinear self bias", ratio_close, ratio_equal)
@@ -233,7 +233,7 @@ def integration_test():
     path = test_dir_path + "/add_grads.npy"
     input_grads = load_col_major(path)
     true_input_grads = features_torch.grad.cpu().numpy()
-    
+
     ratio_close, ratio_equal = check_close_equal(input_grads, true_input_grads)
     all_close = update_return(ratio_close)
     print_close_equal("Input gradients", ratio_close, ratio_equal)
@@ -244,4 +244,3 @@ def integration_test():
 
 if __name__ == "__main__":
     integration_test()
-

@@ -3,8 +3,8 @@
 #include "cuda_helper.hpp"
 #include "tensors.hpp"
 
-#include <cuda_runtime.h>
 #include "catch2/catch.hpp"
+#include <cuda_runtime.h>
 
 
 matrix<float> sum_rows(matrix<float> in_mat) {

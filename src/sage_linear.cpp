@@ -2,9 +2,9 @@
 
 #include "sage_linear.hpp"
 
+#include <assert.h>
 #include <cmath>
 #include <string>
-#include <assert.h>
 
 
 SageLinear::SageLinear() {}
@@ -128,7 +128,7 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, int num_in_features, in
     }
 }
 
-matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> aggr){
+matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> aggr) {
     input_shape_ = {features.rows, features.columns};
 
     matrix<float> features_row = to_row_major(&features);
@@ -229,7 +229,7 @@ SageLinearGradients SageLinearChunked::backward(matrix<float> in_gradients) {
                                   gradients[j].rows * gradients[j].columns * sizeof(float),
                                   cudaMemcpyDeviceToHost));
 
-//            assert(gradients[j].values == sage_linear_layers_[0].get_gradients()[j].values); // DEBUGGING
+            //            assert(gradients[j].values == sage_linear_layers_[0].get_gradients()[j].values); // DEBUGGING
 
             cudaFree(d_sum);
             cudaFree(d_gradient);

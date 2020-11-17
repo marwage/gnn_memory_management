@@ -2,9 +2,9 @@
 
 #include "helper.hpp"
 
-#include <string>
-#include <iostream>
 #include <Python.h>
+#include <iostream>
+#include <string>
 
 
 std::string home = std::getenv("HOME");
@@ -74,7 +74,7 @@ int run_python(std::string module_name, std::string function_name) {
     PyObject *pName, *pModule, *pFunc, *pValue;
     Py_Initialize();
 
-    PyRun_SimpleString( ("import sys\nsys.path.append(\"" + path_tests + "\")\n").c_str());
+    PyRun_SimpleString(("import sys\nsys.path.append(\"" + path_tests + "\")\n").c_str());
     pName = PyUnicode_DecodeFSDefault(module_name.c_str());
     pModule = PyImport_Import(pName);
     Py_DECREF(pName);

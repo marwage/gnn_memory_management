@@ -1,11 +1,11 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "cuda_helper.hpp"
 #include "divmv.h"
+#include "cuda_helper.hpp"
 #include "tensors.hpp"
 
-#include <cuda_runtime.h>
 #include "catch2/catch.hpp"
+#include <cuda_runtime.h>
 
 
 int test_divmv() {

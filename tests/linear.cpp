@@ -1,12 +1,12 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "sage_linear.hpp"
 #include "cuda_helper.hpp"
-#include "tensors.hpp"
 #include "helper.hpp"
+#include "sage_linear.hpp"
+#include "tensors.hpp"
 
-#include <string>
 #include "catch2/catch.hpp"
+#include <string>
 
 
 int test_linear() {
@@ -58,6 +58,6 @@ int test_linear() {
 }
 
 
-TEST_CASE( "Linear", "[linear]" ) {
-    CHECK( test_linear() );
+TEST_CASE("Linear", "[linear]") {
+    CHECK(test_linear());
 }
