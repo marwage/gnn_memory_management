@@ -4,8 +4,8 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (check_equal, check_isclose, load_col_major,
-        save_return_value, to_torch, print_small, print_not_equal,
-        write_equal)
+                    save_return_value, to_torch, print_small, print_not_equal,
+                    write_equal)
 
 
 def test_linear():
@@ -81,4 +81,3 @@ def test_linear():
 
 if __name__ == "__main__":
     test_linear()
-

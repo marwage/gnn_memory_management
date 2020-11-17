@@ -3,8 +3,8 @@
 #ifndef HELPER_HPP
 #define HELPER_HPP
 
-#include "tensors.hpp"
 #include "sage_linear.hpp"
+#include "tensors.hpp"
 
 
 void save_params(matrix<float> *parameters);

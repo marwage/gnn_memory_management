@@ -4,7 +4,7 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (load_col_major, check_isclose, write_equal,
-        to_torch, check_equal, print_close_equal)
+                    to_torch, check_equal, print_close_equal)
 
 
 def test_adam():
@@ -60,8 +60,7 @@ def test_adam():
 
     path = test_dir_path + "/value.npy"
     write_equal(all_equal, path)
- 
+
 
 if __name__ == "__main__":
     test_adam()
-

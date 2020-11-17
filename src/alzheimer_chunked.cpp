@@ -47,27 +47,27 @@ int main() {
     int num_hidden_channels = 128;
     int num_classes = 7;
     int chunk_size = 1 << 14;
-//    int chunk_size = 1 << 30;
+    //    int chunk_size = 1 << 30;
     int num_nodes = adjacency.rows;
 
     // layers
     DropoutChunked dropout_0(&cuda_helper, chunk_size, num_nodes);
-//    GraphConvChunked graph_convolution_0(&cuda_helper, "mean", chunk_size);
+    //    GraphConvChunked graph_convolution_0(&cuda_helper, "mean", chunk_size);
     GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean");
     SageLinearChunked linear_0(&cuda_helper, features.columns, num_hidden_channels, chunk_size, num_nodes);
-//    SageLinear linear_0(features.columns, num_hidden_channels, &cuda_helper); // DEBUGGING
+    //    SageLinear linear_0(features.columns, num_hidden_channels, &cuda_helper); // DEBUGGING
     ReluChunked relu_0(&cuda_helper, chunk_size, num_nodes);
     DropoutChunked dropout_1(&cuda_helper, chunk_size, num_nodes);
-//    GraphConvChunked graph_convolution_1(&cuda_helper, "mean", chunk_size);
+    //    GraphConvChunked graph_convolution_1(&cuda_helper, "mean", chunk_size);
     GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean");
     SageLinearChunked linear_1(&cuda_helper, num_hidden_channels, num_hidden_channels, chunk_size, num_nodes);
-//    SageLinear linear_1(num_hidden_channels, num_hidden_channels, &cuda_helper); // DEBUGGING
+    //    SageLinear linear_1(num_hidden_channels, num_hidden_channels, &cuda_helper); // DEBUGGING
     ReluChunked relu_1(&cuda_helper, chunk_size, num_nodes);
     DropoutChunked dropout_2(&cuda_helper, chunk_size, num_nodes);
-//    GraphConvChunked graph_convolution_2(&cuda_helper, "mean", chunk_size);
+    //    GraphConvChunked graph_convolution_2(&cuda_helper, "mean", chunk_size);
     GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean");
     SageLinearChunked linear_2(&cuda_helper, num_hidden_channels, num_classes, chunk_size, num_nodes);
-//    SageLinear linear_2(num_hidden_channels, num_classes, &cuda_helper); // DEBUGGING
+    //    SageLinear linear_2(num_hidden_channels, num_classes, &cuda_helper); // DEBUGGING
     LogSoftmaxChunked log_softmax(&cuda_helper, chunk_size, num_nodes);
     NLLLoss loss_layer;
 

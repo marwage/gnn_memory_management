@@ -14,7 +14,7 @@ public:
     virtual matrix<float> backward(matrix<float> in_gradients) = 0;
 };
 
-class Dropout: public DropoutParent {
+class Dropout : public DropoutParent {
 private:
     CudaHelper *cuda_helper_;
     void *reserve_space_;
@@ -30,7 +30,7 @@ public:
     matrix<float> backward(matrix<float> in_gradients);
 };
 
-class DropoutChunked: public DropoutParent {
+class DropoutChunked : public DropoutParent {
 private:
     CudaHelper *cuda_helper_;
     int chunk_size_;

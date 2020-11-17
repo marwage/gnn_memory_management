@@ -2,11 +2,11 @@
 
 #include "sage_linear.hpp"
 #include "cuda_helper.hpp"
-#include "tensors.hpp"
 #include "helper.hpp"
+#include "tensors.hpp"
 
-#include <iostream>
 #include "catch2/catch.hpp"
+#include <iostream>
 
 
 int test_sage_linear() {
@@ -345,38 +345,38 @@ int test_sage_linear_same_input(int chunk_size) {
 }
 
 
-TEST_CASE( "SageLinear", "[sagelinear]" ) {
-    CHECK( test_sage_linear() );
+TEST_CASE("SageLinear", "[sagelinear]") {
+    CHECK(test_sage_linear());
 }
 
-TEST_CASE( "SageLinear non-random input", "[sagelinear][nonrandom]" ) {
-    CHECK( test_sage_linear_non_random() );
+TEST_CASE("SageLinear non-random input", "[sagelinear][nonrandom]") {
+    CHECK(test_sage_linear_non_random());
 }
 
-TEST_CASE( "SageLinear chunked", "[sagelinear][chunked]" ) {
-    CHECK( test_sage_linear_chunked(1 << 11) );
-    CHECK( test_sage_linear_chunked(1 << 10) );
-    CHECK( test_sage_linear_chunked(1 << 9) );
+TEST_CASE("SageLinear chunked", "[sagelinear][chunked]") {
+    CHECK(test_sage_linear_chunked(1 << 11));
+    CHECK(test_sage_linear_chunked(1 << 10));
+    CHECK(test_sage_linear_chunked(1 << 9));
 }
 
-TEST_CASE( "SageLinear chunked non-random input", "[sagelinear][chunked][nonrandom]" ) {
-    CHECK( test_sage_linear_chunked_non_random(1 << 11) );
-    CHECK( test_sage_linear_chunked_non_random(1 << 10) );
-    CHECK( test_sage_linear_chunked_non_random(1 << 9) );
+TEST_CASE("SageLinear chunked non-random input", "[sagelinear][chunked][nonrandom]") {
+    CHECK(test_sage_linear_chunked_non_random(1 << 11));
+    CHECK(test_sage_linear_chunked_non_random(1 << 10));
+    CHECK(test_sage_linear_chunked_non_random(1 << 9));
 }
 
-TEST_CASE( "SageLinear compare parameters", "[sagelinear][chunked][compare][parameters]" ) {
-    CHECK( test_parameters() );
+TEST_CASE("SageLinear compare parameters", "[sagelinear][chunked][compare][parameters]") {
+    CHECK(test_parameters());
 }
 
-TEST_CASE( "SageLinear compare", "[sagelinear][chunked][compare]" ) {
-    CHECK( compare_sage_linear(1024) );
-    CHECK( compare_sage_linear(512) );
-    CHECK( compare_sage_linear(128) );
+TEST_CASE("SageLinear compare", "[sagelinear][chunked][compare]") {
+    CHECK(compare_sage_linear(1024));
+    CHECK(compare_sage_linear(512));
+    CHECK(compare_sage_linear(128));
 }
 
-TEST_CASE( "SageLinear same input", "[sagelinear][chunked]" ) {
-    CHECK( test_sage_linear_same_input(1024) );
-    CHECK( test_sage_linear_same_input(512) );
-    CHECK( test_sage_linear_same_input(128) );
+TEST_CASE("SageLinear same input", "[sagelinear][chunked]") {
+    CHECK(test_sage_linear_same_input(1024));
+    CHECK(test_sage_linear_same_input(512));
+    CHECK(test_sage_linear_same_input(128));
 }

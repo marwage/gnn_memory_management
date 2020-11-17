@@ -1,11 +1,11 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "dropout.hpp"
-#include "tensors.hpp"
 #include "helper.hpp"
+#include "tensors.hpp"
 
-#include <string>
 #include "catch2/catch.hpp"
+#include <string>
 
 
 const std::string home = std::getenv("HOME");
@@ -22,7 +22,7 @@ int test_dropout(int chunk_size) {
 
     CudaHelper cuda_helper;
     DropoutParent *dropout_layer;
-    if (chunk_size == 0) { // no chunking
+    if (chunk_size == 0) {// no chunking
         dropout_layer = new Dropout(&cuda_helper);
     } else {
         dropout_layer = new DropoutChunked(&cuda_helper, chunk_size, features.rows);

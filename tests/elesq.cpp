@@ -1,10 +1,10 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "cuda_helper.hpp"
 #include "elesq.h"
+#include "cuda_helper.hpp"
 
-#include <cmath>
 #include "catch2/catch.hpp"
+#include <cmath>
 
 
 int test_elesq(int num_elements) {

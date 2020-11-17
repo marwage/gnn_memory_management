@@ -23,7 +23,7 @@ public:
     virtual matrix<float> *get_gradients() = 0;
 };
 
-class SageLinear: public SageLinearParent {
+class SageLinear : public SageLinearParent {
 private:
     int num_in_features_;
     int num_out_features_;
@@ -44,7 +44,7 @@ public:
     void update_weights(matrix<float> *gradients);
 };
 
-class SageLinearChunked: public SageLinearParent {
+class SageLinearChunked : public SageLinearParent {
 private:
     std::vector<SageLinear> sage_linear_layers_;
     CudaHelper *cuda_helper_;

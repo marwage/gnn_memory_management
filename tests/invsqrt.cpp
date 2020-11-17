@@ -1,11 +1,11 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "cuda_helper.hpp"
 #include "invsqrt.h"
+#include "cuda_helper.hpp"
 
-#include <iostream>
-#include <cmath>
 #include "catch2/catch.hpp"
+#include <cmath>
+#include <iostream>
 
 
 int test_invsqrt(int num_elements) {

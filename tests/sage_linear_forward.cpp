@@ -1,12 +1,12 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "sage_linear.hpp"
 #include "cuda_helper.hpp"
-#include "tensors.hpp"
 #include "helper.hpp"
+#include "sage_linear.hpp"
+#include "tensors.hpp"
 
-#include <string>
 #include "catch2/catch.hpp"
+#include <string>
 
 const std::string home = std::getenv("HOME");
 const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
@@ -18,7 +18,7 @@ int test_sage_linear_forward(matrix<float> input_self, matrix<float> input_neigh
     std::string path;
 
     CudaHelper cuda_helper;
-int num_out_features = 256;
+    int num_out_features = 256;
     SageLinear sage_linear(input_self.columns, num_out_features, &cuda_helper);
 
     matrix<float> result = sage_linear.forward(input_self, input_neigh);

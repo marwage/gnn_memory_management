@@ -159,7 +159,7 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
             X_chunk.rows = last_chunk_size_;
         }
         X_chunk.columns = X_row.columns;
-        X_chunk.values = &X_row.values[i * chunk_size_ *  X_row.columns];
+        X_chunk.values = &X_row.values[i * chunk_size_ * X_row.columns];
         to_column_major_inplace(&X_chunk);
 
         Y_chunk = dropout_layers_[i].forward(X_chunk);

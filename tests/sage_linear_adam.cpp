@@ -2,19 +2,18 @@
 
 #include "adam.hpp"
 #include "cuda_helper.hpp"
+#include "helper.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
-#include "helper.hpp"
 
-#include <string>
 #include "catch2/catch.hpp"
+#include <string>
 
 
 const std::string home = std::getenv("HOME");
 const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
 const std::string flickr_dir_path = dir_path + "/flickr";
 const std::string test_dir_path = dir_path + "/tests";
-
 
 
 int test_sage_linear_adam(matrix<float> input_self, matrix<float> input_neigh, matrix<float> in_gradients) {

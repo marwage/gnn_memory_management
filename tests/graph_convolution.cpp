@@ -1,9 +1,9 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "graph_convolution.hpp"
-#include "tensors.hpp"
 #include "cuda_helper.hpp"
 #include "helper.hpp"
+#include "tensors.hpp"
 
 #include "catch2/catch.hpp"
 

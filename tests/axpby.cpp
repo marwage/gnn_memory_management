@@ -3,9 +3,9 @@
 #include "axpby.h"
 #include "cuda_helper.hpp"
 
+#include "catch2/catch.hpp"
 #include <cstdlib>
 #include <iostream>
-#include "catch2/catch.hpp"
 
 
 int test_axpby(int num_elements) {

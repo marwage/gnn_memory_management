@@ -134,4 +134,3 @@ def test_sage_linear():
 
 if __name__ == "__main__":
     test_sage_linear()
-
