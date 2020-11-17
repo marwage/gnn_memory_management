@@ -1,25 +1,51 @@
 import numpy as np
 import os
 import torch
+from helper import (load_col_major, print_close_equal, check_close_equal,
+        to_torch, write_return, update_return)
 
-home = os.getenv("HOME")
-dir_path = home + "/gpu_memory_reduction/alzheimer/data/flickr"
 
-path = dir_path + "/features.npy"
-features = np.load(path)
+def test_log_softmax():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    all_close = True
+    home = os.getenv("HOME")
+    dir_path = home + "/gpu_memory_reduction/alzheimer/data"
+    flickr_dir_path = dir_path + "/flickr"
+    test_dir_path = dir_path + "/tests"
 
-path = dir_path + "/log_softmax_out.npy"
-log_softmax_out = np.load(path)
+    path = flickr_dir_path + "/features.npy"
+    features = np.load(path)
+    path = test_dir_path + "/activations.npy"
+    activations = load_col_major(path)
+    path = test_dir_path + "/in_gradients.npy"
+    in_gradients = load_col_major(path)
+    path = test_dir_path + "/gradients.npy"
+    gradients = load_col_major(path)
 
-# to row-major
-n, m = log_softmax_out.shape
-log_softmax_out = log_softmax_out.reshape((m, n))
-log_softmax_out = log_softmax_out.transpose()
+    # forward
+    features_torch = to_torch(features)
+    log_softmax_layer = torch.nn.LogSoftmax(dim=-1)
+    activations_torch = log_softmax_layer(features_torch)
+    true_activations = activations_torch.detach().cpu().numpy()
 
-log_softmax_layer = torch.nn.LogSoftmax(dim=-1)
-true_log_softmax_out = log_softmax_layer(torch.from_numpy(features))
-true_log_softmax_out = true_log_softmax_out.numpy()
+    ratio_close, ratio_equal = check_close_equal(activations, true_activations)
+    all_close = update_return(ratio_close) 
+    print_close_equal("LogSoftmax", ratio_close, ratio_equal)
 
-is_close = np.isclose(log_softmax_out, true_log_softmax_out)
-percentage_equal = is_close.sum() / true_log_softmax_out.size
-print("Log-softmax: Percentage of equal elements: {}".format(percentage_equal))
+    # backward
+    in_gradients_torch = torch.from_numpy(in_gradients)
+    in_gradients_torch = in_gradients_torch.to(device)
+    activations_torch.backward(in_gradients_torch)
+    true_gradients = features_torch.grad.detach().cpu().numpy()
+
+    ratio_close, ratio_equal = check_close_equal(gradients, true_gradients)
+    all_close = update_return(ratio_close) 
+    print_close_equal("LogSoftmax gradients", ratio_close, ratio_equal)
+
+    path = test_dir_path + "/value.npy"
+    write_return(all_close, path)
+
+
+if __name__ == "__main__":
+    test_log_softmax()
+
