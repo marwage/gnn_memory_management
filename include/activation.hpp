@@ -35,7 +35,8 @@ public:
 
 class ReluChunked : public ReluParent {
 private:
-    Relu relu_layer_;
+    std::vector<Relu> relu_layers_;
+    CudaHelper *cuda_helper_;
     int chunk_size_;
     int last_chunk_size_;
     int num_chunks_;

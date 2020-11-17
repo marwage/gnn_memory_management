@@ -251,9 +251,13 @@ matrix<float> LogSoftmax::backward(matrix<float> in_gradients) {
 
 ReluChunked::ReluChunked(CudaHelper *helper, int chunk_size, int num_nodes) {
     chunk_size_ = chunk_size;
-    relu_layer_ = Relu(helper);
+    cuda_helper_ = helper;
 
     num_chunks_ = ceil((float) num_nodes / (float) chunk_size_);
+    relu_layers_ = std::vector<Relu>(num_chunks_);
+    for (int i = 0; i < num_chunks_; ++i) {
+        relu_layers_[i] = Relu(cuda_helper_);
+    }
 
     if (num_chunks_ * chunk_size_ > num_nodes) {
         last_chunk_size_ = num_nodes - (num_chunks_ - 1) * chunk_size_;
@@ -270,28 +274,52 @@ matrix<float> ReluChunked::forward(matrix<float> X) {
     Y.columns = X.columns;
     Y.values = reinterpret_cast<float *>(malloc(Y.rows * Y.columns * sizeof(float)));
     matrix<float> X_chunk;
+    X_chunk.rows = chunk_size_;
+    X_chunk.columns = X_row.columns;
     matrix<float> Y_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {
             X_chunk.rows = last_chunk_size_;
-        } else {
-            X_chunk.rows = chunk_size_;
         }
-        X_chunk.columns = X_row.columns;
-        X_chunk.values = &X_row.values[i * chunk_size_];
+        X_chunk.values = &X_row.values[i * chunk_size_ * X_row.columns];
 
-        Y_chunk = relu_layer_.forward(X_chunk);
+        Y_chunk = relu_layers_[i].forward(X_chunk);
 
-        std::memcpy(&Y.values[i * chunk_size_], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
+        std::memcpy(&Y.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
     }
 
-    to_column_major(&Y);
+    to_column_major_inplace(&Y);
 
     return Y;
 }
 
 matrix<float> ReluChunked::backward(matrix<float> in_gradients) {
+    matrix<float> in_gradients_row = to_row_major(&in_gradients);
+
+    matrix<float> input_gradients;
+    input_gradients.rows = in_gradients_row.rows;
+    input_gradients.columns = in_gradients_row.columns;
+    input_gradients.values = reinterpret_cast<float *>(malloc(input_gradients.rows * input_gradients.columns * sizeof(float)));
+    matrix<float> in_gradients_chunk;
+    in_gradients_chunk.rows = chunk_size_;
+    in_gradients_chunk.columns = in_gradients_row.columns;
+    matrix<float> input_gradients_chunk;
+
+    for (int i = 0; i < num_chunks_; ++i) {
+        if (i == (num_chunks_ - 1)) {
+            in_gradients_chunk.rows = last_chunk_size_;
+        }
+        in_gradients_chunk.values = &in_gradients_row.values[i * chunk_size_ * in_gradients_row.columns];
+
+        input_gradients_chunk = relu_layers_[i].backward(in_gradients_chunk);
+
+        std::memcpy(&input_gradients.values[i * chunk_size_ * input_gradients_chunk.columns], input_gradients_chunk.values, input_gradients_chunk.rows * input_gradients_chunk.columns * sizeof(float));
+    }
+
+    to_column_major_inplace(&input_gradients);
+
+    return input_gradients;
 }
 
 LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, int chunk_size, int num_nodes) {
@@ -300,6 +328,9 @@ LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, int chunk_size, int num
 
     num_chunks_ = ceil((float) num_nodes / (float) chunk_size_);
     log_softmax_layers_ = std::vector<LogSoftmax>(num_chunks_);
+    for (int i = 0; i < num_chunks_; ++i) {
+        log_softmax_layers_[i] = LogSoftmax(cuda_helper_);
+    }
 
     if (num_chunks_ * chunk_size_ > num_nodes) {
         last_chunk_size_ = num_nodes - (num_chunks_ - 1) * chunk_size_;
@@ -321,7 +352,6 @@ matrix<float> LogSoftmaxChunked::forward(matrix<float> X) {
     X_chunk.columns = X_row.columns;
 
     for (int i = 0; i < num_chunks_; ++i) {
-        log_softmax_layers_[i] = LogSoftmax(cuda_helper_);
         if (i == (num_chunks_ - 1)) {
             X_chunk.rows = last_chunk_size_;
         }
