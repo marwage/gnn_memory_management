@@ -1,30 +1,13 @@
 import numpy as np
 import os
 import torch
+from helper import (load_col_major, print_close_equal, check_close_equal,
+        to_torch, print_not_close, write_return, update_return)
 
 
-def load_col_major(path):
-    mat = np.load(path)
-    n, m = mat.shape
-    mat = mat.reshape((m, n))
-    mat = mat.transpose()
-
-    return mat
-
-
-def check_isclose(A, B):
-    if (A.shape == B.shape):
-        is_close = np.isclose(A, B)
-        ratio_equal = is_close.sum() / B.size
-    else:
-        print(A.shape)
-        print(B.shape)
-        return 0
-
-    return ratio_equal
-
-
-def main():
+def test_relu():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    all_close = True
     home = os.getenv("HOME")
     dir_path = home + "/gpu_memory_reduction/alzheimer/data"
     flickr_dir_path = dir_path + "/flickr"
@@ -32,32 +15,38 @@ def main():
 
     path = flickr_dir_path + "/features.npy"
     features = np.load(path)
-    path = test_dir_path + "/relu_result.npy"
-    relu_result = load_col_major(path)
-
-    relu_layer = torch.nn.ReLU()
-
-    features_torch = torch.from_numpy(features)
-    features_torch.requires_grad_()
-    features_torch.retain_grad()
-    relu_result_torch = relu_layer(features_torch)
-    true_relu_result = relu_result_torch.detach().numpy()
-
-    ratio = check_isclose(relu_result, true_relu_result)
-    print("ReLU: Ratio equal: {}".format(ratio))
-
-    path = test_dir_path + "/relu_gradients.npy"
-    relu_grads = load_col_major(path)
+    path = test_dir_path + "/activations.npy"
+    activations = load_col_major(path)
+    path = test_dir_path + "/gradients.npy"
+    gradients = load_col_major(path)
     path = test_dir_path + "/in_gradients.npy"
     in_gradients = load_col_major(path)
 
-    in_gradients_torch = torch.from_numpy(in_gradients)
-    relu_result_torch.backward(in_gradients_torch)
-    true_relu_grads = features_torch.grad.numpy()
+    relu_layer = torch.nn.ReLU()
 
-    ratio = check_isclose(relu_grads, true_relu_grads)
-    print("ReLU gradients: Ratio equal: {}".format(ratio))
+    # forward
+    features_torch = to_torch(features)
+    activations_torch = relu_layer(features_torch)
+    true_activations = activations_torch.detach().cpu().numpy()
+
+    ratio_close, ratio_equal = check_close_equal(activations, true_activations)
+    all_close = update_return(ratio_close)
+    print_close_equal("ReLU", ratio_close, ratio_equal)
+
+    # backward
+    in_gradients_torch = torch.from_numpy(in_gradients)
+    in_gradients_torch = in_gradients_torch.to(device)
+    activations_torch.backward(in_gradients_torch)
+    true_gradients = features_torch.grad.detach().cpu().numpy()
+
+    ratio_close, ratio_equal = check_close_equal(gradients, true_gradients)
+    all_close = update_return(ratio_close)
+    print_close_equal("ReLU gradients", ratio_close, ratio_equal)
+
+    path = test_dir_path + "/value.npy"
+    write_return(all_close, path)
 
 
 if __name__ == "__main__":
-    main()
+    test_relu()
+

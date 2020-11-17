@@ -1,42 +1,52 @@
 import numpy as np
 import os
 import torch
+from helper import (load_col_major, print_close_equal, check_close_equal,
+        to_torch, write_return, update_return)
 
-home = os.getenv("HOME")
-dir_path = home + "/gpu_memory_reduction/alzheimer/data/flickr"
 
-path = dir_path + "/log_softmax_out.npy"
-log_softmax_out = np.load(path)
+def test_loss():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    all_close = True
+    home = os.getenv("HOME")
+    dir_path = home + "/gpu_memory_reduction/alzheimer/data"
+    flickr_dir_path = dir_path + "/flickr"
+    test_dir_path = dir_path + "/tests"
 
-path = dir_path + "/classes.npy"
-classes = np.load(path)
+    path = flickr_dir_path + "/classes.npy"
+    classes = np.load(path)
+    path = test_dir_path + "/input.npy"
+    input_ = load_col_major(path)
+    path = test_dir_path + "/loss.npy"
+    loss = np.load(path)
+    loss = loss.squeeze()
+    path = test_dir_path + "/gradients.npy"
+    gradients = load_col_major(path)
 
-# to row-major
-n, m = log_softmax_out.shape
-log_softmax_out = log_softmax_out.reshape((m, n))
-log_softmax_out = log_softmax_out.transpose()
+    # forward
+    input_torch = to_torch(input_)
+    classes_torch = torch.from_numpy(classes)
+    classes_torch = classes_torch.long().to(device)
+    loss_layer = torch.nn.NLLLoss()
+    loss_torch = loss_layer(input_torch, classes_torch)
+    true_loss = loss_torch.detach().cpu().numpy()
+    
+    ratio_close, ratio_equal = check_close_equal(loss, true_loss)
+    all_close = update_return(ratio_close)
+    print_close_equal("Loss", ratio_close, ratio_equal)
+    
+    # backward
+    loss_torch.backward()
+    true_gradients = input_torch.grad.detach().cpu().numpy()
 
-loss_layer = torch.nn.NLLLoss()
-torch_log_softmax_out = torch.from_numpy(log_softmax_out)
-torch_log_softmax_out.requires_grad_()
-torch_classes = torch.from_numpy(classes).long()
-true_loss = loss_layer(torch_log_softmax_out, torch_classes)
-true_loss.backward()
-true_loss = true_loss.detach().numpy()
+    ratio_close, ratio_equal = check_close_equal(gradients, true_gradients)
+    all_close = update_return(ratio_close)
+    print_close_equal("Loss gradients", ratio_close, ratio_equal)
 
-print("Loss: {}".format(true_loss))
+    path = test_dir_path + "/value.npy"
+    write_return(all_close, path)
 
-path = dir_path + "/loss_grads.npy"
-loss_grads = np.load(path)
 
-# to row-major
-n, m = loss_grads.shape
-loss_grads = loss_grads.reshape((m, n))
-loss_grads = loss_grads.transpose()
+if __name__ == "__main__":
+    test_loss()
 
-torch_loss_grads = torch_log_softmax_out.grad.numpy()
-
-assert (loss_grads.shape == torch_log_softmax_out.grad.shape)
-is_close = np.isclose(loss_grads, torch_loss_grads)
-percentage_equal = is_close.sum() / loss_grads.size
-print("Loss backward: Percentage of equal elements: {}".format(percentage_equal))
