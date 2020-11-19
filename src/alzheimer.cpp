@@ -12,7 +12,7 @@
 #include <iostream>
 
 
-void alzheimer(std::string dataset) {
+void alzheimer(std::string dataset, int chunk_size) {
     // read tensors
     // set path to directory
     std::string home = std::getenv("HOME");
@@ -55,24 +55,46 @@ void alzheimer(std::string dataset) {
     }
 
     // layers
-    Dropout dropout_0(&cuda_helper);
+    DropoutParent *dropout_0;
     GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean");
-    SageLinear linear_0(features.columns, num_hidden_channels, &cuda_helper);
-    Relu relu_0(&cuda_helper);
-    Dropout dropout_1(&cuda_helper);
+    SageLinearParent *linear_0;
+    ReluParent *relu_0;
+    DropoutParent *dropout_1;
     GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean");
-    SageLinear linear_1(num_hidden_channels, num_hidden_channels, &cuda_helper);
-    Relu relu_1(&cuda_helper);
-    Dropout dropout_2(&cuda_helper);
+    SageLinearParent *linear_1;
+    ReluParent *relu_1;
+    DropoutParent *dropout_2;
     GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean");
-    SageLinear linear_2(num_hidden_channels, num_classes, &cuda_helper);
-    LogSoftmax log_softmax(&cuda_helper);
+    SageLinearParent *linear_2;
+    LogSoftmaxParent *log_softmax;
     NLLLoss loss_layer;
+    if (chunk_size == 0) { // no chunking
+        dropout_0 = new Dropout(&cuda_helper);
+        linear_0 = new SageLinear(features.columns, num_hidden_channels, &cuda_helper);
+        relu_0 = new Relu(&cuda_helper);
+        dropout_1 = new Dropout(&cuda_helper);
+        linear_1 = new SageLinear(num_hidden_channels, num_hidden_channels, &cuda_helper);
+        relu_1 = new Relu(&cuda_helper);
+        dropout_2 = new Dropout(&cuda_helper);
+        linear_2 = new SageLinear(num_hidden_channels, num_classes, &cuda_helper);
+        log_softmax = new LogSoftmax(&cuda_helper);
+    } else {
+        int num_nodes = features.rows;
+        dropout_0 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes);
+        linear_0 = new SageLinearChunked(&cuda_helper, features.columns, num_hidden_channels, chunk_size, num_nodes);
+        relu_0 = new ReluChunked(&cuda_helper, chunk_size, num_nodes);
+        dropout_1 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes);
+        linear_1 = new SageLinearChunked(&cuda_helper, num_hidden_channels, num_hidden_channels, chunk_size, num_nodes);
+        relu_1 = new ReluChunked(&cuda_helper, chunk_size, num_nodes);
+        dropout_2 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes);
+        linear_2 = new SageLinearChunked(&cuda_helper, num_hidden_channels, num_classes, chunk_size, num_nodes);
+        log_softmax = new LogSoftmaxChunked(&cuda_helper, chunk_size, num_nodes);
+    }
 
     // optimizer
-    Adam adam_0(&cuda_helper, learning_rate, linear_0.get_parameters(), 4);
-    Adam adam_1(&cuda_helper, learning_rate, linear_1.get_parameters(), 4);
-    Adam adam_2(&cuda_helper, learning_rate, linear_2.get_parameters(), 4);
+    Adam adam_0(&cuda_helper, learning_rate, linear_0->get_parameters(), 4);
+    Adam adam_1(&cuda_helper, learning_rate, linear_1->get_parameters(), 4);
+    Adam adam_2(&cuda_helper, learning_rate, linear_2->get_parameters(), 4);
 
     matrix<float> signals;
     matrix<float> signals_dropout;
@@ -86,40 +108,40 @@ void alzheimer(std::string dataset) {
     int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
         // dropout 0
-        signals_dropout = dropout_0.forward(features);
+        signals_dropout = dropout_0->forward(features);
 
         // graph convolution 0
         signals = graph_convolution_0.forward(signals_dropout);
 
         // linear layer 0
-        signals = linear_0.forward(signals_dropout, signals);
+        signals = linear_0->forward(signals_dropout, signals);
 
         // ReLU 0
-        signals = relu_0.forward(signals);
+        signals = relu_0->forward(signals);
 
         // dropout 1
-        signals_dropout = dropout_1.forward(signals);
+        signals_dropout = dropout_1->forward(signals);
 
         // graph convolution 1
         signals = graph_convolution_1.forward(signals_dropout);
 
         // linear layer 1
-        signals = linear_1.forward(signals_dropout, signals);
+        signals = linear_1->forward(signals_dropout, signals);
 
         // ReLU 1
-        signals = relu_1.forward(signals);
+        signals = relu_1->forward(signals);
 
         // dropout 2
-        signals_dropout = dropout_2.forward(signals);
+        signals_dropout = dropout_2->forward(signals);
 
         // graph convolution 2
         signals = graph_convolution_2.forward(signals_dropout);
 
         // linear layer 2
-        signals = linear_2.forward(signals_dropout, signals);
+        signals = linear_2->forward(signals_dropout, signals);
 
         // log-softmax
-        signals = log_softmax.forward(signals);
+        signals = log_softmax->forward(signals);
 
         // loss
         loss = loss_layer.forward(signals, classes);
@@ -130,10 +152,10 @@ void alzheimer(std::string dataset) {
         gradients = loss_layer.backward();
 
         // log-softmax
-        gradients = log_softmax.backward(gradients);
+        gradients = log_softmax->backward(gradients);
 
         // linear layer 2
-        sage_linear_gradients = linear_2.backward(gradients);
+        sage_linear_gradients = linear_2->backward(gradients);
 
         // graph convolution 2
         gradients = graph_convolution_2.backward(sage_linear_gradients.neigh_grads);
@@ -142,13 +164,13 @@ void alzheimer(std::string dataset) {
         gradients = add_matrices(&cuda_helper, sage_linear_gradients.self_grads, gradients);
 
         // dropout 2
-        gradients = dropout_2.backward(gradients);
+        gradients = dropout_2->backward(gradients);
 
         // relu 1
-        gradients = relu_1.backward(gradients);
+        gradients = relu_1->backward(gradients);
 
         // linear layer 1
-        sage_linear_gradients = linear_1.backward(gradients);
+        sage_linear_gradients = linear_1->backward(gradients);
 
         // graph convolution 1
         gradients = graph_convolution_1.backward(gradients);
@@ -157,27 +179,25 @@ void alzheimer(std::string dataset) {
         gradients = add_matrices(&cuda_helper, sage_linear_gradients.self_grads, gradients);
 
         // dropout 1
-        gradients = dropout_1.backward(gradients);
+        gradients = dropout_1->backward(gradients);
 
         // relu 0
-        gradients = relu_0.backward(gradients);
+        gradients = relu_0->backward(gradients);
 
         // linear layer 0
-        sage_linear_gradients = linear_0.backward(gradients);
+        sage_linear_gradients = linear_0->backward(gradients);
 
         // no need for graph conv 0 and dropout 0
 
         // optimiser
-        gradient_0 = adam_0.step(linear_0.get_gradients());
-        gradient_1 = adam_1.step(linear_1.get_gradients());
-        gradient_2 = adam_2.step(linear_2.get_gradients());
+        gradient_0 = adam_0.step(linear_0->get_gradients());
+        gradient_1 = adam_1.step(linear_1->get_gradients());
+        gradient_2 = adam_2.step(linear_2->get_gradients());
 
         // update weights
-        linear_0.update_weights(gradient_0);
-        linear_1.update_weights(gradient_1);
-        linear_2.update_weights(gradient_2);
-
-
+        linear_0->update_weights(gradient_0);
+        linear_1->update_weights(gradient_1);
+        linear_2->update_weights(gradient_2);
     }// end training loop
 
     // CLEAN-UP

@@ -77,18 +77,11 @@ target_link_libraries(${EXECUTABLE_NAME}
         ${PROJECT_NAME})
 
 
-set(EXECUTABLE_NAME run_${PROJECT_NAME}_chunked)
-add_executable(${EXECUTABLE_NAME}
-        src/alzheimer_chunked.cpp
-        src/run_alzheimer_chunked.cpp)
-target_link_libraries(${EXECUTABLE_NAME}
-        ${PROJECT_NAME})
-
 set(EXECUTABLE_NAME benchmark)
 add_executable(${EXECUTABLE_NAME}
         src/benchmark.cpp
         src/alzheimer.cpp
-        src/alzheimer_chunked.cpp)
+        )
 target_link_libraries(${EXECUTABLE_NAME}
         ${PROJECT_NAME}
         benchmark::benchmark)
