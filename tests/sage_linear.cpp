@@ -8,42 +8,32 @@
 #include "catch2/catch.hpp"
 #include <iostream>
 
+const std::string home = std::getenv("HOME");
+const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
+const std::string flickr_dir_path = dir_path + "/flickr";
+const std::string test_dir_path = dir_path + "/tests";
 
-int test_sage_linear() {
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-    std::string flickr_dir_path = dir_path + "/flickr";
-    std::string test_dir_path = dir_path + "/tests";
+
+int test_sage_linear(matrix<float> input_self, matrix<float> input_neigh, matrix<float> in_gradients, int chunk_size) {
     std::string path;
 
-    int rows = 1024;
-    int columns = 512;
-    int num_out_features = 256;
-
-    matrix<float> input_self = gen_rand_matrix(rows, columns);
-    path = test_dir_path + "/input_self.npy";
-    save_npy_matrix(input_self, path);
-
-    matrix<float> input_neigh = gen_rand_matrix(rows, columns);
-    path = test_dir_path + "/input_neigh.npy";
-    save_npy_matrix(input_neigh, path);
-
-    matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
-    path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(in_gradients, path);
-
     CudaHelper cuda_helper;
-    SageLinear sage_linear(columns, num_out_features, &cuda_helper);
+    SageLinearParent *sage_linear_layer;
+    if (chunk_size == 0) {// no chunking
+        sage_linear_layer = new SageLinear(input_self.columns, in_gradients.columns, &cuda_helper);
+    } else {
+        sage_linear_layer = new SageLinearChunked(&cuda_helper, input_self.columns, in_gradients.columns, chunk_size, input_self.rows);
+    }
 
-    matrix<float> result = sage_linear.forward(input_self, input_neigh);
-    SageLinearGradients gradients = sage_linear.backward(in_gradients);
+    matrix<float> result = sage_linear_layer->forward(input_self, input_neigh);
+    SageLinearGradients gradients = sage_linear_layer->backward(in_gradients);
 
     path = test_dir_path + "/result.npy";
     save_npy_matrix(result, path);
 
-    save_params(sage_linear.get_parameters());
+    save_params(sage_linear_layer->get_parameters());
 
-    save_grads(&gradients, sage_linear.get_gradients());
+    save_grads(&gradients, sage_linear_layer->get_gradients());
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear.py";
     system(command);
@@ -52,7 +42,7 @@ int test_sage_linear() {
     return read_return_value(path);
 }
 
-int test_sage_linear_non_random() {
+int test_sage_linear_non_random(int chunk_size) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -87,94 +77,6 @@ int test_sage_linear_non_random() {
     save_params(sage_linear.get_parameters());
 
     save_grads(&gradients, sage_linear.get_gradients());
-
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear.py";
-    system(command);
-
-    path = test_dir_path + "/value.npy";
-    return read_return_value(path);
-}
-
-int test_sage_linear_chunked(int chunk_size) {
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-    std::string flickr_dir_path = dir_path + "/flickr";
-    std::string test_dir_path = dir_path + "/tests";
-    std::string path;
-
-    int rows = 1 << 11;
-    int columns = 512;
-    int num_out_features = 256;
-
-    matrix<float> input_self = gen_rand_matrix(rows, columns);
-    path = test_dir_path + "/input_self.npy";
-    save_npy_matrix(input_self, path);
-
-    matrix<float> input_neigh = gen_rand_matrix(rows, columns);
-    path = test_dir_path + "/input_neigh.npy";
-    save_npy_matrix(input_neigh, path);
-
-    matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
-    path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(in_gradients, path);
-
-    CudaHelper cuda_helper;
-    int num_nodes = rows;
-    SageLinearChunked sage_linear_chunked(&cuda_helper, columns, num_out_features, chunk_size, num_nodes);
-
-    matrix<float> result = sage_linear_chunked.forward(input_self, input_neigh);
-    SageLinearGradients gradients = sage_linear_chunked.backward(in_gradients);
-
-    path = test_dir_path + "/result.npy";
-    save_npy_matrix(result, path);
-
-    save_params(sage_linear_chunked.get_parameters());
-
-    save_grads(&gradients, sage_linear_chunked.get_gradients());
-
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear.py";
-    system(command);
-
-    path = test_dir_path + "/value.npy";
-    return read_return_value(path);
-}
-
-int test_sage_linear_chunked_non_random(int chunk_size) {
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-    std::string flickr_dir_path = dir_path + "/flickr";
-    std::string test_dir_path = dir_path + "/tests";
-    std::string path;
-
-    int rows = 1 << 11;
-    int columns = 512;
-    int num_out_features = 256;
-
-    matrix<float> input_self = gen_non_rand_matrix(rows, columns);
-    path = test_dir_path + "/input_self.npy";
-    save_npy_matrix(input_self, path);
-
-    matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
-    path = test_dir_path + "/input_neigh.npy";
-    save_npy_matrix(input_neigh, path);
-
-    matrix<float> in_gradients = gen_non_rand_matrix(rows, num_out_features);
-    path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(in_gradients, path);
-
-    CudaHelper cuda_helper;
-    int num_nodes = rows;
-    SageLinearChunked sage_linear_chunked(&cuda_helper, columns, num_out_features, chunk_size, num_nodes);
-
-    matrix<float> result = sage_linear_chunked.forward(input_self, input_neigh);
-    SageLinearGradients gradients = sage_linear_chunked.backward(in_gradients);
-
-    path = test_dir_path + "/result.npy";
-    save_npy_matrix(result, path);
-
-    save_params(sage_linear_chunked.get_parameters());
-
-    save_grads(&gradients, sage_linear_chunked.get_gradients());
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear.py";
     system(command);
@@ -210,25 +112,30 @@ int test_parameters() {
     return equal;
 }
 
-int compare_sage_linear(int chunk_size) {
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-    std::string flickr_dir_path = dir_path + "/flickr";
-    std::string test_dir_path = dir_path + "/tests";
+int compare_mat(matrix<float> mat_a, matrix<float> mat_b, std::string name) {
     std::string path_a = test_dir_path + "/a.npy";
     std::string path_b = test_dir_path + "/b.npy";
     std::string return_value_path = test_dir_path + "/value.npy";
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/compare.py";
-    int works = 1;
 
-    int rows = 1024;
-    int columns = 512;
-    int num_out_features = 256;
+    save_npy_matrix(mat_a, path_a);
+    save_npy_matrix(mat_b, path_b);
+    system(command);
+    int return_value = read_return_value(return_value_path);
+    std::cout << name << ": " << return_value << std::endl;
+    return return_value;
+}
+
+int compare_sage_linear(int chunk_size) {
+    int works = 1;
+    int return_value;
+
+    int rows = 1 << 15;
+    int columns = 1 << 9;
+    int num_out_features = 1 << 8;
 
     matrix<float> input_self = gen_rand_matrix(rows, columns);
-
     matrix<float> input_neigh = gen_rand_matrix(rows, columns);
-
     matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
 
     CudaHelper cuda_helper;
@@ -239,56 +146,29 @@ int compare_sage_linear(int chunk_size) {
 
     matrix<float> activations = sage_linear.forward(input_self, input_neigh);
     matrix<float> activations_chunked = sage_linear_chunked.forward(input_self, input_neigh);
-
-    save_npy_matrix(activations, path_a);
-    save_npy_matrix(activations_chunked, path_b);
-    system(command);
-    works = works * read_return_value(return_value_path);
+    works = works * compare_mat(activations, activations_chunked, "Activations");
 
     SageLinearGradients gradients = sage_linear_chunked.backward(in_gradients);
     SageLinearGradients gradients_chunked = sage_linear_chunked.backward(in_gradients);
-
-    save_npy_matrix(gradients.self_grads, path_a);
-    save_npy_matrix(gradients_chunked.self_grads, path_b);
-    system(command);
-    works = works * read_return_value(return_value_path);
-    save_npy_matrix(gradients.neigh_grads, path_a);
-    save_npy_matrix(gradients_chunked.neigh_grads, path_b);
-    system(command);
-    works = works * read_return_value(return_value_path);
+    works = works * compare_mat(gradients.self_grads, gradients_chunked.self_grads, "Gradients self");
+    works = works * compare_mat(gradients.neigh_grads, gradients_chunked.neigh_grads, "Gradients neighbourhood");
 
     matrix<float> *weight_gradients = sage_linear.get_gradients();
     matrix<float> *weight_gradients_chunked = sage_linear_chunked.get_gradients();
-    save_npy_matrix(weight_gradients[0], path_a);
-    save_npy_matrix(weight_gradients_chunked[0], path_b);
-    system(command);
-    works = works * read_return_value(return_value_path);
-    save_npy_matrix(weight_gradients[1], path_a);
-    save_npy_matrix(weight_gradients_chunked[1], path_b);
-    system(command);
-    works = works * read_return_value(return_value_path);
-    save_npy_matrix(weight_gradients[2], path_a);
-    save_npy_matrix(weight_gradients_chunked[2], path_b);
-    system(command);
-    works = works * read_return_value(return_value_path);
-    save_npy_matrix(weight_gradients[3], path_a);
-    save_npy_matrix(weight_gradients_chunked[3], path_b);
-    system(command);
-    works = works * read_return_value(return_value_path);
+    works = works * compare_mat(weight_gradients[0], weight_gradients_chunked[0], "Gradients self weights");
+    works = works * compare_mat(weight_gradients[1], weight_gradients_chunked[1], "Gradients self bias");
+    works = works * compare_mat(weight_gradients[2], weight_gradients_chunked[2], "Gradients neighbourhood weights");
+    works = works * compare_mat(weight_gradients[3], weight_gradients_chunked[3], "Gradients neighbourhood bias");
 
     return works;
 }
 
-int test_sage_linear_same_input(int chunk_size) {
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-    std::string flickr_dir_path = dir_path + "/flickr";
-    std::string test_dir_path = dir_path + "/tests";
-    std::string path;
 
-    int rows = 1 << 16;
-    int columns = 512;
-    int num_out_features = 256;
+TEST_CASE("SageLinear", "[sagelinear]") {
+    std::string path;
+    int rows = 1 << 15;
+    int columns = 1 << 9;
+    int num_out_features = 1 << 8;
 
     matrix<float> input_self = gen_rand_matrix(rows, columns);
     path = test_dir_path + "/input_self.npy";
@@ -302,81 +182,82 @@ int test_sage_linear_same_input(int chunk_size) {
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 
-    CudaHelper cuda_helper;
-    int num_nodes = rows;
-    SageLinear sage_linear(columns, num_out_features, &cuda_helper);
-    SageLinearChunked sage_linear_chunked(&cuda_helper, columns, num_out_features, chunk_size, num_nodes);
-    sage_linear_chunked.set_parameters(sage_linear.get_parameters());
-
-    // normal
-    matrix<float> result = sage_linear.forward(input_self, input_neigh);
-    SageLinearGradients gradients = sage_linear.backward(in_gradients);
-
-    path = test_dir_path + "/result.npy";
-    save_npy_matrix(result, path);
-
-    save_params(sage_linear.get_parameters());
-
-    save_grads(&gradients, sage_linear.get_gradients());
-
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear.py";
-    system(command);
-
-    // chunked
-    path = test_dir_path + "/value.npy";
-    int value = read_return_value(path);
-
-    result = sage_linear_chunked.forward(input_self, input_neigh);
-    gradients = sage_linear_chunked.backward(in_gradients);
-
-    path = test_dir_path + "/result.npy";
-    save_npy_matrix(result, path);
-
-    save_params(sage_linear_chunked.get_parameters());
-
-    save_grads(&gradients, sage_linear_chunked.get_gradients());
-
-    system(command);
-
-    path = test_dir_path + "/value.npy";
-    int chunked_value = read_return_value(path);
-
-    return value * chunked_value;
+    CHECK(test_sage_linear(input_self, input_neigh, in_gradients, 0));
 }
 
+TEST_CASE("SageLinear, non-random input", "[sagelinear][nonrandom]") {
+    std::string path;
+    int rows = 1 << 15;
+    int columns = 1 << 9;
+    int num_out_features = 1 << 8;
 
-TEST_CASE("SageLinear", "[sagelinear]") {
-    CHECK(test_sage_linear());
+    matrix<float> input_self = gen_non_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_self.npy";
+    save_npy_matrix(input_self, path);
+
+    matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_neigh.npy";
+    save_npy_matrix(input_neigh, path);
+
+    matrix<float> in_gradients = gen_non_rand_matrix(rows, num_out_features);
+    path = test_dir_path + "/in_gradients.npy";
+    save_npy_matrix(in_gradients, path);
+
+    CHECK(test_sage_linear(input_self, input_neigh, in_gradients, 0));
 }
 
-TEST_CASE("SageLinear non-random input", "[sagelinear][nonrandom]") {
-    CHECK(test_sage_linear_non_random());
+TEST_CASE("SageLinear, chunked", "[sagelinear][chunked]") {
+    std::string path;
+    int rows = 1 << 15;
+    int columns = 1 << 9;
+    int num_out_features = 1 << 8;
+
+    matrix<float> input_self = gen_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_self.npy";
+    save_npy_matrix(input_self, path);
+
+    matrix<float> input_neigh = gen_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_neigh.npy";
+    save_npy_matrix(input_neigh, path);
+
+    matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
+    path = test_dir_path + "/in_gradients.npy";
+    save_npy_matrix(in_gradients, path);
+
+    CHECK(test_sage_linear(input_self, input_neigh, in_gradients, 1 << 15));
+    CHECK(test_sage_linear(input_self, input_neigh, in_gradients, 1 << 12));
+    CHECK(test_sage_linear(input_self, input_neigh, in_gradients, 1 << 8));
 }
 
-TEST_CASE("SageLinear chunked", "[sagelinear][chunked]") {
-    CHECK(test_sage_linear_chunked(1 << 11));
-    CHECK(test_sage_linear_chunked(1 << 10));
-    CHECK(test_sage_linear_chunked(1 << 9));
+TEST_CASE("SageLinear, chunked, non-random input", "[sagelinear][chunked][nonrandom]") {
+    std::string path;
+    int rows = 1 << 15;
+    int columns = 1 << 9;
+    int num_out_features = 1 << 8;
+
+    matrix<float> input_self = gen_non_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_self.npy";
+    save_npy_matrix(input_self, path);
+
+    matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
+    path = test_dir_path + "/input_neigh.npy";
+    save_npy_matrix(input_neigh, path);
+
+    matrix<float> in_gradients = gen_non_rand_matrix(rows, num_out_features);
+    path = test_dir_path + "/in_gradients.npy";
+    save_npy_matrix(in_gradients, path);
+
+    CHECK(test_sage_linear(input_self, input_neigh, in_gradients, 1 << 15));
+    CHECK(test_sage_linear(input_self, input_neigh, in_gradients, 1 << 12));
+    CHECK(test_sage_linear(input_self, input_neigh, in_gradients, 1 << 8));
 }
 
-TEST_CASE("SageLinear chunked non-random input", "[sagelinear][chunked][nonrandom]") {
-    CHECK(test_sage_linear_chunked_non_random(1 << 11));
-    CHECK(test_sage_linear_chunked_non_random(1 << 10));
-    CHECK(test_sage_linear_chunked_non_random(1 << 9));
-}
-
-TEST_CASE("SageLinear compare parameters", "[sagelinear][chunked][compare][parameters]") {
+TEST_CASE("SageLinear, compare parameters", "[sagelinear][chunked][compare][parameters]") {
     CHECK(test_parameters());
 }
 
-TEST_CASE("SageLinear compare", "[sagelinear][chunked][compare]") {
+TEST_CASE("SageLinear, compare", "[sagelinear][chunked][compare]") {
     CHECK(compare_sage_linear(1024));
     CHECK(compare_sage_linear(512));
     CHECK(compare_sage_linear(128));
-}
-
-TEST_CASE("SageLinear same input", "[sagelinear][chunked]") {
-    CHECK(test_sage_linear_same_input(1024));
-    CHECK(test_sage_linear_same_input(512));
-    CHECK(test_sage_linear_same_input(128));
 }

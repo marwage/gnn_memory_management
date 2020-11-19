@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 find_package(CUDA 10.2 REQUIRED)
+find_package(benchmark REQUIRED)
 
 set(HEADER_FILES
         include/tensors.hpp
@@ -48,15 +49,12 @@ set(SOURCE_FILES
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
-
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${PROJECT_SOURCE_DIR}/include
         PUBLIC ${CUDA_INCLUDE_DIRS}
         PUBLIC /usr/include/python3.6m)
-
 target_link_directories(${PROJECT_NAME}
         PRIVATE /usr/local/lib)
-
 target_link_libraries(${PROJECT_NAME}
         cnpy
         cudnn
@@ -64,27 +62,33 @@ target_link_libraries(${PROJECT_NAME}
         ${CUDA_cusparse_LIBRARY}
         ${CUDA_CUBLAS_LIBRARIES})
 
-
 install(TARGETS ${PROJECT_NAME} DESTINATION lib)
 install(FILES ${HEADER_FILES} DESTINATION include)
 
 
+include(tests/CMakeLists.txt)
+
+
 set(EXECUTABLE_NAME run_${PROJECT_NAME})
-
 add_executable(${EXECUTABLE_NAME}
-        src/alzheimer.cpp)
-
+        src/alzheimer.cpp
+        src/run_alzeheimer.cpp)
 target_link_libraries(${EXECUTABLE_NAME}
         ${PROJECT_NAME})
 
 
 set(EXECUTABLE_NAME run_${PROJECT_NAME}_chunked)
-
 add_executable(${EXECUTABLE_NAME}
-        src/alzheimer_chunked.cpp)
-
+        src/alzheimer_chunked.cpp
+        src/run_alzheimer_chunked.cpp)
 target_link_libraries(${EXECUTABLE_NAME}
         ${PROJECT_NAME})
 
-
-include(tests/CMakeLists.txt)
+set(EXECUTABLE_NAME benchmark)
+add_executable(${EXECUTABLE_NAME}
+        src/benchmark.cpp
+        src/alzheimer.cpp
+        src/alzheimer_chunked.cpp)
+target_link_libraries(${EXECUTABLE_NAME}
+        ${PROJECT_NAME}
+        benchmark::benchmark)

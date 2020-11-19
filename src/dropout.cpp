@@ -152,13 +152,14 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
     Y.values = reinterpret_cast<float *>(malloc(Y.rows * Y.columns * sizeof(float)));
     matrix<float> X_chunk;
     X_chunk.rows = chunk_size_;
+    X_chunk.columns = X_row.columns;
     matrix<float> Y_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {
             X_chunk.rows = last_chunk_size_;
         }
-        X_chunk.columns = X_row.columns;
+
         X_chunk.values = &X_row.values[i * chunk_size_ * X_row.columns];
         to_column_major_inplace(&X_chunk);
 

@@ -7,47 +7,51 @@
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
-#include <sage_linear_adam.hpp>
+#include <adam.hpp>
 
 
-int main() {
+void alzheimer_chunked(std::string dataset, int chunk_size) {
     // read tensors
     // set path to directory
     std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data/flickr";
+    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
+    std::string dataset_path = dir_path + "/" + dataset;
 
     // read features
-    std::string path = dir_path + "/features.npy";
+    std::string path = dataset_path + "/features.npy";
     matrix<float> features = load_npy_matrix<float>(path);
     to_column_major<float>(&features);
 
     // read classes
-    path = dir_path + "/classes.npy";
+    path = dataset_path + "/classes.npy";
     matrix<int> classes = load_npy_matrix<int>(path);
 
-    // read train_mask
-    path = dir_path + "/train_mask.npy";
-    matrix<bool> train_mask = load_npy_matrix<bool>(path);
-
-    // read val_mask
-    path = dir_path + "/val_mask.npy";
-    matrix<bool> val_mask = load_npy_matrix<bool>(path);
-
-    // read test_mask
-    path = dir_path + "/test_mask.npy";
-    matrix<bool> test_mask = load_npy_matrix<bool>(path);
+    //    // read train_mask
+    //    path = dataset_path + "/train_mask.npy";
+    //    matrix<bool> train_mask = load_npy_matrix<bool>(path);
+    //
+    //    // read val_mask
+    //    path = dataset_path + "/val_mask.npy";
+    //    matrix<bool> val_mask = load_npy_matrix<bool>(path);
+    //
+    //    // read test_mask
+    //    path = dataset_path + "/test_mask.npy";
+    //    matrix<bool> test_mask = load_npy_matrix<bool>(path);
 
     // read adjacency
-    path = dir_path + "/adjacency.mtx";
+    path = dataset_path + "/adjacency.mtx";
     sparse_matrix<float> adjacency = load_mtx_matrix<float>(path);
 
     // FORWARD PASS
     CudaHelper cuda_helper;
     float learning_rate = 0.003;
     int num_hidden_channels = 128;
-    int num_classes = 7;
-    int chunk_size = 1 << 14;
-    //    int chunk_size = 1 << 30;
+    int num_classes;
+    if (dataset == "flickr") {
+        num_classes = 7;
+    } else if (dataset == "reddit") {
+        num_classes = 41;
+    }
     int num_nodes = adjacency.rows;
 
     // layers
@@ -55,19 +59,16 @@ int main() {
     //    GraphConvChunked graph_convolution_0(&cuda_helper, "mean", chunk_size);
     GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean");
     SageLinearChunked linear_0(&cuda_helper, features.columns, num_hidden_channels, chunk_size, num_nodes);
-    //    SageLinear linear_0(features.columns, num_hidden_channels, &cuda_helper); // DEBUGGING
     ReluChunked relu_0(&cuda_helper, chunk_size, num_nodes);
     DropoutChunked dropout_1(&cuda_helper, chunk_size, num_nodes);
     //    GraphConvChunked graph_convolution_1(&cuda_helper, "mean", chunk_size);
     GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean");
     SageLinearChunked linear_1(&cuda_helper, num_hidden_channels, num_hidden_channels, chunk_size, num_nodes);
-    //    SageLinear linear_1(num_hidden_channels, num_hidden_channels, &cuda_helper); // DEBUGGING
     ReluChunked relu_1(&cuda_helper, chunk_size, num_nodes);
     DropoutChunked dropout_2(&cuda_helper, chunk_size, num_nodes);
     //    GraphConvChunked graph_convolution_2(&cuda_helper, "mean", chunk_size);
     GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean");
     SageLinearChunked linear_2(&cuda_helper, num_hidden_channels, num_classes, chunk_size, num_nodes);
-    //    SageLinear linear_2(num_hidden_channels, num_classes, &cuda_helper); // DEBUGGING
     LogSoftmaxChunked log_softmax(&cuda_helper, chunk_size, num_nodes);
     NLLLoss loss_layer;
 
@@ -79,7 +80,10 @@ int main() {
     matrix<float> signals;
     matrix<float> signals_dropout;
     matrix<float> gradients;
-    SageLinear::SageLinearGradients sage_linear_gradients;
+    SageLinearGradients sage_linear_gradients;
+    matrix<float> *gradient_0;
+    matrix<float> *gradient_1;
+    matrix<float> *gradient_2;
     float loss;
 
     int num_epochs = 10;
@@ -167,9 +171,9 @@ int main() {
         // no need for graph conv 0 and dropout 0
 
         // optimiser
-        matrix<float> *gradient_0 = adam_0.step(linear_0.get_gradients());
-        matrix<float> *gradient_1 = adam_1.step(linear_1.get_gradients());
-        matrix<float> *gradient_2 = adam_2.step(linear_2.get_gradients());
+        gradient_0 = adam_0.step(linear_0.get_gradients());
+        gradient_1 = adam_1.step(linear_1.get_gradients());
+        gradient_2 = adam_2.step(linear_2.get_gradients());
 
         // update weights
         linear_0.update_weights(gradient_0);
@@ -184,7 +188,15 @@ int main() {
     // free memory
     free(features.values);
     free(classes.values);
-    free(train_mask.values);
-    free(val_mask.values);
-    free(test_mask.values);
+    free(adjacency.csr_col_ind);
+    free(adjacency.csr_row_ptr);
+    free(adjacency.csr_val);
+    //    free(train_mask.values);
+    //    free(val_mask.values);
+    //    free(test_mask.values);
+    free(signals.values);
+    free(signals_dropout.values);
+    free(gradients.values);
+    free(sage_linear_gradients.self_grads.values);
+    free(sage_linear_gradients.neigh_grads.values);
 }

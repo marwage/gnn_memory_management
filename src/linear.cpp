@@ -195,16 +195,6 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
     check_cuda(cudaFree(d_ones));
     check_cuda(cudaFree(d_db));
 
-    // DEBUGGING
-    //    assert(grad_bias_.rows == in_gradients.columns);
-    //    assert(grad_bias_.columns == 1);
-    //    for (int i = 0; i < in_gradients.columns; ++i) {
-    //        grad_bias_.values[i] = 0.0;
-    //        for (int j = 0; j < in_gradients.rows; ++j) {
-    //            grad_bias_.values[i] += in_gradients.values[i * in_gradients.rows + j];
-    //        }
-    //    }
-
     // gradient of weight
     // gradients_input = in_gradients * weight.T
     matrix<float> grad_input;

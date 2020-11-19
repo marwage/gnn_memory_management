@@ -51,15 +51,19 @@ int new_index(int old_idx, int N, int M) {
 }
 
 template<typename T>
-void transpose(T *a_T, T *a, int rows, int cols) {
+T *transpose(T *a, int rows, int cols) {
+    T *a_T = (T *) malloc(rows * cols * sizeof(T));
     int old_idx, new_idx;
     for (int i = 0; i < rows; i = i + 1) {
         for (int j = 0; j < cols; j = j + 1) {
             old_idx = i * cols + j;
             new_idx = new_index(old_idx, rows, cols);
-            a_T[new_idx] = a[old_idx];
+            T new_val = a[old_idx];
+            a_T[new_idx] = new_val;
         }
     }
+
+    return a_T;
 }
 
 template<typename T>
@@ -127,14 +131,19 @@ void save_npy_matrix(matrix<T> mat, std::string path) {
 template void save_npy_matrix<float>(matrix<float> mat, std::string path);
 template void save_npy_matrix<int>(matrix<int> mat, std::string path);
 
+template<typename T>
+void to_column_major_inplace(matrix<T> *mat, bool free_mem) {
+    T *new_values = transpose<T>(mat->values, mat->rows, mat->columns);
+    //    if (free_mem) free(mat->values); // DEBUGGING
+    mat->values = new_values;
+}
+
+template void to_column_major_inplace<float>(matrix<float> *mat, bool free_mem);
+template void to_column_major_inplace<int>(matrix<int> *mat, bool free_mem);
 
 template<typename T>
 void to_column_major_inplace(matrix<T> *mat) {
-    T *new_values = reinterpret_cast<T *>(
-            malloc(mat->rows * mat->columns * sizeof(T)));
-    transpose<T>(new_values, mat->values, mat->rows, mat->columns);
-    //    free(mat->values);  // TODO triggers error
-    mat->values = new_values;
+    to_column_major_inplace(mat, true);
 }
 
 template void to_column_major_inplace<float>(matrix<float> *mat);
@@ -143,21 +152,26 @@ template void to_column_major_inplace<int>(matrix<int> *mat);
 template<typename T>
 matrix<T> to_column_major(matrix<T> *mat) {
     matrix<T> mat_transposed = *mat;
-    to_column_major_inplace(&mat_transposed);
+    to_column_major_inplace(&mat_transposed, false);
     return mat_transposed;
 }
 
 template matrix<float> to_column_major<float>(matrix<float> *mat);
 template matrix<int> to_column_major<int>(matrix<int> *mat);
 
+template<typename T>
+void to_row_major_inplace(matrix<T> *mat, bool free_mem) {
+    T *new_values = transpose<T>(mat->values, mat->columns, mat->rows);
+    //    if (free_mem) free(mat->values); // DEBUGGING
+    mat->values = new_values;
+}
+
+template void to_row_major_inplace<float>(matrix<float> *mat, bool free_mem);
+template void to_row_major_inplace<int>(matrix<int> *mat, bool free_mem);
 
 template<typename T>
 void to_row_major_inplace(matrix<T> *mat) {
-    T *new_values = reinterpret_cast<T *>(
-            malloc(mat->rows * mat->columns * sizeof(T)));
-    transpose<T>(new_values, mat->values, mat->columns, mat->rows);
-    //    free(mat->values);  // TODO triggers error
-    mat->values = new_values;
+    to_row_major_inplace(mat, true);
 }
 
 template void to_row_major_inplace<float>(matrix<float> *mat);
@@ -166,7 +180,7 @@ template void to_row_major_inplace<int>(matrix<int> *mat);
 template<typename T>
 matrix<T> to_row_major(matrix<T> *mat) {
     matrix<T> mat_transposed = *mat;
-    to_row_major_inplace(&mat_transposed);
+    to_row_major_inplace(&mat_transposed, false);
     return mat_transposed;
 }
 
