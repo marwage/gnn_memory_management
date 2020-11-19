@@ -1,2 +1,2 @@
 # alzheimer
-Loss memory on the GPU
+Lose memory on the GPU
