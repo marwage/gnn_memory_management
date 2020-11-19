@@ -7,7 +7,9 @@
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
-#include <adam.hpp>
+#include "adam.hpp"
+
+#include <iostream>
 
 
 void alzheimer(std::string dataset) {
@@ -20,7 +22,6 @@ void alzheimer(std::string dataset) {
     // read features
     std::string path = dataset_path + "/features.npy";
     matrix<float> features = load_npy_matrix<float>(path);
-    to_column_major<float>(&features);
 
     // read classes
     path = dataset_path + "/classes.npy";

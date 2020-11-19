@@ -7,6 +7,7 @@
 
 #include <cstring>
 #include <iostream>
+#include <thread>
 
 
 template<typename T>
@@ -39,29 +40,64 @@ template void print_matrix<float>(matrix<float> mat);
 template void print_matrix<int>(matrix<int> mat);
 
 
-int new_index(int old_idx, int N, int M) {
-    int last_idx = M * N - 1;
+long new_index(long old_idx, long rows, long cols) {
+    long last_idx = rows * cols - 1;
     if (old_idx == last_idx) {
         return last_idx;
     } else {
-        long int new_idx = (long int) N * (long int) old_idx;
+        long new_idx = rows * old_idx;
         new_idx = new_idx % last_idx;
-        return (int) new_idx;
+        return new_idx;
     }
 }
 
 template<typename T>
-T *transpose(T *a, int rows, int cols) {
-    T *a_T = (T *) malloc(rows * cols * sizeof(T));
-    int old_idx, new_idx;
-    for (int i = 0; i < rows; i = i + 1) {
-        for (int j = 0; j < cols; j = j + 1) {
-            old_idx = i * cols + j;
-            new_idx = new_index(old_idx, rows, cols);
-            T new_val = a[old_idx];
-            a_T[new_idx] = new_val;
+void transpose(T *a, T *a_T, long rows, long cols,
+             long rows_lower, long rows_upper, long columns_lower, long columns_upper) {
+    if (rows_upper - rows_lower < 1 ||
+            columns_upper - columns_lower < 1) {
+        throw "Wrong boundaries";
+    }
+    int boundary = 4096;
+    if (rows_upper - rows_lower < boundary) {
+        if (columns_upper - columns_lower < boundary) {
+
+            long old_idx, new_idx;
+            for (long i = rows_lower; i < rows_upper; ++i) {
+                for (long j = columns_lower; j < columns_upper; ++j) {
+                    old_idx = i * cols + j;
+
+                    new_idx = new_index(old_idx, rows, cols);
+                    a_T[new_idx] = a[old_idx];
+                }
+            }
+        } else {
+            int column_mid = (columns_upper - columns_lower) / 2 + columns_lower;
+            transpose(a, a_T, rows, cols, rows_lower, rows_upper, columns_lower, column_mid);
+            transpose(a, a_T, rows, cols, rows_lower, rows_upper, column_mid, columns_upper);
+        }
+    } else {
+        if (columns_upper - columns_lower < boundary) {
+            int row_mid = (rows_upper - rows_lower) / 2 + rows_lower;
+            transpose(a, a_T, rows, cols, rows_lower, row_mid, columns_lower, columns_upper);
+            transpose(a, a_T, rows, cols, row_mid, rows_upper, columns_lower, columns_upper);
+        } else {
+            int row_mid = (rows_upper - rows_lower) / 2 + rows_lower;
+            int column_mid = (columns_upper - columns_lower) / 2 + columns_lower;
+            transpose(a, a_T, rows, cols, rows_lower, row_mid, columns_lower, column_mid);
+            transpose(a, a_T, rows, cols, rows_lower, row_mid, column_mid, columns_upper);
+            transpose(a, a_T, rows, cols, row_mid, rows_upper, columns_lower, column_mid);
+            transpose(a, a_T, rows, cols, row_mid, rows_upper, column_mid, columns_upper);
         }
     }
+}
+
+template<typename T>
+T *transpose(T *a, long rows, long cols) {
+
+    T *a_T = (T *) malloc(rows * cols * sizeof(T));
+
+    transpose(a, a_T, rows, cols, 0, rows, 0, cols);
 
     return a_T;
 }
@@ -92,6 +128,7 @@ matrix<T> load_npy_matrix(std::string path) {
     }
     mat.values = reinterpret_cast<T *>(
             malloc(mat.rows * mat.columns * sizeof(T)));
+    mat.row_major = true;
     std::memcpy(mat.values, arr_data, mat.rows * mat.columns * sizeof(T));
 
     return mat;
@@ -124,6 +161,7 @@ template sparse_matrix<float> load_mtx_matrix<float>(std::string path);
 
 template<typename T>
 void save_npy_matrix(matrix<T> mat, std::string path) {
+    to_row_major_inplace(&mat);
     std::vector<size_t> shape = {(size_t) mat.rows, (size_t) mat.columns};
     cnpy::npy_save<T>(path, mat.values, shape);
 }
@@ -132,10 +170,22 @@ template void save_npy_matrix<float>(matrix<float> mat, std::string path);
 template void save_npy_matrix<int>(matrix<int> mat, std::string path);
 
 template<typename T>
+void save_npy_matrix_no_trans(matrix<T> mat, std::string path) {
+    std::vector<size_t> shape = {(size_t) mat.rows, (size_t) mat.columns};
+    cnpy::npy_save<T>(path, mat.values, shape);
+}
+
+template void save_npy_matrix_no_trans<float>(matrix<float> mat, std::string path);
+template void save_npy_matrix_no_trans<int>(matrix<int> mat, std::string path);
+
+template<typename T>
 void to_column_major_inplace(matrix<T> *mat, bool free_mem) {
-    T *new_values = transpose<T>(mat->values, mat->rows, mat->columns);
-    //    if (free_mem) free(mat->values); // DEBUGGING
-    mat->values = new_values;
+    if (mat->row_major) {
+        T *new_values = transpose<T>(mat->values, mat->rows, mat->columns);
+//        if (free_mem) free(mat->values);
+        mat->values = new_values;
+        mat->row_major = false;
+    }
 }
 
 template void to_column_major_inplace<float>(matrix<float> *mat, bool free_mem);
@@ -151,9 +201,13 @@ template void to_column_major_inplace<int>(matrix<int> *mat);
 
 template<typename T>
 matrix<T> to_column_major(matrix<T> *mat) {
-    matrix<T> mat_transposed = *mat;
-    to_column_major_inplace(&mat_transposed, false);
-    return mat_transposed;
+    if (mat->row_major) {
+        matrix<T> mat_transposed = *mat;
+        to_column_major_inplace(&mat_transposed, false);
+        return mat_transposed;
+    } else {
+        return *mat;
+    }
 }
 
 template matrix<float> to_column_major<float>(matrix<float> *mat);
@@ -161,9 +215,12 @@ template matrix<int> to_column_major<int>(matrix<int> *mat);
 
 template<typename T>
 void to_row_major_inplace(matrix<T> *mat, bool free_mem) {
-    T *new_values = transpose<T>(mat->values, mat->columns, mat->rows);
-    //    if (free_mem) free(mat->values); // DEBUGGING
-    mat->values = new_values;
+    if (!mat->row_major) {
+        T *new_values = transpose<T>(mat->values, mat->columns, mat->rows);
+//        if (free_mem) free(mat->values);
+        mat->values = new_values;
+        mat->row_major = true;
+    }
 }
 
 template void to_row_major_inplace<float>(matrix<float> *mat, bool free_mem);
@@ -179,9 +236,13 @@ template void to_row_major_inplace<int>(matrix<int> *mat);
 
 template<typename T>
 matrix<T> to_row_major(matrix<T> *mat) {
-    matrix<T> mat_transposed = *mat;
-    to_row_major_inplace(&mat_transposed, false);
-    return mat_transposed;
+    if (mat->row_major) {
+        return *mat;
+    } else {
+        matrix<T> mat_transposed = *mat;
+        to_row_major_inplace(&mat_transposed, false);
+        return mat_transposed;
+    }
 }
 
 template matrix<float> to_row_major<float>(matrix<float> *mat);

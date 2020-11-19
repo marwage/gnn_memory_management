@@ -10,9 +10,10 @@
 
 template<typename T>
 struct matrix {
-    int rows;
-    int columns;
+    long rows;
+    long columns;
     T *values;
+    bool row_major;
 };
 
 template<typename T>
@@ -36,6 +37,9 @@ sparse_matrix<T> load_mtx_matrix(std::string path);
 
 template<typename T>
 void save_npy_matrix(matrix<T> mat, std::string path);
+
+template<typename T>
+void save_npy_matrix_no_trans(matrix<T> mat, std::string path);
 
 template<typename T>
 matrix<T> to_column_major(matrix<T> *mat);

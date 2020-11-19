@@ -11,9 +11,9 @@ void save_params(matrix<float> *parameters);
 
 void save_grads(SageLinearGradients *gradients, matrix<float> *weight_gradients);
 
-matrix<float> gen_rand_matrix(int num_rows, int num_columns);
+matrix<float> gen_rand_matrix(long num_rows, long num_columns);
 
-matrix<float> gen_non_rand_matrix(int num_rows, int num_columns);
+matrix<float> gen_non_rand_matrix(long num_rows, long num_columns);
 
 int run_python(std::string module_name, std::string function_name);
 

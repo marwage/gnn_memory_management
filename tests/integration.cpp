@@ -21,7 +21,6 @@ int integration_test(int chunk_size) {
     // read features
     std::string path = flickr_dir_path + "/features.npy";
     matrix<float> features = load_npy_matrix<float>(path);
-    to_column_major_inplace<float>(&features);
 
     // read classes
     path = flickr_dir_path + "/classes.npy";

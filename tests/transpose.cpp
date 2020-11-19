@@ -7,7 +7,7 @@
 #include <string>
 
 
-int test_to_column_major(int rows, int columns) {
+int test_transpose(long rows, long columns, bool to_col_major) {
     std::string home = std::getenv("HOME");
     std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string flickr_dir_path = dir_path + "/flickr";
@@ -15,43 +15,30 @@ int test_to_column_major(int rows, int columns) {
     std::string path;
 
     matrix<float> mat = gen_rand_matrix(rows, columns);
+    if (!to_col_major) {
+        mat.row_major = false;
+    }
     path = test_dir_path + "/matrix.npy";
-    save_npy_matrix(mat, path);
+    save_npy_matrix_no_trans(mat, path);
 
-    matrix<float> mat_transposed = to_column_major(&mat);
+    matrix<float> mat_transposed;
+    if (to_col_major) {
+        mat_transposed = to_column_major(&mat);
+    } else {
+        mat_transposed = to_row_major(&mat);
+    }
     path = test_dir_path + "/matrix_transposed.npy";
-    save_npy_matrix(mat_transposed, path);
+    save_npy_matrix_no_trans(mat_transposed, path);
 
-    to_column_major_inplace(&mat);
+    if (to_col_major) {
+        to_column_major_inplace(&mat);
+    } else {
+        to_row_major_inplace(&mat);
+    }
     path = test_dir_path + "/matrix_transposed_inplace.npy";
-    save_npy_matrix(mat, path);
+    save_npy_matrix_no_trans(mat, path);
 
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/transpose_to_col.py";
-    system(command);
-
-    return 1;// TODO
-}
-
-int test_to_row_major(int rows, int columns) {
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-    std::string flickr_dir_path = dir_path + "/flickr";
-    std::string test_dir_path = dir_path + "/tests";
-    std::string path;
-
-    matrix<float> mat = gen_rand_matrix(rows, columns);
-    path = test_dir_path + "/matrix.npy";
-    save_npy_matrix(mat, path);
-
-    matrix<float> mat_transposed = to_row_major(&mat);
-    path = test_dir_path + "/matrix_transposed.npy";
-    save_npy_matrix(mat_transposed, path);
-
-    to_row_major_inplace(&mat);
-    path = test_dir_path + "/matrix_transposed_inplace.npy";
-    save_npy_matrix(mat, path);
-
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/transpose_to_row.py";
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/transpose.py";
     system(command);
 
     path = test_dir_path + "/value.npy";
@@ -60,15 +47,8 @@ int test_to_row_major(int rows, int columns) {
 
 
 TEST_CASE("Transpose", "[transpose]") {
-    CHECK(test_to_column_major(512, 1024));
-    CHECK(test_to_column_major(4096, 256));
-    CHECK(test_to_column_major(2003, 661));
-    CHECK(test_to_column_major(2017, 389));
-    CHECK(test_to_column_major(7919, 4007));
-
-    CHECK(test_to_row_major(512, 1024));
-    CHECK(test_to_row_major(4096, 256));
-    CHECK(test_to_row_major(2003, 661));
-    CHECK(test_to_row_major(2017, 389));
-    CHECK(test_to_row_major(7919, 4007));
+    CHECK(test_transpose(99999, 6584, true));
+    CHECK(test_transpose(85647, 6584, true));
+    CHECK(test_transpose(84634, 8573, true));
 }
+// CHECK(test_transpose(x, y, true)); python script would need to be aware of the bool

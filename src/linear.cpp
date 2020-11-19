@@ -20,14 +20,18 @@ Linear::Linear(int in_features, int out_features, CudaHelper *helper) {
 
     weight_.rows = num_in_features_;
     weight_.columns = num_out_features_;
+    weight_.row_major = false;
     bias_.rows = num_out_features_;
     bias_.columns = 1;
+    bias_.row_major = false;
 
     grad_weight_.rows = weight_.rows;
     grad_weight_.columns = weight_.columns;
+    grad_weight_.row_major = false;
     grad_weight_.values = reinterpret_cast<float *>(malloc(grad_weight_.rows * grad_weight_.columns * sizeof(float)));
     grad_bias_.rows = bias_.rows;
     grad_bias_.columns = bias_.columns;
+    grad_bias_.row_major = false;
     grad_bias_.values = reinterpret_cast<float *>(malloc(grad_bias_.rows * grad_bias_.columns * sizeof(float)));
 
     Linear::init_weight_bias();
@@ -82,6 +86,7 @@ matrix<float> Linear::expand_bias(int num_rows) {
     matrix<float> bias_expanded;
     bias_expanded.rows = num_rows;
     bias_expanded.columns = bias_.rows;
+    bias_expanded.row_major = true;
     bias_expanded.values = reinterpret_cast<float *>(
             malloc(bias_expanded.rows * bias_expanded.columns * sizeof(float)));
 
@@ -94,11 +99,11 @@ matrix<float> Linear::expand_bias(int num_rows) {
     return bias_expanded;
 }
 
-// assume X is column-major
 matrix<float> Linear::forward(matrix<float> X) {
     if (X.rows < 1) {
         throw "Input to Linear::forward has a non-positive number of rows";
     }
+    to_column_major_inplace(&X);
     x_ = X;
 
     float *d_X, *d_weight, *d_bias;
@@ -136,6 +141,7 @@ matrix<float> Linear::forward(matrix<float> X) {
     matrix<float> result;
     result.rows = X.rows;
     result.columns = weight_.columns;
+    result.row_major = false;
     result.values = reinterpret_cast<float *>(
             malloc(result.rows * result.columns * sizeof(float)));
     check_cuda(cudaMemcpy(result.values, d_bias,
@@ -154,6 +160,8 @@ matrix<float> Linear::forward(matrix<float> X) {
 }
 
 matrix<float> Linear::backward(matrix<float> in_gradients) {
+    to_column_major_inplace(&in_gradients);
+
     float alpha = 1.0;
     float beta = 0.0;
 
@@ -200,6 +208,7 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
     matrix<float> grad_input;
     grad_input.rows = in_gradients.rows;
     grad_input.columns = weight_.rows;
+    grad_input.row_major = false;
     grad_input.values = reinterpret_cast<float *>(malloc(grad_input.rows * grad_input.columns * sizeof(float)));
 
     float *d_weight;
@@ -263,6 +272,8 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
 void Linear::update_weights(matrix<float> *gradients) {
     grad_weight_ = gradients[0];
     grad_bias_ = gradients[1];
+    to_column_major_inplace(&grad_weight_);
+    to_column_major_inplace(&grad_bias_);
 
     float *d_grads;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_grads),
