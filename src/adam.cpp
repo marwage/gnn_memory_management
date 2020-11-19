@@ -40,8 +40,11 @@ matrix<float> *Adam::step(matrix<float> *gradients) {
     matrix<float> *update = reinterpret_cast<matrix<float> *>(
             malloc(num_parameters_ * sizeof(matrix<float>)));
     for (int i = 0; i < num_parameters_; ++i) {
+        to_column_major_inplace(&gradients[i]);
+
         update[i].rows = gradients[i].rows;
         update[i].columns = gradients[i].columns;
+        update[i].row_major = false;
         update[i].values = reinterpret_cast<float *>(
                 malloc(update[i].rows * update[i].columns * sizeof(float)));
     }

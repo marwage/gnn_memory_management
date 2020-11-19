@@ -42,29 +42,32 @@ void save_grads(SageLinearGradients *gradients, matrix<float> *weight_gradients)
     save_npy_matrix(weight_gradients[3], path);
 }
 
-matrix<float> gen_rand_matrix(int num_rows, int num_columns) {
+matrix<float> gen_matrix(long num_rows, long num_columns, bool random) {
+    long max = 5;
+
     matrix<float> mat;
     mat.rows = num_rows;
     mat.columns = num_columns;
+    mat.row_major = true;
     mat.values = (float *) malloc(mat.rows * mat.columns * sizeof(float));
-    for (int i = 0; i < mat.rows * mat.columns; ++i) {
-        mat.values[i] = rand();
+
+    for (long i = 0; i < mat.rows * mat.columns; ++i) {
+        if (random) {
+            mat.values[i] = rand();
+        } else {
+            mat.values[i] = (float) ((i % max) + 1);
+        }
     }
 
     return mat;
 }
 
-matrix<float> gen_non_rand_matrix(int num_rows, int num_columns) {
-    int max = 5;
-    matrix<float> mat;
-    mat.rows = num_rows;
-    mat.columns = num_columns;
-    mat.values = (float *) malloc(mat.rows * mat.columns * sizeof(float));
-    for (int i = 0; i < mat.rows * mat.columns; ++i) {
-        mat.values[i] = (float) ((i % max) + 1);
-    }
+matrix<float> gen_rand_matrix(long num_rows, long num_columns) {
+        return gen_matrix(num_rows, num_columns, true);
+}
 
-    return mat;
+matrix<float> gen_non_rand_matrix(long num_rows, long num_columns) {
+    return gen_matrix(num_rows, num_columns, false);
 }
 
 int run_python(std::string module_name, std::string function_name) {

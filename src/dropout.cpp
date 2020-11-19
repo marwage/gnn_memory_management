@@ -18,6 +18,8 @@ Dropout::Dropout(CudaHelper *helper) {
 }
 
 matrix<float> Dropout::forward(matrix<float> X) {
+    to_column_major_inplace(&X);
+
     float probability = 0.2f;
     check_cudnn(cudnnDropoutGetStatesSize(cuda_helper_->cudnn_handle, &state_size_));
     void *d_states;
@@ -31,6 +33,7 @@ matrix<float> Dropout::forward(matrix<float> X) {
     matrix<float> Y;
     Y.rows = X.rows;
     Y.columns = X.columns;
+    Y.row_major = false;
 
     cudnnTensorDescriptor_t x_descr;
     check_cudnn(cudnnCreateTensorDescriptor(&x_descr));
@@ -79,6 +82,8 @@ matrix<float> Dropout::forward(matrix<float> X) {
 }
 
 matrix<float> Dropout::backward(matrix<float> in_gradients) {
+    to_column_major_inplace(&in_gradients);
+
     cudnnTensorDescriptor_t dy_desc;
     check_cudnn(cudnnCreateTensorDescriptor(&dy_desc));
     check_cudnn(cudnnSetTensor4dDescriptor(dy_desc,
@@ -113,6 +118,7 @@ matrix<float> Dropout::backward(matrix<float> in_gradients) {
     matrix<float> grad_input;
     grad_input.rows = in_gradients.rows;
     grad_input.columns = in_gradients.columns;
+    grad_input.row_major = false;
     grad_input.values = reinterpret_cast<float *>(malloc(grad_input.rows * grad_input.columns * sizeof(float)));
     check_cuda(cudaMemcpy(grad_input.values, d_dx,
                           grad_input.rows * grad_input.columns * sizeof(float),
@@ -144,15 +150,16 @@ DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes
 }
 
 matrix<float> DropoutChunked::forward(matrix<float> X) {
-    matrix<float> X_row = to_row_major(&X);
+    to_row_major_inplace(&X);
 
     matrix<float> Y;
-    Y.rows = X_row.rows;
-    Y.columns = X_row.columns;
+    Y.rows = X.rows;
+    Y.columns = X.columns;
+    Y.row_major = true;
     Y.values = reinterpret_cast<float *>(malloc(Y.rows * Y.columns * sizeof(float)));
     matrix<float> X_chunk;
     X_chunk.rows = chunk_size_;
-    X_chunk.columns = X_row.columns;
+    X_chunk.columns = X.columns;
     matrix<float> Y_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
@@ -160,8 +167,7 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
             X_chunk.rows = last_chunk_size_;
         }
 
-        X_chunk.values = &X_row.values[i * chunk_size_ * X_row.columns];
-        to_column_major_inplace(&X_chunk);
+        X_chunk.values = &X.values[i * chunk_size_ * X.columns];
 
         Y_chunk = dropout_layers_[i].forward(X_chunk);
         to_row_major_inplace(&Y_chunk);
@@ -169,38 +175,33 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
         std::memcpy(&Y.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
     }
 
-    to_column_major_inplace(&Y);
-
     return Y;
 }
 
 matrix<float> DropoutChunked::backward(matrix<float> in_gradients) {
-    matrix<float> in_gradients_row = to_row_major(&in_gradients);
+    to_row_major_inplace(&in_gradients);
 
     matrix<float> gradients;
-    gradients.rows = in_gradients_row.rows;
-    gradients.columns = in_gradients_row.columns;
+    gradients.rows = in_gradients.rows;
+    gradients.columns = in_gradients.columns;
     gradients.values = reinterpret_cast<float *>(malloc(gradients.rows * gradients.columns * sizeof(float)));
     matrix<float> in_gradients_chunk;
+    in_gradients_chunk.rows = chunk_size_;
+    in_gradients_chunk.columns = in_gradients.columns;
     matrix<float> gradients_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {
             in_gradients_chunk.rows = last_chunk_size_;
-        } else {
-            in_gradients_chunk.rows = chunk_size_;
         }
-        in_gradients_chunk.columns = in_gradients_row.columns;
-        in_gradients_chunk.values = &in_gradients_row.values[i * chunk_size_ * in_gradients_row.columns];
-        to_column_major_inplace(&in_gradients_chunk);
+
+        in_gradients_chunk.values = &in_gradients.values[i * chunk_size_ * in_gradients.columns];
 
         gradients_chunk = dropout_layers_[i].backward(in_gradients_chunk);
         to_row_major_inplace(&gradients_chunk);
 
         std::memcpy(&gradients.values[i * chunk_size_ * gradients_chunk.columns], gradients_chunk.values, gradients_chunk.rows * gradients_chunk.columns * sizeof(float));
     }
-
-    to_column_major_inplace(&gradients);
 
     return gradients;
 }

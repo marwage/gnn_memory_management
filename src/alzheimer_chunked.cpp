@@ -7,7 +7,9 @@
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
-#include <adam.hpp>
+#include "adam.hpp"
+
+#include <iostream>
 
 
 void alzheimer_chunked(std::string dataset, int chunk_size) {

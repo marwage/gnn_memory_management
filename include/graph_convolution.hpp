@@ -3,7 +3,6 @@
 #ifndef GRAPH_CONVOLUTION_H
 #define GRAPH_CONVOLUTION_H
 
-#include <iostream>
 #include <vector>
 
 #include "cuda_helper.hpp"
@@ -29,13 +28,14 @@ public:
 
 class GraphConvChunked {
 private:
-    GraphConvolution graph_conv_layer_;
+    CudaHelper *cuda_helper_;
+    std::vector<GraphConvolution> graph_conv_layers_;
     int chunk_size_;
     int last_chunk_size_;
     int num_chunks_;
 
 public:
-    GraphConvChunked(CudaHelper *helper, std::string reduction, int chunk_size);
+    GraphConvChunked(CudaHelper *helper, std::string reduction, int chunk_size, int num_nodes);
     matrix<float> forward(sparse_matrix<float> adj, matrix<float> B);
     matrix<float> backward(matrix<float> in_gradients);
 };

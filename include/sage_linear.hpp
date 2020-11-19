@@ -54,7 +54,7 @@ private:
     int chunk_size_;
     int last_chunk_size_;
     int num_chunks_;
-    std::vector<int> input_shape_;
+    std::vector<long> input_shape_;
 
 public:
     SageLinearChunked(CudaHelper *helper, int num_in_features, int num_out_features, int chunk_size, int num_nodes);
