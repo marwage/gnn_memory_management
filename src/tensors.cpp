@@ -73,21 +73,25 @@ void transpose(T *a, T *a_T, long rows, long cols,
             }
         } else {
             int column_mid = (columns_upper - columns_lower) / 2 + columns_lower;
-            transpose(a, a_T, rows, cols, rows_lower, rows_upper, columns_lower, column_mid);
-            transpose(a, a_T, rows, cols, rows_lower, rows_upper, column_mid, columns_upper);
+            std::thread thread_one(transpose<T>, a, a_T, rows, cols, rows_lower, rows_upper, columns_lower, column_mid);
+            std::thread thread_two(transpose<T>, a, a_T, rows, cols, rows_lower, rows_upper, column_mid, columns_upper);
+            thread_one.join();
+            thread_two.join();
         }
     } else {
         if (columns_upper - columns_lower < boundary) {
             int row_mid = (rows_upper - rows_lower) / 2 + rows_lower;
-            transpose(a, a_T, rows, cols, rows_lower, row_mid, columns_lower, columns_upper);
-            transpose(a, a_T, rows, cols, row_mid, rows_upper, columns_lower, columns_upper);
+            std::thread thread_one(transpose<T>, a, a_T, rows, cols, rows_lower, row_mid, columns_lower, columns_upper);
+            std::thread thread_two(transpose<T>, a, a_T, rows, cols, row_mid, rows_upper, columns_lower, columns_upper);
+            thread_one.join();
+            thread_two.join();
         } else {
             int row_mid = (rows_upper - rows_lower) / 2 + rows_lower;
             int column_mid = (columns_upper - columns_lower) / 2 + columns_lower;
-            transpose(a, a_T, rows, cols, rows_lower, row_mid, columns_lower, column_mid);
-            transpose(a, a_T, rows, cols, rows_lower, row_mid, column_mid, columns_upper);
-            transpose(a, a_T, rows, cols, row_mid, rows_upper, columns_lower, column_mid);
-            transpose(a, a_T, rows, cols, row_mid, rows_upper, column_mid, columns_upper);
+            std::thread thread_one(transpose<T>, a, a_T, rows, cols, rows_lower, row_mid, columns_lower, column_mid);
+            std::thread thread_two(transpose<T>, a, a_T, rows, cols, rows_lower, row_mid, column_mid, columns_upper);
+            std::thread thread_three(transpose<T>, a, a_T, rows, cols, row_mid, rows_upper, columns_lower, column_mid);
+            std::thread thread_four(transpose<T>, a, a_T, rows, cols, row_mid, rows_upper, column_mid, columns_upper);
         }
     }
 }

@@ -7,8 +7,6 @@
 #include "linear.hpp"
 #include "tensors.hpp"
 
-#include <assert.h>// DEBUGGING
-
 
 Linear::Linear() {}
 
@@ -43,16 +41,15 @@ void Linear::init_weight_bias() {
     bias_.values = reinterpret_cast<float *>(
             malloc(bias_.rows * bias_.columns * sizeof(float)));
 
-    double k = 1.0 / static_cast<double>(num_out_features_);
+    double k = 1.0 / static_cast<double>(num_in_features_);
     k = sqrt(k);
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::default_random_engine generator;
     std::uniform_real_distribution<float> distr(-k, k);
     for (int i = 0; i < weight_.rows * weight_.columns; ++i) {
-        weight_.values[i] = distr(gen);
+        weight_.values[i] = distr(generator);
     }
     for (int i = 0; i < bias_.rows * bias_.columns; ++i) {
-        bias_.values[i] = distr(gen);
+        bias_.values[i] = distr(generator);
     }
 }
 
