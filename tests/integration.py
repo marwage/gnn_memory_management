@@ -3,7 +3,7 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import (load_col_major, print_close_equal, check_close_equal,
+from helper import (print_close_equal, check_close_equal,
                     to_torch, print_not_close, write_return, update_return)
 
 
@@ -29,7 +29,7 @@ def integration_test():
     # FORWARD PASS
     # check graph convolution
     path = test_dir_path + "/graph_convolution_result.npy"
-    graph_conv_result = load_col_major(path)
+    graph_conv_result = np.load(path)
 
     features_torch = to_torch(features)
 
@@ -61,15 +61,15 @@ def integration_test():
 
     # check sage linear
     path = test_dir_path + "/self_weight.npy"
-    self_weight = load_col_major(path)
+    self_weight = np.load(path)
     path = test_dir_path + "/self_bias.npy"
-    self_bias = load_col_major(path)
+    self_bias = np.load(path)
     path = test_dir_path + "/neigh_weight.npy"
-    neigh_weight = load_col_major(path)
+    neigh_weight = np.load(path)
     path = test_dir_path + "/neigh_bias.npy"
-    neigh_bias = load_col_major(path)
+    neigh_bias = np.load(path)
     path = test_dir_path + "/linear_result.npy"
-    sage_linear_result = load_col_major(path)
+    sage_linear_result = np.load(path)
 
     self_weight_torch = to_torch(self_weight)
     self_bias_torch = to_torch(self_bias)
@@ -99,7 +99,7 @@ def integration_test():
 
     # check relu
     path = test_dir_path + "/relu_result.npy"
-    relu_result = load_col_major(path)
+    relu_result = np.load(path)
 
     relu_layer = torch.nn.ReLU()
     relu_result_torch = relu_layer(sage_linear_result_torch)
@@ -115,7 +115,7 @@ def integration_test():
 
     # check log-softmax
     path = test_dir_path + "/log_softmax_result.npy"
-    log_softmax_result = load_col_major(path)
+    log_softmax_result = np.load(path)
 
     log_softmax_layer = torch.nn.LogSoftmax(dim=-1)
     log_softmax_result_torch = log_softmax_layer(relu_result_torch)
@@ -148,7 +148,7 @@ def integration_test():
     # BACKPROPAGATION
     # check loss
     path = test_dir_path + "/loss_grads.npy"
-    loss_grads = load_col_major(path)
+    loss_grads = np.load(path)
 
     loss_result_torch.backward()
 
@@ -160,7 +160,7 @@ def integration_test():
 
     # check log-softmax
     path = test_dir_path + "/log_softmax_grads.npy"
-    log_softmax_grads = load_col_major(path)
+    log_softmax_grads = np.load(path)
 
     true_log_softmax_grads = relu_result_torch.grad.cpu().numpy()
 
@@ -170,7 +170,7 @@ def integration_test():
 
     # check relu
     path = test_dir_path + "/relu_grads.npy"
-    relu_grads = load_col_major(path)
+    relu_grads = np.load(path)
 
     true_relu_grads = sage_linear_result_torch.grad.cpu().numpy()
 
@@ -180,18 +180,18 @@ def integration_test():
 
     # check linear layer
     path = test_dir_path + "/self_grads.npy"
-    self_grads = load_col_major(path)
+    self_grads = np.load(path)
     path = test_dir_path + "/neigh_grads.npy"
-    neigh_grads = load_col_major(path)
+    neigh_grads = np.load(path)
 
     path = test_dir_path + "/self_weight_grads.npy"
-    self_weight_grads = load_col_major(path)
+    self_weight_grads = np.load(path)
     path = test_dir_path + "/self_bias_grads.npy"
-    self_bias_grads = load_col_major(path)
+    self_bias_grads = np.load(path)
     path = test_dir_path + "/neigh_weight_grads.npy"
-    neigh_weight_grads = load_col_major(path)
+    neigh_weight_grads = np.load(path)
     path = test_dir_path + "/neigh_bias_grads.npy"
-    neigh_bias_grads = load_col_major(path)
+    neigh_bias_grads = np.load(path)
 
     #  true_self_grads = features_torch.grad.cpu().numpy()
     true_neigh_grads = graph_conv_result_torch.grad.cpu().numpy()
@@ -221,7 +221,7 @@ def integration_test():
 
     # check graph convolution
     #  path = test_dir_path + "/graph_convolution_grads.npy"
-    #  graph_conv_grads = load_col_major(path)
+    #  graph_conv_grads = np.load(path)
 
     #  true_graph_conv_grads = features_torch.grad.cpu().numpy()
 
@@ -231,7 +231,7 @@ def integration_test():
 
     # check add
     path = test_dir_path + "/add_grads.npy"
-    input_grads = load_col_major(path)
+    input_grads = np.load(path)
     true_input_grads = features_torch.grad.cpu().numpy()
 
     ratio_close, ratio_equal = check_close_equal(input_grads, true_input_grads)

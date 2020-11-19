@@ -2,6 +2,7 @@ import numpy as np
 import os
 from helper import (check_close_equal, write_equal, print_close_equal)
 
+# TODO reshape
 
 def test_transpose():
     all_equal = 1.0
@@ -15,11 +16,11 @@ def test_transpose():
     path = test_dir_path + "/matrix_transposed.npy"
     matrix_transposed = np.load(path)
     n, m = matrix_transposed.shape
-    matrix_transposed = matrix_transposed.reshape((m, n))
+    matrix_transposed = matrix_transposed.reshape(m, n)
     path = test_dir_path + "/matrix_transposed_inplace.npy"
     matrix_transposed_inplace = np.load(path)
     n, m = matrix_transposed_inplace.shape
-    matrix_transposed_inplace = matrix_transposed_inplace.reshape((m, n))
+    matrix_transposed_inplace = matrix_transposed_inplace.reshape(m, n)
 
     ratio_close, ratio_equal = check_close_equal(matrix.T, matrix_transposed)
     all_equal = all_equal * ratio_equal
