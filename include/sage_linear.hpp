@@ -21,6 +21,7 @@ public:
     virtual SageLinearGradients backward(matrix<float> in_gradients) = 0;
     virtual matrix<float> *get_parameters() = 0;
     virtual matrix<float> *get_gradients() = 0;
+    virtual void update_weights(matrix<float> *gradients) = 0;
 };
 
 class SageLinear : public SageLinearParent {

@@ -122,6 +122,11 @@ matrix<float> Relu::backward(matrix<float> in_gradients) {
                           grad_input.rows * grad_input.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
+    check_cuda(cudaFree(d_x));
+    check_cuda(cudaFree(d_dx));
+    check_cuda(cudaFree(d_y));
+    check_cuda(cudaFree(d_dy));
+
     return grad_input;
 }
 

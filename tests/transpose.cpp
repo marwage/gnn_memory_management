@@ -54,7 +54,8 @@ int test_to_row_major(int rows, int columns) {
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/transpose_to_row.py";
     system(command);
 
-    return 1;// TODO
+    path = test_dir_path + "/value.npy";
+    return read_return_value(path);
 }
 
 
