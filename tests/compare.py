@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from helper import check_isclose, print_small, check_equal
+from helper import (check_close_equal, write_equal, print_close_equal) 
 
 
 def compare():
@@ -14,10 +14,13 @@ def compare():
     a = np.load(path_a)
     b = np.load(path_b)
 
-    ratio_close = check_isclose(a, b)
-    ratio_equal = check_equal(a, b)
-    print("Ratio: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    ratio_close, ratio_equal = check_close_equal(a, b)
+    print_close_equal("Ratio", ratio_close, ratio_equal)
+
+    path = test_dir_path + "/value.npy"
+    write_equal(ratio_close, path)
 
 
 if __name__ == "__main__":
     compare()
+

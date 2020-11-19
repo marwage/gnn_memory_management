@@ -3,11 +3,12 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import check_equal, check_isclose, load_col_major, save_return_value
+from helper import (check_equal, check_isclose, load_col_major, save_return_value,
+        write_equal)
 
 
 def test_sage_linear():
-    product_equals = 1.0
+    all_close = 1.0
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     home = os.getenv("HOME")
@@ -71,7 +72,7 @@ def test_sage_linear():
     ratio_close = check_isclose(sage_linear_result, true_sage_linear_result)
     ratio_equal = check_equal(sage_linear_result, true_sage_linear_result)
     print("SageLinear: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     # BACKPROPAGATION
     true_sage_linear_result_torch.backward(in_gradients_torch)
@@ -100,36 +101,35 @@ def test_sage_linear():
     ratio_close = check_isclose(self_grads, true_self_grads)
     ratio_equal = check_equal(self_grads, true_self_grads)
     print("Linear self: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     ratio_close = check_isclose(neigh_grads, true_neigh_grads)
     ratio_equal = check_equal(neigh_grads, true_neigh_grads)
     print("Linear neigh: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     ratio_close = check_isclose(self_weight_grads, true_self_weight_grads)
     ratio_equal = check_equal(self_weight_grads, true_self_weight_grads)
     print("Linear self weight: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     ratio_close = check_isclose(self_bias_grads, true_self_bias_grads)
     ratio_equal = check_equal(self_bias_grads, true_self_bias_grads)
     print("Linear self bias: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     ratio_close = check_isclose(neigh_weight_grads, true_neigh_weight_grads)
     ratio_equal = check_equal(neigh_weight_grads, true_neigh_weight_grads)
     print("Linear neigh weight: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     ratio_close = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
     ratio_equal = check_equal(neigh_bias_grads, true_neigh_bias_grads)
     print("Linear neigh bias: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
-    product_equals = product_equals * ratio_equal
+    all_close = all_close * ratio_close
 
     path = test_dir_path + "/value.npy"
-    value = 1 if product_equals == 1.0 else 0
-    save_return_value(value, path)
+    write_equal(all_close, path)
 
 
 if __name__ == "__main__":

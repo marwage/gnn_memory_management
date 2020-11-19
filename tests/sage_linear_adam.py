@@ -9,7 +9,7 @@ from helper import (load_col_major, check_isclose, check_equal, write_equal, pri
 
 def test_sage_linear_adam():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    all_equal = 1.0
+    all_close = 1.0
 
     home = os.getenv("HOME")
     dir_path = home + "/gpu_memory_reduction/alzheimer/data"
@@ -76,7 +76,7 @@ def test_sage_linear_adam():
     true_sage_linear_result = true_sage_linear_result_torch.detach().cpu().numpy()
     ratio_close = check_isclose(activations, true_sage_linear_result)
     ratio_equal = check_equal(activations, true_sage_linear_result)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("SageLinear", ratio_close, ratio_equal)
 
     # BACKPROPAGATION
@@ -107,27 +107,27 @@ def test_sage_linear_adam():
 
     ratio_close = check_isclose(self_grads, true_self_grads)
     ratio_equal = check_equal(self_grads, true_self_grads)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("LinearSage self", ratio_close, ratio_equal)
     ratio_close = check_isclose(neigh_grads, true_neigh_grads)
     ratio_equal = check_equal(neigh_grads, true_neigh_grads)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("LinearSage neighbourhood", ratio_close, ratio_equal)
     ratio_close = check_isclose(self_weight_grads, true_self_weight_grads)
     ratio_equal = check_equal(self_weight_grads, true_self_weight_grads)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("LinearSage self weight", ratio_close, ratio_equal)
     ratio_close = check_isclose(self_bias_grads, true_self_bias_grads)
     ratio_equal = check_equal(self_bias_grads, true_self_bias_grads)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("LinearSage self bias", ratio_close, ratio_equal)
     ratio_close = check_isclose(neigh_weight_grads, true_neigh_weight_grads)
     ratio_equal = check_equal(neigh_weight_grads, true_neigh_weight_grads)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("LinearSage neighbourhood weight", ratio_close, ratio_equal)
     ratio_close = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
     ratio_equal = check_equal(neigh_bias_grads, true_neigh_bias_grads)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("LinearSage neighbourhood bias", ratio_close, ratio_equal)
 
     # ADAM
@@ -144,22 +144,22 @@ def test_sage_linear_adam():
 
     true_self_weight = self_weight_torch.detach().cpu().numpy()
     ratio_close, ratio_equal = check_close_equal(self_weight_updated, true_self_weight)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("Adam self weight", ratio_close, ratio_equal)
     true_self_bias = self_bias_torch.detach().cpu().numpy()
     ratio_close, ratio_equal = check_close_equal(self_bias_updated, true_self_bias)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("Adam self bias", ratio_close, ratio_equal)
     ratio_close, ratio_equal = check_close_equal(neigh_weight_updated, neigh_weight_torch.detach().cpu().numpy())
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("Adam neighbourhood weight", ratio_close, ratio_equal)
     true_neigh_bias = neigh_bias_torch.detach().cpu().numpy()
     ratio_close, ratio_equal = check_close_equal(neigh_bias_updated, true_neigh_bias)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("Adam neighbourhood bias", ratio_close, ratio_equal)
 
     path = test_dir_path + "/value.npy"
-    write_equal(all_equal, path)
+    write_equal(all_close, path)
 
 
 def compare_adam():
