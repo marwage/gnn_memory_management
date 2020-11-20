@@ -18,7 +18,6 @@ set(TEST_FILES
         tests/sage_linear.cpp
         tests/sage_linear_adam.cpp
         tests/sum_rows.cpp
-        tests/tensors.cpp
         tests/transpose.cpp)
 
 set(HELPER_FILES

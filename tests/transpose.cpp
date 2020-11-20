@@ -21,21 +21,12 @@ int test_transpose(long rows, long columns, bool to_col_major) {
     path = test_dir_path + "/matrix.npy";
     save_npy_matrix_no_trans(mat, path);
 
-    matrix<float> mat_transposed;
-    if (to_col_major) {
-        mat_transposed = to_column_major(&mat);
-    } else {
-        mat_transposed = to_row_major(&mat);
-    }
-    path = test_dir_path + "/matrix_transposed.npy";
-    save_npy_matrix_no_trans(mat_transposed, path);
-
     if (to_col_major) {
         to_column_major_inplace(&mat);
     } else {
         to_row_major_inplace(&mat);
     }
-    path = test_dir_path + "/matrix_transposed_inplace.npy";
+    path = test_dir_path + "/matrix_transposed.npy";
     save_npy_matrix_no_trans(mat, path);
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/transpose.py";

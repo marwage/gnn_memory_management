@@ -20,7 +20,7 @@ int test_sage_linear(matrix<float> input_self, matrix<float> input_neigh, matrix
     CudaHelper cuda_helper;
     SageLinearParent *sage_linear_layer;
     if (chunk_size == 0) {// no chunking
-        sage_linear_layer = new SageLinear(input_self.columns, in_gradients.columns, &cuda_helper);
+        sage_linear_layer = new SageLinear(&cuda_helper, input_self.columns, in_gradients.columns, input_self.rows);
     } else {
         sage_linear_layer = new SageLinearChunked(&cuda_helper, input_self.columns, in_gradients.columns, chunk_size, input_self.rows);
     }
@@ -66,7 +66,7 @@ int test_sage_linear_non_random(int chunk_size) {
     save_npy_matrix(in_gradients, path);
 
     CudaHelper cuda_helper;
-    SageLinear sage_linear(columns, num_out_features, &cuda_helper);
+    SageLinear sage_linear(&cuda_helper, columns, num_out_features, rows);
 
     matrix<float> result = sage_linear.forward(input_self, input_neigh);
     SageLinearGradients gradients = sage_linear.backward(in_gradients);
@@ -140,7 +140,7 @@ int compare_sage_linear(int chunk_size) {
 
     CudaHelper cuda_helper;
     int num_nodes = rows;
-    SageLinear sage_linear(columns, num_out_features, &cuda_helper);
+    SageLinear sage_linear(&cuda_helper, columns, num_out_features, rows);
     SageLinearChunked sage_linear_chunked(&cuda_helper, columns, num_out_features, chunk_size, num_nodes);
     sage_linear_chunked.set_parameters(sage_linear.get_parameters());
 

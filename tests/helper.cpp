@@ -45,11 +45,7 @@ void save_grads(SageLinearGradients *gradients, matrix<float> *weight_gradients)
 matrix<float> gen_matrix(long num_rows, long num_columns, bool random) {
     long max = 5;
 
-    matrix<float> mat;
-    mat.rows = num_rows;
-    mat.columns = num_columns;
-    mat.row_major = true;
-    mat.values = (float *) malloc(mat.rows * mat.columns * sizeof(float));
+    matrix<float> mat = new_float_matrix(num_rows, num_columns, true);
 
     for (long i = 0; i < mat.rows * mat.columns; ++i) {
         if (random) {

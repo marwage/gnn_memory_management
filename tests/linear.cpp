@@ -17,10 +17,10 @@ int test_linear() {
     std::string path;
 
     int rows = 1024;
-    int columns = 512;
+    int num_in_features = 512;
     int num_out_features = 256;
 
-    matrix<float> input = gen_rand_matrix(rows, columns);
+    matrix<float> input = gen_rand_matrix(rows, num_in_features);
     path = test_dir_path + "/input.npy";
     save_npy_matrix(input, path);
 
@@ -29,7 +29,7 @@ int test_linear() {
     save_npy_matrix(in_gradients, path);
 
     CudaHelper cuda_helper;
-    Linear linear(columns, num_out_features, &cuda_helper);
+    Linear linear(&cuda_helper, num_in_features, num_out_features, rows);
 
     matrix<float> activations = linear.forward(input);
     matrix<float> input_gradients = linear.backward(in_gradients);

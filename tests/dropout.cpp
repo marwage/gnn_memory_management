@@ -23,9 +23,9 @@ int test_dropout(int chunk_size) {
     CudaHelper cuda_helper;
     DropoutParent *dropout_layer;
     if (chunk_size == 0) {// no chunking
-        dropout_layer = new Dropout(&cuda_helper);
+        dropout_layer = new Dropout(&cuda_helper, features.rows, features.columns);
     } else {
-        dropout_layer = new DropoutChunked(&cuda_helper, chunk_size, features.rows);
+        dropout_layer = new DropoutChunked(&cuda_helper, chunk_size, features.rows, features.columns);
     }
 
     matrix<float> dropout_result = dropout_layer->forward(features);

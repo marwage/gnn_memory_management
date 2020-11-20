@@ -24,9 +24,9 @@ int test_relu(int chunk_size) {
     CudaHelper cuda_helper;
     ReluParent *relu_layer;
     if (chunk_size == 0) {
-        relu_layer = new Relu(&cuda_helper);
+        relu_layer = new Relu(&cuda_helper, features.rows, features.columns);
     } else {
-        relu_layer = new ReluChunked(&cuda_helper, chunk_size, features.rows);
+        relu_layer = new ReluChunked(&cuda_helper, chunk_size, features.rows, features.columns);
     }
 
     matrix<float> activations = relu_layer->forward(features);

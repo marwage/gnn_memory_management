@@ -45,9 +45,10 @@ void alzheimer(std::string dataset, int chunk_size) {
 
     // FORWARD PASS
     CudaHelper cuda_helper;
-    float learning_rate = 0.003;
-    int num_hidden_channels = 128;
-    int num_classes;
+    long num_nodes = features.rows;
+    float learning_rate = 0.0003;
+    long num_hidden_channels = 128;
+    long num_classes;
     if (dataset == "flickr") {
         num_classes = 7;
     } else if (dataset == "reddit") {
@@ -56,39 +57,38 @@ void alzheimer(std::string dataset, int chunk_size) {
 
     // layers
     DropoutParent *dropout_0;
-    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean");
+    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean", features.columns);
     SageLinearParent *linear_0;
     ReluParent *relu_0;
     DropoutParent *dropout_1;
-    GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean");
+    GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean", num_hidden_channels);
     SageLinearParent *linear_1;
     ReluParent *relu_1;
     DropoutParent *dropout_2;
-    GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean");
+    GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean", num_hidden_channels);
     SageLinearParent *linear_2;
     LogSoftmaxParent *log_softmax;
-    NLLLoss loss_layer;
+    NLLLoss loss_layer(num_nodes, num_classes);
     if (chunk_size == 0) { // no chunking
-        dropout_0 = new Dropout(&cuda_helper);
-        linear_0 = new SageLinear(features.columns, num_hidden_channels, &cuda_helper);
-        relu_0 = new Relu(&cuda_helper);
-        dropout_1 = new Dropout(&cuda_helper);
-        linear_1 = new SageLinear(num_hidden_channels, num_hidden_channels, &cuda_helper);
-        relu_1 = new Relu(&cuda_helper);
-        dropout_2 = new Dropout(&cuda_helper);
-        linear_2 = new SageLinear(num_hidden_channels, num_classes, &cuda_helper);
-        log_softmax = new LogSoftmax(&cuda_helper);
+        dropout_0 = new Dropout(&cuda_helper, num_nodes, features.columns);
+        linear_0 = new SageLinear(&cuda_helper, features.columns, num_hidden_channels, num_nodes);
+        relu_0 = new Relu(&cuda_helper, num_nodes, num_hidden_channels);
+        dropout_1 = new Dropout(&cuda_helper, num_nodes, num_hidden_channels);
+        linear_1 = new SageLinear(&cuda_helper, num_hidden_channels, num_hidden_channels, num_nodes);
+        relu_1 = new Relu(&cuda_helper, num_nodes, num_hidden_channels);
+        dropout_2 = new Dropout(&cuda_helper, num_nodes, num_hidden_channels);
+        linear_2 = new SageLinear(&cuda_helper, num_hidden_channels, num_classes, num_nodes);
+        log_softmax = new LogSoftmax(&cuda_helper, num_nodes, num_classes);
     } else {
-        int num_nodes = features.rows;
-        dropout_0 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes);
+        dropout_0 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes, features.columns);
         linear_0 = new SageLinearChunked(&cuda_helper, features.columns, num_hidden_channels, chunk_size, num_nodes);
-        relu_0 = new ReluChunked(&cuda_helper, chunk_size, num_nodes);
-        dropout_1 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes);
+        relu_0 = new ReluChunked(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
+        dropout_1 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
         linear_1 = new SageLinearChunked(&cuda_helper, num_hidden_channels, num_hidden_channels, chunk_size, num_nodes);
-        relu_1 = new ReluChunked(&cuda_helper, chunk_size, num_nodes);
-        dropout_2 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes);
+        relu_1 = new ReluChunked(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
+        dropout_2 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
         linear_2 = new SageLinearChunked(&cuda_helper, num_hidden_channels, num_classes, chunk_size, num_nodes);
-        log_softmax = new LogSoftmaxChunked(&cuda_helper, chunk_size, num_nodes);
+        log_softmax = new LogSoftmaxChunked(&cuda_helper, chunk_size, num_nodes, num_classes);
     }
 
     // optimizer

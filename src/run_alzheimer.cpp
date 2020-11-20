@@ -2,9 +2,9 @@
 
 #include <string>
 
-void alzheimer(std::string dataset);
+void alzheimer(std::string dataset, int chunk_size);
 
 
 int main() {
-    alzheimer("flickr");
+    alzheimer("flickr", 0);
 }

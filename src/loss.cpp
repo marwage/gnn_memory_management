@@ -6,7 +6,9 @@
 #include <iostream>
 
 
-NLLLoss::NLLLoss() {}
+NLLLoss::NLLLoss(long num_nodes, long num_features) {
+    gradients_ = new_float_matrix(num_nodes, num_features, false);
+}
 
 float NLLLoss::forward(matrix<float> X, matrix<int> y) {
     to_column_major_inplace(&X);
@@ -25,19 +27,9 @@ float NLLLoss::forward(matrix<float> X, matrix<int> y) {
 }
 
 matrix<float> NLLLoss::backward() {
-    matrix<float> gradients;
-    gradients.rows = input_.rows;
-    gradients.columns = input_.columns;
-    gradients.row_major = false;
-    gradients.values = reinterpret_cast<float *>(
-            malloc(gradients.rows * gradients.columns * sizeof(float)));
-    for (int i = 0; i < gradients.rows * gradients.columns; ++i) {
-        gradients.values[i] = 0.0;
-    }
-
     for (int i = 0; i < y_.rows; ++i) {
-        gradients.values[y_.values[i] * y_.rows + i] = -1.0 / input_.rows;
+        gradients_.values[y_.values[i] * y_.rows + i] = -1.0 / input_.rows;
     }
 
-    return gradients;
+    return gradients_;
 }

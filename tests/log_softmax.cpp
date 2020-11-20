@@ -26,9 +26,9 @@ int test_log_softmax(int chunk_size) {
     CudaHelper cuda_helper;
     LogSoftmaxParent *log_softmax_layer;
     if (chunk_size == 0) {
-        log_softmax_layer = new LogSoftmax(&cuda_helper);
+        log_softmax_layer = new LogSoftmax(&cuda_helper, features.rows, features.columns);
     } else {
-        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.rows);
+        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.rows, features.columns);
     }
 
     matrix<float> activations = log_softmax_layer->forward(features);

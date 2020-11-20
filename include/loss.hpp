@@ -10,9 +10,10 @@ class NLLLoss {
 private:
     matrix<float> input_;
     matrix<int> y_;
+    matrix<float> gradients_;
 
 public:
-    NLLLoss();
+    NLLLoss(long num_nodes, long num_features);
     float forward(matrix<float> X, matrix<int> y);
     matrix<float> backward();
 };

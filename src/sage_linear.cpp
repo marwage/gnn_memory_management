@@ -9,19 +9,19 @@
 
 SageLinear::SageLinear() {}
 
-SageLinear::SageLinear(int in_features, int out_features, CudaHelper *helper) {
+SageLinear::SageLinear(CudaHelper *helper, long in_features, long out_features, long num_nodes) {
     cuda_helper_ = helper;
 
     num_in_features_ = in_features;
     num_out_features_ = out_features;
-    linear_self_ = Linear(num_in_features_, num_out_features_, cuda_helper_);
-    linear_neigh_ = Linear(num_in_features_, num_out_features_, cuda_helper_);
+    linear_self_ = Linear(cuda_helper_, num_in_features_, num_out_features_, num_nodes);
+    linear_neigh_ = Linear(cuda_helper_, num_in_features_, num_out_features_, num_nodes);
 }
 
 matrix<float> *SageLinear::get_parameters() {
     matrix<float> *self_params = linear_self_.get_parameters();
     matrix<float> *neigh_params = linear_neigh_.get_parameters();
-    matrix<float> *params = (matrix<float> *) malloc(4 * sizeof(matrix<float>));
+    matrix<float> *params = new matrix<float>[4];
     params[0] = self_params[0];
     params[1] = self_params[1];
     params[2] = neigh_params[0];
@@ -39,7 +39,7 @@ void SageLinear::set_parameters(matrix<float> *parameters) {
 matrix<float> *SageLinear::get_gradients() {
     matrix<float> *self_grads = linear_self_.get_gradients();
     matrix<float> *neigh_grads = linear_neigh_.get_gradients();
-    matrix<float> *grads = (matrix<float> *) malloc(4 * sizeof(matrix<float>));
+    matrix<float> *grads = new matrix<float>[4];
     grads[0] = self_grads[0];
     grads[1] = self_grads[1];
     grads[2] = neigh_grads[0];
@@ -107,7 +107,6 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, int num_in_features, in
     chunk_size_ = chunk_size;
     num_in_features_ = num_in_features;
     num_out_features_ = num_out_features;
-    input_shape_ = std::vector<long>(2);
 
     num_chunks_ = ceil((float) num_nodes / (float) chunk_size_);
     if (num_chunks_ * chunk_size_ > num_nodes) {
@@ -118,7 +117,7 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, int num_in_features, in
 
     sage_linear_layers_ = std::vector<SageLinear>(num_chunks_);
     for (int i = 0; i < num_chunks_; ++i) {
-        sage_linear_layers_[i] = SageLinear(num_in_features_, num_out_features_, cuda_helper_);
+        sage_linear_layers_[i] = SageLinear(cuda_helper_, num_in_features_, num_out_features_, num_nodes);
     }
     if (num_chunks_ > 1) {
         matrix<float> *params = sage_linear_layers_[0].get_parameters();
@@ -126,19 +125,17 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, int num_in_features, in
             sage_linear_layers_[i].set_parameters(params);
         }
     }
+
+    y_ = new_float_matrix(num_nodes, num_out_features, true);
+
+    input_gradients_.self_grads = new_float_matrix(num_nodes, num_in_features, true);
+    input_gradients_.neigh_grads = new_float_matrix(num_nodes, num_in_features, true);
 }
 
 matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> aggr) {
-    input_shape_ = {features.rows, features.columns};
-
     to_row_major_inplace(&features);
     to_row_major_inplace(&aggr);
 
-    matrix<float> Y;
-    Y.rows = features.rows;
-    Y.columns = num_out_features_;
-    Y.row_major = true;
-    Y.values = reinterpret_cast<float *>(malloc(Y.rows * Y.columns * sizeof(float)));
     matrix<float> features_chunk;
     matrix<float> aggr_chunk;
     matrix<float> Y_chunk;
@@ -160,24 +157,15 @@ matrix<float> SageLinearChunked::forward(matrix<float> features, matrix<float> a
         Y_chunk = sage_linear_layers_[i].forward(features_chunk, aggr_chunk);
         to_row_major_inplace(&Y_chunk);
 
-        std::memcpy(&Y.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
+        std::memcpy(&y_.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
     }
 
-    return Y;
+    return y_;
 }
 
 SageLinearGradients SageLinearChunked::backward(matrix<float> in_gradients) {
     to_row_major_inplace(&in_gradients);
 
-    SageLinearGradients input_gradients;
-    input_gradients.self_grads.rows = input_shape_[0];
-    input_gradients.self_grads.columns = input_shape_[1];
-    input_gradients.self_grads.row_major = true;
-    input_gradients.self_grads.values = reinterpret_cast<float *>(malloc(input_gradients.self_grads.rows * input_gradients.self_grads.columns * sizeof(float)));
-    input_gradients.neigh_grads.rows = input_shape_[0];
-    input_gradients.neigh_grads.columns = input_shape_[1];
-    input_gradients.neigh_grads.row_major = true;
-    input_gradients.neigh_grads.values = reinterpret_cast<float *>(malloc(input_gradients.neigh_grads.rows * input_gradients.neigh_grads.columns * sizeof(float)));
     SageLinearGradients gradients_chunk;
     matrix<float> in_gradients_chunk;
     in_gradients_chunk.rows = chunk_size_;
@@ -194,8 +182,8 @@ SageLinearGradients SageLinearChunked::backward(matrix<float> in_gradients) {
         to_row_major_inplace(&gradients_chunk.self_grads);
         to_row_major_inplace(&gradients_chunk.neigh_grads);
 
-        std::memcpy(&input_gradients.self_grads.values[i * chunk_size_ * gradients_chunk.self_grads.columns], gradients_chunk.self_grads.values, gradients_chunk.self_grads.rows * gradients_chunk.self_grads.columns * sizeof(float));
-        std::memcpy(&input_gradients.neigh_grads.values[i * chunk_size_ * gradients_chunk.neigh_grads.columns], gradients_chunk.neigh_grads.values, gradients_chunk.neigh_grads.rows * gradients_chunk.neigh_grads.columns * sizeof(float));
+        std::memcpy(&input_gradients_.self_grads.values[i * chunk_size_ * gradients_chunk.self_grads.columns], gradients_chunk.self_grads.values, gradients_chunk.self_grads.rows * gradients_chunk.self_grads.columns * sizeof(float));
+        std::memcpy(&input_gradients_.neigh_grads.values[i * chunk_size_ * gradients_chunk.neigh_grads.columns], gradients_chunk.neigh_grads.values, gradients_chunk.neigh_grads.rows * gradients_chunk.neigh_grads.columns * sizeof(float));
     }
 
     // add gradients of all layers
@@ -236,7 +224,7 @@ SageLinearGradients SageLinearChunked::backward(matrix<float> in_gradients) {
         }
     }
 
-    return input_gradients;
+    return input_gradients_;
 }
 
 matrix<float> *SageLinearChunked::get_parameters() {

@@ -52,7 +52,7 @@ long new_index(long old_idx, long rows, long cols) {
 }
 
 template<typename T>
-void transpose(T *a, T *a_T, long rows, long cols,
+void transpose(T *a, T *a_copy, long rows, long cols,
              long rows_lower, long rows_upper, long columns_lower, long columns_upper) {
     if (rows_upper - rows_lower < 1 ||
             columns_upper - columns_lower < 1) {
@@ -68,42 +68,46 @@ void transpose(T *a, T *a_T, long rows, long cols,
                     old_idx = i * cols + j;
 
                     new_idx = new_index(old_idx, rows, cols);
-                    a_T[new_idx] = a[old_idx];
+                    a[new_idx] = a_copy[old_idx];
                 }
             }
         } else {
             int column_mid = (columns_upper - columns_lower) / 2 + columns_lower;
-            std::thread thread_one(transpose<T>, a, a_T, rows, cols, rows_lower, rows_upper, columns_lower, column_mid);
-            std::thread thread_two(transpose<T>, a, a_T, rows, cols, rows_lower, rows_upper, column_mid, columns_upper);
+            std::thread thread_one(transpose<T>, a, a_copy, rows, cols, rows_lower, rows_upper, columns_lower, column_mid);
+            std::thread thread_two(transpose<T>, a, a_copy, rows, cols, rows_lower, rows_upper, column_mid, columns_upper);
             thread_one.join();
             thread_two.join();
         }
     } else {
         if (columns_upper - columns_lower < boundary) {
             int row_mid = (rows_upper - rows_lower) / 2 + rows_lower;
-            std::thread thread_one(transpose<T>, a, a_T, rows, cols, rows_lower, row_mid, columns_lower, columns_upper);
-            std::thread thread_two(transpose<T>, a, a_T, rows, cols, row_mid, rows_upper, columns_lower, columns_upper);
+            std::thread thread_one(transpose<T>, a, a_copy, rows, cols, rows_lower, row_mid, columns_lower, columns_upper);
+            std::thread thread_two(transpose<T>, a, a_copy, rows, cols, row_mid, rows_upper, columns_lower, columns_upper);
             thread_one.join();
             thread_two.join();
         } else {
             int row_mid = (rows_upper - rows_lower) / 2 + rows_lower;
             int column_mid = (columns_upper - columns_lower) / 2 + columns_lower;
-            std::thread thread_one(transpose<T>, a, a_T, rows, cols, rows_lower, row_mid, columns_lower, column_mid);
-            std::thread thread_two(transpose<T>, a, a_T, rows, cols, rows_lower, row_mid, column_mid, columns_upper);
-            std::thread thread_three(transpose<T>, a, a_T, rows, cols, row_mid, rows_upper, columns_lower, column_mid);
-            std::thread thread_four(transpose<T>, a, a_T, rows, cols, row_mid, rows_upper, column_mid, columns_upper);
+            std::thread thread_one(transpose<T>, a, a_copy, rows, cols, rows_lower, row_mid, columns_lower, column_mid);
+            std::thread thread_two(transpose<T>, a, a_copy, rows, cols, rows_lower, row_mid, column_mid, columns_upper);
+            std::thread thread_three(transpose<T>, a, a_copy, rows, cols, row_mid, rows_upper, columns_lower, column_mid);
+            std::thread thread_four(transpose<T>, a, a_copy, rows, cols, row_mid, rows_upper, column_mid, columns_upper);
+            thread_one.join();
+            thread_two.join();
+            thread_three.join();
+            thread_four.join();
         }
     }
 }
 
 template<typename T>
-T *transpose(T *a, long rows, long cols) {
+void transpose(T *a, long rows, long cols) {
+    T *a_copy = new T[rows * cols];
+    std::memcpy(a_copy, a, rows * cols * sizeof(T));
 
-    T *a_T = (T *) malloc(rows * cols * sizeof(T));
+    transpose(a, a_copy, rows, cols, 0, rows, 0, cols);
 
-    transpose(a, a_T, rows, cols, 0, rows, 0, cols);
-
-    return a_T;
+    delete a_copy;
 }
 
 template<typename T>
@@ -130,8 +134,7 @@ matrix<T> load_npy_matrix(std::string path) {
     } else {
         mat.columns = arr.shape[1];
     }
-    mat.values = reinterpret_cast<T *>(
-            malloc(mat.rows * mat.columns * sizeof(T)));
+    mat.values = new T[mat.rows * mat.columns];
     mat.row_major = true;
     std::memcpy(mat.values, arr_data, mat.rows * mat.columns * sizeof(T));
 
@@ -185,9 +188,7 @@ template void save_npy_matrix_no_trans<int>(matrix<int> mat, std::string path);
 template<typename T>
 void to_column_major_inplace(matrix<T> *mat, bool free_mem) {
     if (mat->row_major) {
-        T *new_values = transpose<T>(mat->values, mat->rows, mat->columns);
-//        if (free_mem) free(mat->values);
-        mat->values = new_values;
+        transpose<T>(mat->values, mat->rows, mat->columns);
         mat->row_major = false;
     }
 }
@@ -205,13 +206,7 @@ template void to_column_major_inplace<int>(matrix<int> *mat);
 
 template<typename T>
 matrix<T> to_column_major(matrix<T> *mat) {
-    if (mat->row_major) {
-        matrix<T> mat_transposed = *mat;
-        to_column_major_inplace(&mat_transposed, false);
-        return mat_transposed;
-    } else {
-        return *mat;
-    }
+    throw "Not implemented";
 }
 
 template matrix<float> to_column_major<float>(matrix<float> *mat);
@@ -220,9 +215,7 @@ template matrix<int> to_column_major<int>(matrix<int> *mat);
 template<typename T>
 void to_row_major_inplace(matrix<T> *mat, bool free_mem) {
     if (!mat->row_major) {
-        T *new_values = transpose<T>(mat->values, mat->columns, mat->rows);
-//        if (free_mem) free(mat->values);
-        mat->values = new_values;
+        transpose<T>(mat->values, mat->rows, mat->columns);
         mat->row_major = true;
     }
 }
@@ -240,13 +233,7 @@ template void to_row_major_inplace<int>(matrix<int> *mat);
 
 template<typename T>
 matrix<T> to_row_major(matrix<T> *mat) {
-    if (mat->row_major) {
-        return *mat;
-    } else {
-        matrix<T> mat_transposed = *mat;
-        to_row_major_inplace(&mat_transposed, false);
-        return mat_transposed;
-    }
+    throw "Not implemented";
 }
 
 template matrix<float> to_row_major<float>(matrix<float> *mat);
@@ -275,10 +262,7 @@ matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<
                              &alpha, d_a, 1,
                              d_b, 1));
 
-    matrix<float> mat_c;
-    mat_c.rows = mat_a.rows;
-    mat_c.columns = mat_a.columns;
-    mat_c.values = reinterpret_cast<float *>(malloc(mat_c.rows * mat_c.columns * sizeof(float)));
+    matrix<float> mat_c = new_float_matrix(mat_a.rows, mat_a.columns, false);
 
     check_cuda(cudaMemcpy(mat_c.values, d_b,
                           mat_c.rows * mat_c.columns * sizeof(float),
@@ -299,9 +283,9 @@ sparse_matrix<float> get_rows(sparse_matrix<float> mat, int start_row, int end_r
     int first_index = mat.csr_row_ptr[start_row];
     int last_index = mat.csr_row_ptr[end_row];
     reduced_mat.nnz = last_index - first_index;
-    reduced_mat.csr_val = (float *) malloc(reduced_mat.nnz * sizeof(float));
-    reduced_mat.csr_row_ptr = (int *) malloc((reduced_mat.rows + 1) * sizeof(int));
-    reduced_mat.csr_col_ind = (int *) malloc(reduced_mat.nnz * sizeof(int));
+    reduced_mat.csr_val = new float[reduced_mat.nnz];
+    reduced_mat.csr_row_ptr = new int[(reduced_mat.rows + 1)];
+    reduced_mat.csr_col_ind = new int[reduced_mat.nnz];
 
     std::memcpy(reduced_mat.csr_val, &mat.csr_val[first_index], reduced_mat.nnz * sizeof(float));
     std::memcpy(reduced_mat.csr_row_ptr, &mat.csr_row_ptr[start_row], reduced_mat.rows * sizeof(int));
@@ -329,4 +313,18 @@ void print_sparse_matrix(sparse_matrix<float> mat) {
         std::cout << mat.csr_val[i] << ", ";
     }
     std::cout << std::endl;
+}
+
+matrix<float> new_float_matrix(long num_rows, long num_columns, bool row_major) {
+    matrix<float> mat;
+    mat.rows = num_rows;
+    mat.columns = num_columns;
+    mat.values = new float[mat.rows * mat.columns];
+    if (row_major) {
+        mat.row_major = true;
+    } else {
+        mat.row_major = false;
+    }
+
+    return mat;
 }

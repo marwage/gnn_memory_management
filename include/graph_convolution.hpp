@@ -15,13 +15,14 @@ private:
     sparse_matrix<float> *adjacency_;
     std::string reduction_;
     bool mean_;
+    matrix<float> ones_;
     matrix<float> sum_;
+    matrix<float> y_;
+    matrix<float> gradients_;
 
 public:
-    GraphConvolution();
-    GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adjacency_, std::string reduction);
-    GraphConvolution(CudaHelper *helper, std::string reduction);
-    matrix<float> forward(matrix<float> B);
+    GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adjacency, std::string reduction, long num_features);
+    matrix<float> forward(matrix<float> x);
     matrix<float> forward(sparse_matrix<float> *adj, matrix<float> B);
     matrix<float> backward(matrix<float> in_gradients);
 };

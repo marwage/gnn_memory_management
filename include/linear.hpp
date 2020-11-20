@@ -8,20 +8,25 @@
 
 class Linear {
 private:
-    int num_in_features_, num_out_features_;
+    CudaHelper *cuda_helper_;
+    long num_in_features_;
+    long num_out_features_;
     matrix<float> weight_;
     matrix<float> bias_;
+    matrix<float> bias_expanded_;
     matrix<float> grad_weight_;
     matrix<float> grad_bias_;
     matrix<float> x_;
-    CudaHelper *cuda_helper_;
+    matrix<float> y_;
+    float *ones_;
+    matrix<float> gradients_input_;
 
     void init_weight_bias();
-    matrix<float> expand_bias(int num_rows);
+    matrix<float> expand_bias();
 
 public:
     Linear();
-    Linear(int in_features, int out_features, CudaHelper *helper);
+    Linear(CudaHelper *helper, long in_features, long out_features, long num_nodes);
     matrix<float> *get_parameters();
     void set_parameters(matrix<float> *parameters);
     matrix<float> *get_gradients();

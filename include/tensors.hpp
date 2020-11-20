@@ -10,20 +10,20 @@
 
 template<typename T>
 struct matrix {
-    long rows;
-    long columns;
-    T *values;
-    bool row_major;
+    long rows = 0;
+    long columns = 0;
+    T *values = 0;
+    bool row_major = true;
 };
 
 template<typename T>
 struct sparse_matrix {
-    int rows;
-    int columns;
-    int nnz;
-    T *csr_val;
-    int *csr_row_ptr;
-    int *csr_col_ind;
+    int rows = 0;
+    int columns = 0;
+    int nnz = 0;
+    T *csr_val = NULL;
+    int *csr_row_ptr = NULL;
+    int *csr_col_ind = NULL;
 };
 
 template<typename T>
@@ -58,5 +58,7 @@ matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<
 sparse_matrix<float> get_rows(sparse_matrix<float> mat, int start_row, int end_row);
 
 void print_sparse_matrix(sparse_matrix<float> mat);
+
+matrix<float> new_float_matrix(long num_rows, long num_columns, bool row_major);
 
 #endif

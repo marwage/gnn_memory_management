@@ -72,7 +72,7 @@ include(tests/CMakeLists.txt)
 set(EXECUTABLE_NAME run_${PROJECT_NAME})
 add_executable(${EXECUTABLE_NAME}
         src/alzheimer.cpp
-        src/run_alzeheimer.cpp)
+        src/run_alzheimer.cpp)
 target_link_libraries(${EXECUTABLE_NAME}
         ${PROJECT_NAME})
 
