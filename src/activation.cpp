@@ -23,6 +23,9 @@ Relu::Relu(CudaHelper *helper, long num_nodes, long num_features) {
 
 matrix<float> Relu::forward(matrix<float> x) {
     to_row_major_inplace(&x);
+    if (y_.rows != x.rows || y_.columns != x.columns) {
+        throw "Matrix shapes are unequal";
+    }
     x_ = x;
 
     float *d_x;
@@ -34,7 +37,7 @@ matrix<float> Relu::forward(matrix<float> x) {
     check_cudnn(cudnnSetTensor4dDescriptor(x_desc_,
                                            CUDNN_TENSOR_NCHW,
                                            CUDNN_DATA_FLOAT,
-                                           1, 1, x.rows, x.columns));
+                                           x.rows, 1, 1, x.columns));
 
     float *d_y;
     check_cuda(cudaMalloc(&d_y, y_.rows * y_.columns * sizeof(float)));
@@ -45,7 +48,7 @@ matrix<float> Relu::forward(matrix<float> x) {
     check_cudnn(cudnnSetTensor4dDescriptor(y_desc_,
                                            CUDNN_TENSOR_NCHW,
                                            CUDNN_DATA_FLOAT,
-                                           1, 1, y_.rows, y_.columns));
+                                           y_.rows, 1, 1, y_.columns));
 
     check_cudnn(cudnnCreateActivationDescriptor(&relu_desc_));
     double coef = std::numeric_limits<double>::max();
@@ -90,7 +93,7 @@ matrix<float> Relu::backward(matrix<float> in_gradients) {
     check_cudnn(cudnnSetTensor4dDescriptor(dy_desc,
                                            CUDNN_TENSOR_NCHW,
                                            CUDNN_DATA_FLOAT,
-                                           1, 1, in_gradients.rows, in_gradients.columns));
+                                           in_gradients.rows, 1, 1, in_gradients.columns));
 
     float *d_x;
     check_cuda(cudaMalloc(&d_x, x_.rows * x_.columns * sizeof(float)));
@@ -105,7 +108,7 @@ matrix<float> Relu::backward(matrix<float> in_gradients) {
     check_cudnn(cudnnSetTensor4dDescriptor(dx_desc,
                                            CUDNN_TENSOR_NCHW,
                                            CUDNN_DATA_FLOAT,
-                                           1, 1, x_.rows, x_.columns));
+                                           x_.rows, 1, 1, x_.columns));
 
 
     check_cudnn(cudnnActivationBackward(cuda_helper_->cudnn_handle,
@@ -241,17 +244,20 @@ matrix<float> LogSoftmax::backward(matrix<float> in_gradients) {
 ReluChunked::ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
     chunk_size_ = chunk_size;
     cuda_helper_ = helper;
-
     num_chunks_ = ceil((float) num_nodes / (float) chunk_size_);
-    relu_layers_ = std::vector<Relu>(num_chunks_);
-    for (int i = 0; i < num_chunks_; ++i) {
-        relu_layers_[i] = Relu(cuda_helper_, num_nodes, num_features);
-    }
 
     if (num_chunks_ * chunk_size_ > num_nodes) {
         last_chunk_size_ = num_nodes - (num_chunks_ - 1) * chunk_size_;
     } else {
         last_chunk_size_ = chunk_size_;
+    }
+    relu_layers_ = std::vector<Relu>(num_chunks_);
+    for (int i = 0; i < num_chunks_; ++i) {
+        if (i == num_chunks_ - 1) {
+            relu_layers_[i] = Relu(cuda_helper_, last_chunk_size_, num_features);
+        } else {
+            relu_layers_[i] = Relu(cuda_helper_, chunk_size_, num_features);
+        }
     }
 
     y_ = new_float_matrix(num_nodes, num_features, true);

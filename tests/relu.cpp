@@ -16,7 +16,6 @@ int test_relu(int chunk_size) {
 
     std::string path = flickr_dir_path + "/features.npy";
     matrix<float> features = load_npy_matrix<float>(path);
-    to_column_major_inplace<float>(&features);
     matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
