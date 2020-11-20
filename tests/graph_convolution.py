@@ -4,7 +4,7 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (check_close_equal, print_close_equal, write_equal,
-                    load_col_major, to_torch, print_small)
+                    to_torch, print_small)
 
 
 def check_graph_conv():
@@ -21,7 +21,7 @@ def check_graph_conv():
     features = np.load(path)
 
     path = test_dir_path + "/activations.npy"
-    graph_conv_result = load_col_major(path)
+    graph_conv_result = np.load(path)
 
     features_torch = to_torch(features)
 
@@ -46,16 +46,20 @@ def check_graph_conv():
     all_close = all_close * ratio_close
     print_close_equal("Graph convolution", ratio_close, ratio_equal)
 
+    # DEBUGGING
+    print_small(graph_conv_result)
+    print_small(true_graph_conv_result)
+
     # backpropagation
     path = test_dir_path + "/in_gradients.npy"
-    in_gradients = load_col_major(path)
+    in_gradients = np.load(path)
     in_gradients_torch = torch.from_numpy(in_gradients)
     in_gradients_torch = in_gradients_torch.to(device)
 
     graph_conv_result_torch.backward(in_gradients_torch)
 
     path = test_dir_path + "/gradients.npy"
-    gradients = load_col_major(path)
+    gradients = np.load(path)
 
     true_gradients = features_torch.grad.cpu().numpy()
 
@@ -69,3 +73,4 @@ def check_graph_conv():
 
 if __name__ == "__main__":
     check_graph_conv()
+

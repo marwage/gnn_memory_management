@@ -3,9 +3,8 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import (check_equal, check_isclose, load_col_major,
-                    save_return_value, to_torch, print_small, print_not_equal,
-                    write_equal)
+from helper import (check_equal, check_isclose, save_return_value,
+        to_torch, print_small, print_not_equal, write_equal)
 
 
 def test_linear():
@@ -18,20 +17,20 @@ def test_linear():
     test_dir_path = dir_path + "/tests"
 
     path = test_dir_path + "/input.npy"
-    input_ = load_col_major(path)
+    input_ = np.load(path)
     path = test_dir_path + "/in_gradients.npy"
-    in_gradients = load_col_major(path)
+    in_gradients = np.load(path)
 
     input_torch = to_torch(input_)
     in_gradients_torch = torch.from_numpy(in_gradients)
     in_gradients_torch = in_gradients_torch.to(device)
 
     path = test_dir_path + "/weight.npy"
-    weight = load_col_major(path)
+    weight = np.load(path)
     path = test_dir_path + "/bias.npy"
-    bias = load_col_major(path)
+    bias = np.load(path)
     path = test_dir_path + "/activations.npy"
-    activations = load_col_major(path)
+    activations = np.load(path)
 
     weight_torch = to_torch(weight)
     bias_torch = to_torch(bias)
@@ -42,19 +41,23 @@ def test_linear():
 
     ratio_close = check_isclose(activations, true_activations)
     ratio_equal = check_equal(activations, true_activations)
-    print("SageLinear: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    print("Linear: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     all_close = all_close * ratio_close
+
+    # DEBUGGING
+    print_small(activations)
+    print_small(true_activations)
 
     # BACKPROPAGATION
     true_activations_torch.backward(in_gradients_torch)
 
     path = test_dir_path + "/input_gradients.npy"
-    input_gradients = load_col_major(path)
+    input_gradients = np.load(path)
 
     path = test_dir_path + "/weight_gradients.npy"
-    weight_gradients = load_col_major(path)
+    weight_gradients = np.load(path)
     path = test_dir_path + "/bias_gradients.npy"
-    bias_gradients = load_col_major(path)
+    bias_gradients = np.load(path)
 
     true_input_gradients = input_torch.grad.cpu().numpy()
     true_weight_gradients = weight_torch.grad.cpu().numpy()
@@ -81,3 +84,4 @@ def test_linear():
 
 if __name__ == "__main__":
     test_linear()
+

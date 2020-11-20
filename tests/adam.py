@@ -3,7 +3,7 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import (load_col_major, check_isclose, write_equal,
+from helper import (check_isclose, write_equal,
                     to_torch, check_equal, print_close_equal)
 
 
@@ -16,13 +16,13 @@ def test_adam():
     test_dir_path = dir_path + "/tests"
 
     path = test_dir_path + "/weight.npy"
-    weight = load_col_major(path)
+    weight = np.load(path)
     path = test_dir_path + "/bias.npy"
-    bias = load_col_major(path)
+    bias = np.load(path)
     path = test_dir_path + "/weight_grads.npy"
-    weight_grads = load_col_major(path)
+    weight_grads = np.load(path)
     path = test_dir_path + "/bias_grads.npy"
-    bias_grads = load_col_major(path)
+    bias_grads = np.load(path)
 
     weight_torch = to_torch(weight)
     bias_torch = to_torch(bias)
@@ -42,9 +42,9 @@ def test_adam():
     optimiser.step()
 
     path = test_dir_path + "/weight_updated.npy";
-    weight_updated = load_col_major(path)
+    weight_updated = np.load(path)
     path = test_dir_path + "/bias_updated.npy";
-    bias_updated = load_col_major(path)
+    bias_updated = np.load(path)
 
     true_weight = weight_torch.detach().cpu().numpy()
     ratio_close = check_isclose(weight_updated, true_weight)
@@ -64,3 +64,4 @@ def test_adam():
 
 if __name__ == "__main__":
     test_adam()
+

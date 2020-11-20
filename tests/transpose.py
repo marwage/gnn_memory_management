@@ -17,17 +17,10 @@ def test_transpose():
     matrix_transposed = np.load(path)
     n, m = matrix_transposed.shape
     matrix_transposed = matrix_transposed.reshape(m, n)
-    path = test_dir_path + "/matrix_transposed_inplace.npy"
-    matrix_transposed_inplace = np.load(path)
-    n, m = matrix_transposed_inplace.shape
-    matrix_transposed_inplace = matrix_transposed_inplace.reshape(m, n)
 
     ratio_close, ratio_equal = check_close_equal(matrix.T, matrix_transposed)
     all_equal = all_equal * ratio_equal
     print_close_equal("Matrix, matrix transpose", ratio_close, ratio_equal)
-    ratio_close, ratio_equal = check_close_equal(matrix.T, matrix_transposed_inplace)
-    all_equal = all_equal * ratio_equal
-    print_close_equal("Matrix, matrix transposed inplace", ratio_close, ratio_equal)
 
     path = test_dir_path + "/value.npy"
     write_equal(all_equal, path)
