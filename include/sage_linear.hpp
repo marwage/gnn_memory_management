@@ -26,8 +26,8 @@ public:
 
 class SageLinear : public SageLinearParent {
 private:
-    int num_in_features_;
-    int num_out_features_;
+    long num_in_features_;
+    long num_out_features_;
     Linear linear_self_;
     Linear linear_neigh_;
 
@@ -35,7 +35,7 @@ private:
 
 public:
     SageLinear();
-    SageLinear(int in_features, int out_features, CudaHelper *helper);
+    SageLinear(CudaHelper *helper, long in_features, long out_features, long num_nodes);
     matrix<float> *get_parameters();
     matrix<float> *get_gradients();
     void set_gradients(matrix<float> *grads);
@@ -54,7 +54,8 @@ private:
     int chunk_size_;
     int last_chunk_size_;
     int num_chunks_;
-    std::vector<long> input_shape_;
+    matrix<float> y_;
+    SageLinearGradients input_gradients_;
 
 public:
     SageLinearChunked(CudaHelper *helper, int num_in_features, int num_out_features, int chunk_size, int num_nodes);

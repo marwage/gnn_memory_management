@@ -23,7 +23,7 @@ int test_sage_linear_adam(matrix<float> input_self, matrix<float> input_neigh, m
     CudaHelper cuda_helper;
     SageLinearParent *sage_linear_layer;
     if (chunk_size == 0) {// no chunking
-        sage_linear_layer = new SageLinear(input_self.columns, in_gradients.columns, &cuda_helper);
+        sage_linear_layer = new SageLinear(&cuda_helper, input_self.columns, in_gradients.columns, input_self.rows);
     } else {
         sage_linear_layer = new SageLinearChunked(&cuda_helper, input_self.columns, in_gradients.columns, chunk_size, input_self.rows);
     }

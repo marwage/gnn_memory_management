@@ -37,20 +37,20 @@ int integration_test(int chunk_size) {
     int num_classes = 7;
 
     // layers
-    GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean");
+    GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.columns);
     SageLinearParent *sage_linear_layer;
     ReluParent *relu_layer;
     LogSoftmaxParent *log_softmax_layer;
     if (chunk_size == 0) {// no chunking
-        sage_linear_layer = new SageLinear(features.columns, num_hidden_channels, &cuda_helper);
-        relu_layer = new Relu(&cuda_helper);
-        log_softmax_layer = new LogSoftmax(&cuda_helper);
+        sage_linear_layer = new SageLinear(&cuda_helper, features.columns, num_hidden_channels, features.rows);
+        relu_layer = new Relu(&cuda_helper, features.rows, num_hidden_channels);
+        log_softmax_layer = new LogSoftmax(&cuda_helper, features.rows, num_hidden_channels);
     } else {
         sage_linear_layer = new SageLinearChunked(&cuda_helper, features.columns, num_hidden_channels, chunk_size, features.rows);
-        relu_layer = new ReluChunked(&cuda_helper, chunk_size, features.rows);
-        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.rows);
+        relu_layer = new ReluChunked(&cuda_helper, chunk_size, features.rows, num_hidden_channels);
+        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.rows, num_hidden_channels);
     }
-    NLLLoss loss_layer;
+    NLLLoss loss_layer(features.rows, num_hidden_channels);
 
     // optimiser
     Adam adam(&cuda_helper, learning_rate, sage_linear_layer->get_parameters(), 4);

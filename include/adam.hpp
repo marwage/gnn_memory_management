@@ -13,10 +13,11 @@ private:
     const float beta_1_ = 0.9;
     const float beta_2_ = 0.999;
     const float epsilon_ = 1e-8;
-    matrix<float> *momentum_m_;
-    matrix<float> *momentum_v_;
+    matrix<float> *momentum_ms_;
+    matrix<float> *momentum_vs_;
     int num_parameters_;
     CudaHelper *cuda_helper_;
+    matrix<float> *updates_;
 
 public:
     Adam(CudaHelper *helper, float learning_rate, matrix<float> *parameters, int num_parameters);

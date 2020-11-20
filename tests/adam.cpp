@@ -16,66 +16,38 @@ int test_adam() {
     std::string test_dir_path = dir_path + "/tests";
     std::string path;
 
-    int rows = 1024;
-    int columns = 512;
+    long num_nodes = 2048;
+    long num_in_features = 1024;
+    long num_out_features = 512;
 
     float learning_rate = 0.003;
 
-    matrix<float> weight;
-    weight.rows = rows;
-    weight.columns = columns;
-    weight.values = reinterpret_cast<float *>(
-            malloc(weight.rows * weight.columns * sizeof(float)));
-    for (int i = 0; i < weight.rows * weight.columns; ++i) {
-        weight.values[i] = rand();
-    }
+    matrix<float> weight = gen_rand_matrix(num_in_features, num_out_features);
     path = test_dir_path + "/weight.npy";
     save_npy_matrix(weight, path);
 
-    matrix<float> bias;
-    bias.rows = columns;
-    bias.columns = 1;
-    bias.values = reinterpret_cast<float *>(
-            malloc(bias.rows * bias.columns * sizeof(float)));
-    for (int i = 0; i < bias.rows * bias.columns; ++i) {
-        bias.values[i] = rand();
-    }
+    matrix<float> bias = gen_rand_matrix(num_out_features, 1);
     path = test_dir_path + "/bias.npy";
     save_npy_matrix(bias, path);
 
-    matrix<float> weight_grads;
-    weight_grads.rows = weight.rows;
-    weight_grads.columns = weight.columns;
-    weight_grads.values = reinterpret_cast<float *>(
-            malloc(weight_grads.rows * weight_grads.columns * sizeof(float)));
-    for (int i = 0; i < weight_grads.rows * weight_grads.columns; ++i) {
-        weight_grads.values[i] = rand();
-    }
+    matrix<float> weight_grads = gen_rand_matrix(num_in_features, num_out_features);
     path = test_dir_path + "/weight_grads.npy";
     save_npy_matrix(weight_grads, path);
 
-    matrix<float> bias_grads;
-    bias_grads.rows = bias.rows;
-    bias_grads.columns = bias.columns;
-    bias_grads.values = reinterpret_cast<float *>(
-            malloc(bias_grads.rows * bias_grads.columns * sizeof(float)));
-    for (int i = 0; i < bias_grads.rows * bias_grads.columns; ++i) {
-        bias_grads.values[i] = rand();
-    }
+    matrix<float> bias_grads = gen_rand_matrix(num_out_features, 1);
     path = test_dir_path + "/bias_grads.npy";
     save_npy_matrix(bias_grads, path);
 
-
     CudaHelper cuda_helper;
     int num_params = 2;
-    matrix<float> *params = (matrix<float> *) malloc(num_params * sizeof(matrix<float>));
+    matrix<float> *params = new matrix<float>[num_params];
     params[0] = weight;
     params[1] = bias;
-    Linear linear(columns, columns, &cuda_helper);
+    Linear linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
     linear.set_parameters(params);
     Adam adam(&cuda_helper, learning_rate, params, num_params);
 
-    matrix<float> *grads = (matrix<float> *) malloc(num_params * sizeof(matrix<float>));
+    matrix<float> *grads = new matrix<float>[num_params];
     grads[0] = weight_grads;
     grads[1] = bias_grads;
     matrix<float> *adam_gradients = adam.step(grads);

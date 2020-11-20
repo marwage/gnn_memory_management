@@ -10,37 +10,34 @@
 
 Linear::Linear() {}
 
-Linear::Linear(int in_features, int out_features, CudaHelper *helper) {
+Linear::Linear(CudaHelper *helper, long in_features, long out_features, long num_nodes) {
     cuda_helper_ = helper;
 
     num_in_features_ = in_features;
     num_out_features_ = out_features;
 
-    weight_.rows = num_in_features_;
-    weight_.columns = num_out_features_;
-    weight_.row_major = false;
-    bias_.rows = num_out_features_;
-    bias_.columns = 1;
-    bias_.row_major = false;
+    weight_ = new_float_matrix(num_in_features_, num_out_features_, false);
+    bias_ = new_float_matrix(num_out_features_, 1, false);
 
-    grad_weight_.rows = weight_.rows;
-    grad_weight_.columns = weight_.columns;
-    grad_weight_.row_major = false;
-    grad_weight_.values = reinterpret_cast<float *>(malloc(grad_weight_.rows * grad_weight_.columns * sizeof(float)));
-    grad_bias_.rows = bias_.rows;
-    grad_bias_.columns = bias_.columns;
-    grad_bias_.row_major = false;
-    grad_bias_.values = reinterpret_cast<float *>(malloc(grad_bias_.rows * grad_bias_.columns * sizeof(float)));
+    grad_weight_ = new_float_matrix(weight_.rows, weight_.columns, false);
+    grad_bias_= new_float_matrix(bias_.rows, bias_.columns, false);
 
     Linear::init_weight_bias();
+
+    bias_expanded_ = new_float_matrix(num_nodes, bias_.rows, false);
+
+
+    y_ = new_float_matrix(num_nodes, weight_.columns, false);
+
+    ones_ = new float[num_nodes];
+    for (int i = 0; i < num_nodes; ++i) {
+        ones_[i] = 1.0;
+    }
+
+    gradients_input_ = new_float_matrix(num_nodes, in_features, false);
 }
 
 void Linear::init_weight_bias() {
-    weight_.values = reinterpret_cast<float *>(
-            malloc(weight_.rows * weight_.columns * sizeof(float)));
-    bias_.values = reinterpret_cast<float *>(
-            malloc(bias_.rows * bias_.columns * sizeof(float)));
-
     double k = 1.0 / static_cast<double>(num_in_features_);
     k = sqrt(k);
     std::default_random_engine generator;
@@ -54,7 +51,7 @@ void Linear::init_weight_bias() {
 }
 
 matrix<float> *Linear::get_parameters() {
-    matrix<float> *parameters = (matrix<float> *) malloc(2 * sizeof(matrix<float>));
+    matrix<float> *parameters = new matrix<float>[2];
     parameters[0] = weight_;
     parameters[1] = bias_;
 
@@ -63,11 +60,13 @@ matrix<float> *Linear::get_parameters() {
 
 void Linear::set_parameters(matrix<float> *parameters) {
     weight_ = parameters[0];
+    to_column_major_inplace(&weight_);
     bias_ = parameters[1];
+    to_column_major_inplace(&bias_);
 }
 
 matrix<float> *Linear::get_gradients() {
-    matrix<float> *grads = (matrix<float> *) malloc(2 * sizeof(matrix<float>));
+    matrix<float> *grads = new matrix<float>[2];
     grads[0] = grad_weight_;
     grads[1] = grad_bias_;
 
@@ -76,24 +75,19 @@ matrix<float> *Linear::get_gradients() {
 
 void Linear::set_gradients(matrix<float> *grads) {
     grad_weight_ = grads[0];
+    to_column_major_inplace(&grad_weight_);
     grad_bias_ = grads[1];
+    to_column_major_inplace(&grad_bias_);
 }
 
-matrix<float> Linear::expand_bias(int num_rows) {
-    matrix<float> bias_expanded;
-    bias_expanded.rows = num_rows;
-    bias_expanded.columns = bias_.rows;
-    bias_expanded.row_major = true;
-    bias_expanded.values = reinterpret_cast<float *>(
-            malloc(bias_expanded.rows * bias_expanded.columns * sizeof(float)));
-
-    for (int i = 0; i < bias_expanded.columns; ++i) {
-        for (int j = 0; j < bias_expanded.rows; ++j) {
-            bias_expanded.values[i * bias_expanded.rows + j] = bias_.values[i];
+matrix<float> Linear::expand_bias() {
+    for (int i = 0; i < bias_expanded_.columns; ++i) {
+        for (int j = 0; j < bias_expanded_.rows; ++j) {
+            bias_expanded_.values[i * bias_expanded_.rows + j] = bias_.values[i];
         }
     }
 
-    return bias_expanded;
+    return bias_expanded_;
 }
 
 matrix<float> Linear::forward(matrix<float> X) {
@@ -116,7 +110,7 @@ matrix<float> Linear::forward(matrix<float> X) {
                           weight_.rows * weight_.columns * sizeof(float),
                           cudaMemcpyHostToDevice));
 
-    matrix<float> bias_expanded = Linear::expand_bias(X.rows);
+    matrix<float> bias_expanded = Linear::expand_bias();
     check_cuda(cudaMalloc(&d_bias,
                           bias_expanded.rows * bias_expanded.columns * sizeof(float)));
     check_cuda(cudaMemcpy(d_bias, bias_expanded.values,
@@ -135,14 +129,8 @@ matrix<float> Linear::forward(matrix<float> X) {
                              d_bias, X.rows));
 
     // get result of linear
-    matrix<float> result;
-    result.rows = X.rows;
-    result.columns = weight_.columns;
-    result.row_major = false;
-    result.values = reinterpret_cast<float *>(
-            malloc(result.rows * result.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(result.values, d_bias,
-                          result.rows * result.columns * sizeof(float),
+    check_cuda(cudaMemcpy(y_.values, d_bias,
+                          y_.rows * y_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
     // free GPU memory
@@ -150,10 +138,7 @@ matrix<float> Linear::forward(matrix<float> X) {
     check_cuda(cudaFree(d_weight));
     check_cuda(cudaFree(d_bias));
 
-    // free CPU memory
-    free(bias_expanded.values);
-
-    return result;
+    return y_;
 }
 
 matrix<float> Linear::backward(matrix<float> in_gradients) {
@@ -171,13 +156,9 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
                           cudaMemcpyHostToDevice));
 
     float *d_ones;
-    float *ones = reinterpret_cast<float *>(malloc(in_gradients.rows * sizeof(float)));
-    for (int i = 0; i < in_gradients.rows; ++i) {
-        ones[i] = 1.0;
-    }
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_ones),
                           in_gradients.rows * sizeof(float)));
-    check_cuda(cudaMemcpy(d_ones, ones,
+    check_cuda(cudaMemcpy(d_ones, ones_,
                           in_gradients.rows * sizeof(float),
                           cudaMemcpyHostToDevice));
 
@@ -202,12 +183,6 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
 
     // gradient of weight
     // gradients_input = in_gradients * weight.T
-    matrix<float> grad_input;
-    grad_input.rows = in_gradients.rows;
-    grad_input.columns = weight_.rows;
-    grad_input.row_major = false;
-    grad_input.values = reinterpret_cast<float *>(malloc(grad_input.rows * grad_input.columns * sizeof(float)));
-
     float *d_weight;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_weight),
                           weight_.rows * weight_.columns * sizeof(float)));
@@ -217,7 +192,7 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
 
     float *d_dinput;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_dinput),
-                          grad_input.rows * grad_input.columns * sizeof(float)));
+                          gradients_input_.rows * gradients_input_.columns * sizeof(float)));
 
     check_cublas(cublasSgemm(cuda_helper_->cublas_handle,
                              CUBLAS_OP_N, CUBLAS_OP_T,
@@ -226,10 +201,10 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
                              d_g, in_gradients.rows,
                              d_weight, weight_.rows,
                              &beta,
-                             d_dinput, grad_input.rows));
+                             d_dinput, gradients_input_.rows));
 
-    check_cuda(cudaMemcpy(grad_input.values, d_dinput,
-                          grad_input.rows * grad_input.columns * sizeof(float),
+    check_cuda(cudaMemcpy(gradients_input_.values, d_dinput,
+                          gradients_input_.rows * gradients_input_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
     // dWeight = input.T * in_gradients
@@ -263,7 +238,7 @@ matrix<float> Linear::backward(matrix<float> in_gradients) {
     check_cuda(cudaFree(d_input));
     check_cuda(cudaFree(d_dinput));
 
-    return grad_input;
+    return gradients_input_;
 }
 
 void Linear::update_weights(matrix<float> *gradients) {

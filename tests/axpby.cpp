@@ -11,19 +11,17 @@
 int test_axpby(int num_elements) {
     float alpha = 2.0;
     float beta = 3.0;
-    float *x = (float *) malloc(num_elements * sizeof(float));
-    float *y = (float *) malloc(num_elements * sizeof(float));
-    float *y_result = (float *) malloc(num_elements * sizeof(float));
-    float *d_y_result = (float *) malloc(num_elements * sizeof(float));
+    float *x = new float[num_elements];
+    float *y = new float[num_elements];
+    float *y_result = new float[num_elements];
+    float *d_y_result = new float[num_elements];
     float *d_x;
     float *d_y;
 
     for (int i = 0; i < num_elements; ++i) {
         x[i] = rand();
         y[i] = rand();
-    }
 
-    for (int i = 0; i < num_elements; ++i) {
         y_result[i] = (alpha * x[i]) + (beta * y[i]);
     }
 

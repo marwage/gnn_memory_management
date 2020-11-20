@@ -37,10 +37,6 @@ int test_divmv() {
             Z[idx] = Z[idx] / y[i];
         }
     }
-    matrix<float> Z_mat;
-    Z_mat.rows = n;
-    Z_mat.columns = m;
-    Z_mat.values = Z;
 
     check_cuda(cudaMemcpy(d_X, X, n * m * sizeof(float),
                           cudaMemcpyHostToDevice));
@@ -56,8 +52,8 @@ int test_divmv() {
     check_cuda(cudaFree(d_y));
 
     int equal = 1;
-    for (int i = 0; i < Z_mat.rows * Z_mat.columns; ++i) {
-        if (Z_mat.values[i] != Z_mat.values[i]) {
+    for (int i = 0; i < n * m; ++i) {
+        if (Z[i] != X[i]) {
             equal = 0;
             break;
         }

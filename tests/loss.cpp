@@ -22,7 +22,7 @@ int test_loss() {
     path = test_dir_path + "/input.npy";
     save_npy_matrix(input, path);
 
-    NLLLoss loss_layer;
+    NLLLoss loss_layer(input.rows, input.columns);
 
     float loss = loss_layer.forward(input, classes);
     matrix<float> loss_mat;
