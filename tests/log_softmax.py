@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import torch
-from helper import (load_col_major, print_close_equal, check_close_equal,
+from helper import (print_close_equal, check_close_equal,
         to_torch, write_return, update_return)
 
 
@@ -16,11 +16,11 @@ def test_log_softmax():
     path = flickr_dir_path + "/features.npy"
     features = np.load(path)
     path = test_dir_path + "/activations.npy"
-    activations = load_col_major(path)
+    activations = np.load(path)
     path = test_dir_path + "/in_gradients.npy"
-    in_gradients = load_col_major(path)
+    in_gradients = np.load(path)
     path = test_dir_path + "/gradients.npy"
-    gradients = load_col_major(path)
+    gradients = np.load(path)
 
     # forward
     features_torch = to_torch(features)
