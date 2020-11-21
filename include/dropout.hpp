@@ -44,7 +44,7 @@ private:
 
 public:
     DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes, long num_features);
-    matrix<float> forward(matrix<float> X);
+    matrix<float> forward(matrix<float> x);
     matrix<float> backward(matrix<float> in_gradients);
 };
 

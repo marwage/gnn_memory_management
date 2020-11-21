@@ -22,7 +22,6 @@ Relu::Relu(CudaHelper *helper, long num_nodes, long num_features) {
 
 matrix<float> Relu::forward(matrix<float> x) {
     to_row_major_inplace(&x);
-    to_row_major_inplace(&y_);
     if (y_.rows != x.rows || y_.columns != x.columns) {
         throw "Matrix shapes are unequal";
     }
@@ -66,6 +65,7 @@ matrix<float> Relu::forward(matrix<float> x) {
                           y_.rows * y_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
+    y_.row_major = true;
 
     // free GPU memory
     check_cuda(cudaFree(d_x));
@@ -126,6 +126,8 @@ matrix<float> Relu::backward(matrix<float> in_gradients) {
                           gradients_.rows * gradients_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
+    gradients_.row_major = true;
+
     check_cuda(cudaFree(d_x));
     check_cuda(cudaFree(d_dx));
     check_cuda(cudaFree(d_y));
@@ -147,7 +149,6 @@ LogSoftmax::LogSoftmax(CudaHelper *helper, long num_nodes, long num_features) {
 
 matrix<float> LogSoftmax::forward(matrix<float> x) {
     to_row_major_inplace(&x);
-    to_row_major_inplace(&y_);
     if (y_.rows != x.rows || y_.columns != x.columns) {
         throw "Matrix shapes are unequal";
     }
@@ -185,6 +186,8 @@ matrix<float> LogSoftmax::forward(matrix<float> x) {
     check_cuda(cudaMemcpy(y_.values, d_y,
                           y_.rows * y_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
+
+    y_.row_major = true;
 
     // free GPU memory
     check_cuda(cudaFree(d_x));
@@ -244,6 +247,8 @@ matrix<float> LogSoftmax::backward(matrix<float> in_gradients) {
                           gradients_.rows * gradients_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
+    gradients_.row_major = true;
+
     // free GPU memory
     check_cuda(cudaFree(d_y));
     check_cuda(cudaFree(d_dy));
@@ -277,7 +282,6 @@ ReluChunked::ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, lo
 
 matrix<float> ReluChunked::forward(matrix<float> x) {
     to_row_major_inplace(&x);
-    to_row_major_inplace(&y_);
     if (y_.rows != x.rows || y_.columns != x.columns) {
         throw "Matrix shapes are unequal";
     }
@@ -299,11 +303,14 @@ matrix<float> ReluChunked::forward(matrix<float> x) {
         std::memcpy(&y_.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
     }
 
+    y_.row_major = true;
+
     return y_;
 }
 
 matrix<float> ReluChunked::backward(matrix<float> in_gradients) {
     to_row_major_inplace(&in_gradients);
+    to_row_major_inplace(&y_);
     if (y_.rows != in_gradients.rows || y_.columns != in_gradients.columns) {
         throw "Matrix shapes are unequal";
     }
@@ -324,6 +331,8 @@ matrix<float> ReluChunked::backward(matrix<float> in_gradients) {
 
         std::memcpy(&gradients_.values[i * chunk_size_ * input_gradients_chunk.columns], input_gradients_chunk.values, input_gradients_chunk.rows * input_gradients_chunk.columns * sizeof(float));
     }
+
+    gradients_.row_major = true;
 
     return gradients_;
 }
@@ -354,7 +363,6 @@ LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long n
 
 matrix<float> LogSoftmaxChunked::forward(matrix<float> x) {
     to_row_major_inplace(&x);
-    to_row_major_inplace(&y_);
     if (y_.rows != x.rows || y_.columns != x.columns) {
         throw "Matrix shapes are unequal";
     }
@@ -376,11 +384,14 @@ matrix<float> LogSoftmaxChunked::forward(matrix<float> x) {
         std::memcpy(&y_.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
     }
 
+    y_.row_major = true;
+
     return y_;
 }
 
 matrix<float> LogSoftmaxChunked::backward(matrix<float> in_gradients) {
     to_row_major_inplace(&in_gradients);
+    to_row_major_inplace(&y_);
     if (y_.rows != in_gradients.rows || y_.columns != in_gradients.columns) {
         throw "Matrix shapes are unequal";
     }
@@ -401,6 +412,8 @@ matrix<float> LogSoftmaxChunked::backward(matrix<float> in_gradients) {
 
         std::memcpy(&gradients_.values[i * chunk_size_ * in_gradients.columns], gradients_chunk.values, gradients_chunk.rows * gradients_chunk.columns * sizeof(float));
     }
+
+    gradients_.row_major = true;
 
     return gradients_;
 }

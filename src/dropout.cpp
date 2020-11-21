@@ -65,6 +65,8 @@ matrix<float> Dropout::forward(matrix<float> x) {
     check_cuda(cudaMemcpy(y_.values, d_y, y_.rows * y_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
+    y_.row_major = true;
+
     if (reserve_space_ == NULL) {
         reserve_space_ = reinterpret_cast<void *>(malloc(reserve_space_size_));
     }
@@ -88,6 +90,7 @@ matrix<float> Dropout::forward(matrix<float> x) {
 
 matrix<float> Dropout::backward(matrix<float> in_gradients) {
     to_row_major_inplace(&in_gradients);
+    to_row_major_inplace(&y_);
     if (y_.rows != in_gradients.rows || y_.columns != in_gradients.columns) {
         throw "Matrix shapes are unequal";
     }
@@ -127,6 +130,8 @@ matrix<float> Dropout::backward(matrix<float> in_gradients) {
                           gradients_.rows * gradients_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
+    gradients_.row_major = true;
+
     //clean-up
     check_cuda(cudaFree(d_dy));
     check_cuda(cudaFree(d_dx));
@@ -159,12 +164,12 @@ DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes
     gradients_ = new_float_matrix(num_nodes, num_features, true);
 }
 
-matrix<float> DropoutChunked::forward(matrix<float> X) {
-    to_row_major_inplace(&X);
+matrix<float> DropoutChunked::forward(matrix<float> x) {
+    to_row_major_inplace(&x);
 
     matrix<float> X_chunk;
     X_chunk.rows = chunk_size_;
-    X_chunk.columns = X.columns;
+    X_chunk.columns = x.columns;
     matrix<float> Y_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
@@ -172,7 +177,7 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
             X_chunk.rows = last_chunk_size_;
         }
 
-        X_chunk.values = &X.values[i * chunk_size_ * X.columns];
+        X_chunk.values = &x.values[i * chunk_size_ * x.columns];
 
         Y_chunk = dropout_layers_[i].forward(X_chunk);
         to_row_major_inplace(&Y_chunk);
@@ -180,11 +185,14 @@ matrix<float> DropoutChunked::forward(matrix<float> X) {
         std::memcpy(&y_.values[i * chunk_size_ * Y_chunk.columns], Y_chunk.values, Y_chunk.rows * Y_chunk.columns * sizeof(float));
     }
 
+    y_.row_major = true;
+
     return y_;
 }
 
 matrix<float> DropoutChunked::backward(matrix<float> in_gradients) {
     to_row_major_inplace(&in_gradients);
+    to_row_major_inplace(&y_);
 
     matrix<float> in_gradients_chunk;
     in_gradients_chunk.rows = chunk_size_;
@@ -203,6 +211,8 @@ matrix<float> DropoutChunked::backward(matrix<float> in_gradients) {
 
         std::memcpy(&gradients_.values[i * chunk_size_ * gradients_chunk.columns], gradients_chunk.values, gradients_chunk.rows * gradients_chunk.columns * sizeof(float));
     }
+
+    gradients_.row_major = true;
 
     return gradients_;
 }

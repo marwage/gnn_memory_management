@@ -21,20 +21,15 @@ GraphConvolution::GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adj
     }
 
     y_ = new_float_matrix(adjacency_->rows, num_features, false);
-    for (int i = 0; i < y_.rows * y_.columns; ++i) {
-        y_.values[i] = 0.0f;
-    }
+    ones_ = new_float_matrix(adjacency_->rows, 1, false);
+    sum_ = new_float_matrix(adjacency_->rows, 1, false);
+    gradients_ = new_float_matrix(adjacency_->rows, num_features, false);
 
     if (mean_) {
-        ones_ = new_float_matrix(adjacency_->rows, 1, false);
-        sum_ = new_float_matrix(adjacency_->rows, 1, false);
         for (int i = 0; i < ones_.rows * ones_.columns; ++i) {
             ones_.values[i] = 1.0;
-            sum_.values[0] = 0.0;
         }
     }
-
-    gradients_ = new_float_matrix(adjacency_->rows, num_features, false);
 }
 
 matrix<float> GraphConvolution::forward(matrix<float> x) {
@@ -76,6 +71,9 @@ matrix<float> GraphConvolution::forward(matrix<float> x) {
                                        CUDA_R_32F, CUSPARSE_ORDER_COL));
 
     // create cusparse d_y
+    for (int i = 0; i < y_.rows * y_.columns; ++i) {
+        y_.values[i] = 0.0f;
+    }
     float *d_y;
     check_cuda(cudaMalloc((void **) &d_y, y_.rows * y_.columns * sizeof(float)));
     check_cuda(cudaMemcpy(d_y, y_.values, y_.rows * y_.columns * sizeof(float),
@@ -110,6 +108,10 @@ matrix<float> GraphConvolution::forward(matrix<float> x) {
 
     // apply mean
     if (mean_) {
+        for (int i = 0; i < ones_.rows * ones_.columns; ++i) {
+            sum_.values[i] = 0.0;
+        }
+
         float *d_ones;
         check_cuda(cudaMalloc(&d_ones, ones_.rows * ones_.columns * sizeof(float)));
         check_cuda(cudaMemcpy(d_ones, ones_.values, ones_.rows * ones_.columns * sizeof(float),
@@ -153,6 +155,8 @@ matrix<float> GraphConvolution::forward(matrix<float> x) {
     check_cuda(cudaMemcpy(y_.values, d_y,
                           y_.rows * y_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
+
+    y_.row_major = false;
 
     // free memory
     check_cuda(cudaFree(d_A_csr_val));
@@ -248,6 +252,8 @@ matrix<float> GraphConvolution::backward(matrix<float> in_gradients) {
     check_cuda(cudaMemcpy(gradients_.values, d_dinput,
                           gradients_.rows * gradients_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
+
+    gradients_.row_major = false;
 
     // clean-up
     check_cuda(cudaFree(d_buffer));
