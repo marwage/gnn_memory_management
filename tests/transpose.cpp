@@ -41,5 +41,8 @@ TEST_CASE("Transpose", "[transpose]") {
     CHECK(test_transpose(99999, 6584, true));
     CHECK(test_transpose(85647, 6584, true));
     CHECK(test_transpose(84634, 8573, true));
+
+    CHECK(test_transpose(99999, 6584, false));
+    CHECK(test_transpose(85647, 6584, false));
+    CHECK(test_transpose(84634, 8573, false));
 }
-// CHECK(test_transpose(x, y, true)); python script would need to be aware of the bool
