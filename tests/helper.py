@@ -39,11 +39,13 @@ def check_close_equal(A, B):
     return check_isclose(A, B), check_equal(A, B)
 
 
-def print_nan_coor(A):
+def count_nans(A):
+    count = 0
     for i in range(A.shape[0]):
         for j in range(A.shape[1]):
             if np.isnan(A[i, j]):
-                print("NaN at ({}, {})".format(i, j))
+                count = count + 1
+    return count
 
 
 def num_close_rows(A, B):

@@ -3,7 +3,7 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import (check_equal, check_isclose, load_col_major, save_return_value,
+from helper import (check_equal, check_isclose, save_return_value,
         write_equal)
 
 
@@ -17,11 +17,11 @@ def test_sage_linear():
     test_dir_path = dir_path + "/tests"
 
     path = test_dir_path + "/input_self.npy"
-    input_self = load_col_major(path)
+    input_self = np.load(path)
     path = test_dir_path + "/input_neigh.npy"
-    input_neigh = load_col_major(path)
+    input_neigh = np.load(path)
     path = test_dir_path + "/in_gradients.npy"
-    in_gradients = load_col_major(path)
+    in_gradients = np.load(path)
 
     input_self_torch = torch.from_numpy(input_self)
     input_self_torch = input_self_torch.to(device)
@@ -35,15 +35,15 @@ def test_sage_linear():
     in_gradients_torch = in_gradients_torch.to(device)
 
     path = test_dir_path + "/self_weight.npy"
-    self_weight = load_col_major(path)
+    self_weight = np.load(path)
     path = test_dir_path + "/self_bias.npy"
-    self_bias = load_col_major(path)
+    self_bias = np.load(path)
     path = test_dir_path + "/neigh_weight.npy"
-    neigh_weight = load_col_major(path)
+    neigh_weight = np.load(path)
     path = test_dir_path + "/neigh_bias.npy"
-    neigh_bias = load_col_major(path)
+    neigh_bias = np.load(path)
     path = test_dir_path + "/result.npy"
-    sage_linear_result = load_col_major(path)
+    sage_linear_result = np.load(path)
 
     self_weight_torch = torch.from_numpy(self_weight)
     self_weight_torch = self_weight_torch.to(device)
@@ -78,18 +78,18 @@ def test_sage_linear():
     true_sage_linear_result_torch.backward(in_gradients_torch)
 
     path = test_dir_path + "/self_grads.npy"
-    self_grads = load_col_major(path)
+    self_grads = np.load(path)
     path = test_dir_path + "/neigh_grads.npy"
-    neigh_grads = load_col_major(path)
+    neigh_grads = np.load(path)
 
     path = test_dir_path + "/self_weight_grads.npy"
-    self_weight_grads = load_col_major(path)
+    self_weight_grads = np.load(path)
     path = test_dir_path + "/self_bias_grads.npy"
-    self_bias_grads = load_col_major(path)
+    self_bias_grads = np.load(path)
     path = test_dir_path + "/neigh_weight_grads.npy"
-    neigh_weight_grads = load_col_major(path)
+    neigh_weight_grads = np.load(path)
     path = test_dir_path + "/neigh_bias_grads.npy"
-    neigh_bias_grads = load_col_major(path)
+    neigh_bias_grads = np.load(path)
 
     true_self_grads = input_self_torch.grad.cpu().numpy()
     true_neigh_grads = input_neigh_torch.grad.cpu().numpy()
@@ -100,12 +100,12 @@ def test_sage_linear():
 
     ratio_close = check_isclose(self_grads, true_self_grads)
     ratio_equal = check_equal(self_grads, true_self_grads)
-    print("Linear self: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    print("Linear self input: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     all_close = all_close * ratio_close
 
     ratio_close = check_isclose(neigh_grads, true_neigh_grads)
     ratio_equal = check_equal(neigh_grads, true_neigh_grads)
-    print("Linear neigh: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    print("Linear neigh input: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     all_close = all_close * ratio_close
 
     ratio_close = check_isclose(self_weight_grads, true_self_weight_grads)

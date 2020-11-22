@@ -4,7 +4,7 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (check_close_equal, print_close_equal, write_equal,
-                    to_torch, print_small)
+                    to_torch, print_small, count_nans)
 
 
 def check_graph_conv():
@@ -22,6 +22,14 @@ def check_graph_conv():
 
     path = test_dir_path + "/activations.npy"
     graph_conv_result = np.load(path)
+
+    num_nans = count_nans(graph_conv_result)
+    if (num_nans > 0):
+        print("Number of NaNs is {}".format(num_nans))
+
+        path = test_dir_path + "/value.npy"
+        write_equal(all_close, path)
+        return
 
     features_torch = to_torch(features)
 
@@ -45,10 +53,6 @@ def check_graph_conv():
     ratio_close, ratio_equal = check_close_equal(graph_conv_result, true_graph_conv_result)
     all_close = all_close * ratio_close
     print_close_equal("Graph convolution", ratio_close, ratio_equal)
-
-    # DEBUGGING
-    print_small(graph_conv_result)
-    print_small(true_graph_conv_result)
 
     # backpropagation
     path = test_dir_path + "/in_gradients.npy"

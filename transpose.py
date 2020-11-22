@@ -6,7 +6,7 @@ def permutate(old_idx, N, M):
     if old_idx == last_idx:
         return last_idx
     else:
-        return N * old_idx % last_idx
+        return (N * old_idx) % last_idx
 
 
 N, M = 5, 4

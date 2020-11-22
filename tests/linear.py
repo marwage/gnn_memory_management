@@ -3,8 +3,8 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import (check_equal, check_isclose, save_return_value,
-        to_torch, print_small, print_not_equal, write_equal)
+from helper import (check_close_equal, save_return_value,
+        to_torch, print_close_equal, count_nans, write_equal)
 
 
 def test_linear():
@@ -35,18 +35,14 @@ def test_linear():
     weight_torch = to_torch(weight)
     bias_torch = to_torch(bias)
 
+    # FORWARD
     true_activations_torch = torch.matmul(input_torch, weight_torch) + bias_torch.T
 
     true_activations = true_activations_torch.detach().cpu().numpy()
 
-    ratio_close = check_isclose(activations, true_activations)
-    ratio_equal = check_equal(activations, true_activations)
-    print("Linear: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    ratio_close, ratio_equal = check_close_equal(activations, true_activations)
+    print_close_equal("Linear", ratio_close, ratio_equal)
     all_close = all_close * ratio_close
-
-    # DEBUGGING
-    print_small(activations)
-    print_small(true_activations)
 
     # BACKPROPAGATION
     true_activations_torch.backward(in_gradients_torch)
@@ -63,19 +59,21 @@ def test_linear():
     true_weight_gradients = weight_torch.grad.cpu().numpy()
     true_bias_gradients = bias_torch.grad.cpu().numpy()
 
-    ratio_close = check_isclose(input_gradients, true_input_gradients)
-    ratio_equal = check_equal(input_gradients, true_input_gradients)
-    print("Input gradients: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    num_nans = count_nans(input_gradients)
+    if (num_nans > 0):
+        print("Input gradients: Number of NaNs: {}".format(num_nans))
+        path = test_dir_path + "/value.npy"
+        write_equal(0.0, pyth)
+    ratio_close, ratio_equal = check_close_equal(input_gradients, true_input_gradients)
+    print_close_equal("Input gradients", ratio_close, ratio_equal)
     all_close = all_close * ratio_close
 
-    ratio_close = check_isclose(weight_gradients, true_weight_gradients)
-    ratio_equal = check_equal(weight_gradients, true_weight_gradients)
-    print("Weight gradients: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    ratio_close, ratio_equal  = check_close_equal(weight_gradients, true_weight_gradients)
+    print_close_equal("Weight gradients", ratio_close, ratio_equal)
     all_close = all_close * ratio_close
 
-    ratio_close = check_isclose(bias_gradients, true_bias_gradients)
-    ratio_equal = check_equal(bias_gradients, true_bias_gradients)
-    print("Bias gradients: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    ratio_close, ratio_equal = check_close_equal(bias_gradients, true_bias_gradients)
+    print_close_equal("Bias gradients", ratio_close, ratio_equal)
     all_close = all_close * ratio_close
 
     path = test_dir_path + "/value.npy"
