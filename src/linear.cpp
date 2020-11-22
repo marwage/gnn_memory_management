@@ -90,18 +90,18 @@ matrix<float> Linear::expand_bias() {
     return bias_expanded_;
 }
 
-matrix<float> Linear::forward(matrix<float> X) {
-    if (X.rows < 1) {
+matrix<float> Linear::forward(matrix<float> x) {
+    if (x.rows < 1) {
         throw "Input to Linear::forward has a non-positive number of rows";
     }
-    to_column_major_inplace(&X);
-    x_ = X;
+    to_column_major_inplace(&x);
+    x_ = x;
 
     float *d_X, *d_weight, *d_bias;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_X),
-                          X.rows * X.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_X, X.values,
-                          X.rows * X.columns * sizeof(float),
+                          x.rows * x.columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_X, x.values,
+                          x.rows * x.columns * sizeof(float),
                           cudaMemcpyHostToDevice));
 
     check_cuda(cudaMalloc(&d_weight,
@@ -121,17 +121,19 @@ matrix<float> Linear::forward(matrix<float> X) {
     float beta = 1.0;
     check_cublas(cublasSgemm(cuda_helper_->cublas_handle,// PyTorch uses GEMM too
                              CUBLAS_OP_N, CUBLAS_OP_N,
-                             X.rows, weight_.columns, X.columns,
+                             x.rows, weight_.columns, x.columns,
                              &alpha,
-                             d_X, X.rows,
+                             d_X, x.rows,
                              d_weight, weight_.rows,
                              &beta,
-                             d_bias, X.rows));
+                             d_bias, x.rows));
 
     // get result of linear
     check_cuda(cudaMemcpy(y_.values, d_bias,
                           y_.rows * y_.columns * sizeof(float),
                           cudaMemcpyDeviceToHost));
+
+    y_.row_major = false;
 
     // free GPU memory
     check_cuda(cudaFree(d_X));

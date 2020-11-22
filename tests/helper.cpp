@@ -107,6 +107,16 @@ int read_return_value(std::string path) {
     return return_mat.values[0];
 }
 
+void write_value(int value, std::string path) {
+    matrix<int> mat;
+    mat.rows = 1;
+    mat.columns = 1;
+    mat.row_major = true;
+    mat.values = new int[1];
+    mat.values[0] = value;
+    save_npy_matrix(mat, path);
+}
+
 int num_equal_rows(matrix<float> A, matrix<float> B) {
     int num_rows = 0;
     bool equal_row = true;

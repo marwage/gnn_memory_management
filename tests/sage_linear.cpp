@@ -128,7 +128,6 @@ int compare_mat(matrix<float> mat_a, matrix<float> mat_b, std::string name) {
 
 int compare_sage_linear(int chunk_size) {
     int works = 1;
-    int return_value;
 
     int rows = 1 << 15;
     int columns = 1 << 9;

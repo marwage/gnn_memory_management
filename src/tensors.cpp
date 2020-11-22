@@ -186,19 +186,11 @@ template void save_npy_matrix_no_trans<float>(matrix<float> mat, std::string pat
 template void save_npy_matrix_no_trans<int>(matrix<int> mat, std::string path);
 
 template<typename T>
-void to_column_major_inplace(matrix<T> *mat, bool free_mem) {
+void to_column_major_inplace(matrix<T> *mat) {
     if (mat->row_major) {
         transpose<T>(mat->values, mat->rows, mat->columns);
         mat->row_major = false;
     }
-}
-
-template void to_column_major_inplace<float>(matrix<float> *mat, bool free_mem);
-template void to_column_major_inplace<int>(matrix<int> *mat, bool free_mem);
-
-template<typename T>
-void to_column_major_inplace(matrix<T> *mat) {
-    to_column_major_inplace(mat, true);
 }
 
 template void to_column_major_inplace<float>(matrix<float> *mat);
@@ -212,20 +204,13 @@ matrix<T> to_column_major(matrix<T> *mat) {
 template matrix<float> to_column_major<float>(matrix<float> *mat);
 template matrix<int> to_column_major<int>(matrix<int> *mat);
 
-template<typename T>
-void to_row_major_inplace(matrix<T> *mat, bool free_mem) {
-    if (!mat->row_major) {
-        transpose<T>(mat->values, mat->rows, mat->columns);
-        mat->row_major = true;
-    }
-}
-
-template void to_row_major_inplace<float>(matrix<float> *mat, bool free_mem);
-template void to_row_major_inplace<int>(matrix<int> *mat, bool free_mem);
 
 template<typename T>
 void to_row_major_inplace(matrix<T> *mat) {
-    to_row_major_inplace(mat, true);
+    if (!mat->row_major) {
+        transpose<T>(mat->values, mat->columns, mat->rows);
+        mat->row_major = true;
+    }
 }
 
 template void to_row_major_inplace<float>(matrix<float> *mat);

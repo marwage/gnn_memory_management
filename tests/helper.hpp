@@ -19,6 +19,8 @@ int run_python(std::string module_name, std::string function_name);
 
 int read_return_value(std::string path);
 
+void write_value(int value, std::string path);
+
 int num_equal_rows(matrix<float> A, matrix<float> B);
 
 #endif//HELPER_HPP

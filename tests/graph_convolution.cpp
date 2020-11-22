@@ -40,6 +40,7 @@ TEST_CASE("Graph convolution", "[graphconv]") {
     std::string path;
     path = flickr_dir_path + "/features.npy";
     matrix<float> features = load_npy_matrix<float>(path);
+    to_column_major_inplace(&features);
 
     path = flickr_dir_path + "/adjacency.mtx";
     sparse_matrix<float> adjacency = load_mtx_matrix<float>(path);

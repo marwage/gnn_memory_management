@@ -18,7 +18,6 @@ int test_dropout(int chunk_size) {
     // read features
     std::string path = flickr_dir_path + "/features.npy";
     matrix<float> features = load_npy_matrix<float>(path);
-    to_column_major_inplace<float>(&features);
 
     CudaHelper cuda_helper;
     DropoutParent *dropout_layer;
