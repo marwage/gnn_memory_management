@@ -15,7 +15,7 @@ int test_transpose(long rows, long columns, bool to_col_major) {
     std::string path;
 
     matrix<float> mat = gen_rand_matrix(rows, columns);
-    if (!to_col_major) {
+    if (!to_col_major) { // to_row_major
         mat.row_major = false;
     }
     path = test_dir_path + "/matrix.npy";
@@ -29,6 +29,13 @@ int test_transpose(long rows, long columns, bool to_col_major) {
     path = test_dir_path + "/matrix_transposed.npy";
     save_npy_matrix_no_trans(mat, path);
 
+    path = test_dir_path + "/to_col_major.npy";
+    if (to_col_major) {
+        write_value(1, path);
+    } else {
+        write_value(0, path);
+    }
+
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/transpose.py";
     system(command);
 
@@ -37,11 +44,13 @@ int test_transpose(long rows, long columns, bool to_col_major) {
 }
 
 
-TEST_CASE("Transpose", "[transpose]") {
+TEST_CASE("Transpose to column-major", "[transpose][colmajor]") {
     CHECK(test_transpose(99999, 6584, true));
     CHECK(test_transpose(85647, 6584, true));
     CHECK(test_transpose(84634, 8573, true));
+}
 
+TEST_CASE("Transpose to row-major", "[transpose][rowmajor]") {
     CHECK(test_transpose(99999, 6584, false));
     CHECK(test_transpose(85647, 6584, false));
     CHECK(test_transpose(84634, 8573, false));

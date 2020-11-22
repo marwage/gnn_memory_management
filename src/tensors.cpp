@@ -208,7 +208,7 @@ template matrix<int> to_column_major<int>(matrix<int> *mat);
 template<typename T>
 void to_row_major_inplace(matrix<T> *mat) {
     if (!mat->row_major) {
-        transpose<T>(mat->values, mat->rows, mat->columns);
+        transpose<T>(mat->values, mat->columns, mat->rows);
         mat->row_major = true;
     }
 }

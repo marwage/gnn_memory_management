@@ -31,7 +31,7 @@ public:
     void set_parameters(matrix<float> *parameters);
     matrix<float> *get_gradients();
     void set_gradients(matrix<float> *grads);
-    matrix<float> forward(matrix<float> X);
+    matrix<float> forward(matrix<float> x);
     matrix<float> backward(matrix<float> in_gradients);
     void update_weights(matrix<float> *gradients);
 };

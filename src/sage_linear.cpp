@@ -89,6 +89,7 @@ matrix<float> SageLinear::forward(matrix<float> features,
 }
 
 SageLinearGradients SageLinear::backward(matrix<float> in_gradients) {
+    to_column_major_inplace(&in_gradients);
     SageLinearGradients grads;
 
     grads.self_grads = linear_self_.backward(in_gradients);
