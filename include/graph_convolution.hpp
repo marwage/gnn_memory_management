@@ -22,9 +22,9 @@ private:
 
 public:
     GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adjacency, std::string reduction, long num_features);
-    matrix<float> forward(matrix<float> x);
-    matrix<float> forward(sparse_matrix<float> *adj, matrix<float> B);
-    matrix<float> backward(matrix<float> in_gradients);
+    matrix<float>* forward(matrix<float> *x);
+    matrix<float>* forward(sparse_matrix<float> *adj, matrix<float> *x);
+    matrix<float>* backward(matrix<float> *in_gradients);
 };
 
 class GraphConvChunked {

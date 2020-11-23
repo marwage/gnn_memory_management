@@ -24,7 +24,7 @@ int test_loss() {
 
     NLLLoss loss_layer(input.rows, input.columns);
 
-    float loss = loss_layer.forward(input, classes);
+    float loss = loss_layer.forward(&input, &classes);
     matrix<float> loss_mat;
     loss_mat.rows = 1;
     loss_mat.columns = 1;
@@ -33,7 +33,7 @@ int test_loss() {
     path = test_dir_path + "/loss.npy";
     save_npy_matrix(loss_mat, path);
 
-    matrix<float> gradients = loss_layer.backward();
+    matrix<float> *gradients = loss_layer.backward();
     path = test_dir_path + "/gradients.npy";
     save_npy_matrix(gradients, path);
 

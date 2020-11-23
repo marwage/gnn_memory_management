@@ -32,9 +32,9 @@ GraphConvolution::GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adj
     }
 }
 
-matrix<float> GraphConvolution::forward(matrix<float> x) {
-    to_column_major_inplace(&x);
-    if (y_.rows != x.rows || y_.columns != x.columns) {
+matrix<float>* GraphConvolution::forward(matrix<float> *x) {
+    to_column_major_inplace(x);
+    if (y_.rows != x->rows || y_.columns != x->columns) {
         throw "Matrix shapes unequal";
     }
 
@@ -62,12 +62,12 @@ matrix<float> GraphConvolution::forward(matrix<float> x) {
 
     // create cusparse d_x
     float *d_x;
-    check_cuda(cudaMalloc((void **) &d_x, x.rows * x.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_x, x.values, x.rows * x.columns * sizeof(float),
+    check_cuda(cudaMalloc((void **) &d_x, x->rows * x->columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_x, x->values, x->rows * x->columns * sizeof(float),
                           cudaMemcpyHostToDevice));
     cusparseDnMatDescr_t x_descr;
-    check_cusparse(cusparseCreateDnMat(&x_descr, x.rows, x.columns,
-                                       x.rows, d_x,
+    check_cusparse(cusparseCreateDnMat(&x_descr, x->rows, x->columns,
+                                       x->rows, d_x,
                                        CUDA_R_32F, CUSPARSE_ORDER_COL));
 
     // create cusparse d_y
@@ -166,20 +166,20 @@ matrix<float> GraphConvolution::forward(matrix<float> x) {
     check_cuda(cudaFree(d_buffer));
     check_cuda(cudaFree(d_y));
 
-    return y_;
+    return &y_;
 }
 
-matrix<float> GraphConvolution::forward(sparse_matrix<float> *adj, matrix<float> x) {
+matrix<float>* GraphConvolution::forward(sparse_matrix<float> *adj, matrix<float> *x) {
     adjacency_ = adj;
-    forward(x);
+    return forward(x);
 }
 
-matrix<float> GraphConvolution::backward(matrix<float> in_gradients) {
-    to_column_major_inplace(&in_gradients);
+matrix<float>* GraphConvolution::backward(matrix<float> *in_gradients) {
+    to_column_major_inplace(in_gradients);
 
     float *d_g;
-    check_cuda(cudaMalloc(&d_g, in_gradients.rows * in_gradients.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_g, in_gradients.values, in_gradients.rows * in_gradients.columns * sizeof(float),
+    check_cuda(cudaMalloc(&d_g, in_gradients->rows * in_gradients->columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_g, in_gradients->values, in_gradients->rows * in_gradients->columns * sizeof(float),
                           cudaMemcpyHostToDevice));
 
     if (mean_) {
@@ -188,7 +188,7 @@ matrix<float> GraphConvolution::backward(matrix<float> in_gradients) {
         check_cuda(cudaMemcpy(d_sum, sum_.values, sum_.rows * sum_.columns * sizeof(float),
                               cudaMemcpyHostToDevice));
 
-        div_mat_vec(d_g, d_sum, in_gradients.rows, in_gradients.columns);
+        div_mat_vec(d_g, d_sum, in_gradients->rows, in_gradients->columns);
 
         check_cuda(cudaFree(d_sum));
     }
@@ -219,8 +219,8 @@ matrix<float> GraphConvolution::backward(matrix<float> in_gradients) {
     // END copy paste from forward
 
     cusparseDnMatDescr_t g_desc;
-    check_cusparse(cusparseCreateDnMat(&g_desc, in_gradients.rows, in_gradients.columns,
-                                       in_gradients.rows, d_g,
+    check_cusparse(cusparseCreateDnMat(&g_desc, in_gradients->rows, in_gradients->columns,
+                                       in_gradients->rows, d_g,
                                        CUDA_R_32F, CUSPARSE_ORDER_COL));
 
     float *d_dinput;
@@ -263,7 +263,7 @@ matrix<float> GraphConvolution::backward(matrix<float> in_gradients) {
     check_cuda(cudaFree(d_A_col_ind));
     check_cuda(cudaFree(d_g));
 
-    return gradients_;
+    return &gradients_;
 }
 
 GraphConvChunked::GraphConvChunked(CudaHelper *helper, std::string reduction, int chunk_size, int num_nodes) {

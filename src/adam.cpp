@@ -10,7 +10,7 @@
 #include "invsqrt.h"
 
 
-Adam::Adam(CudaHelper *helper, float learning_rate, matrix<float> *parameters, int num_parameters) {
+Adam::Adam(CudaHelper *helper, float learning_rate, matrix<float> **parameters, int num_parameters) {
     cuda_helper_ = helper;
     learning_rate_ = learning_rate;
     num_parameters_ = num_parameters;
@@ -20,23 +20,23 @@ Adam::Adam(CudaHelper *helper, float learning_rate, matrix<float> *parameters, i
     momentum_ms_ = new matrix<float>[num_parameters];
     updates_ = new matrix<float>[num_parameters_];
     for (int i = 0; i < num_parameters; ++i) {
-        momentum_vs_[i] = new_float_matrix(parameters[i].rows, parameters[i].columns, false);
+        momentum_vs_[i] = new_float_matrix(parameters[i]->rows, parameters[i]->columns, false);
         for (int j = 0; j < momentum_vs_[i].rows * momentum_vs_[i].columns; ++j) {
             momentum_vs_[i].values[j] = 0.0;
         }
 
-        momentum_ms_[i] = new_float_matrix(parameters[i].rows, parameters[i].columns, false);
+        momentum_ms_[i] = new_float_matrix(parameters[i]->rows, parameters[i]->columns, false);
         for (int j = 0; j < momentum_ms_[i].rows * momentum_ms_[i].columns; ++j) {
             momentum_ms_[i].values[j] = 0.0;
         }
 
-        updates_[i] = new_float_matrix(parameters[i].rows, parameters[i].columns, false);
+        updates_[i] = new_float_matrix(parameters[i]->rows, parameters[i]->columns, false);
     }
 }
 
-matrix<float> *Adam::step(matrix<float> *gradients) {
+matrix<float>* Adam::step(matrix<float> **gradients) {
     for (int i = 0; i < num_parameters_; ++i) {
-        to_column_major_inplace(&gradients[i]);
+        to_column_major_inplace(gradients[i]);
     }
 
     float *d_momentum_m;
@@ -45,9 +45,9 @@ matrix<float> *Adam::step(matrix<float> *gradients) {
 
     for (int i = 0; i < num_parameters_; ++i) {
         // momentum_ms_[i] = beta_1_ * momentum_ms_[i] + (1 - beta_1_) * gradients[i];
-        check_cuda(cudaMalloc(&d_gradients, gradients[i].rows * gradients[i].columns * sizeof(float)));
-        check_cuda(cudaMemcpy(d_gradients, gradients[i].values,
-                              gradients[i].rows * gradients[i].columns * sizeof(float),
+        check_cuda(cudaMalloc(&d_gradients, gradients[i]->rows * gradients[i]->columns * sizeof(float)));
+        check_cuda(cudaMemcpy(d_gradients, gradients[i]->values,
+                              gradients[i]->rows * gradients[i]->columns * sizeof(float),
                               cudaMemcpyHostToDevice));
 
         check_cuda(cudaMalloc(&d_momentum_m, momentum_ms_[i].rows * momentum_ms_[i].columns * sizeof(float)));
@@ -59,7 +59,7 @@ matrix<float> *Adam::step(matrix<float> *gradients) {
         xpy((1 - beta_1_), d_gradients, beta_1_, d_momentum_m, momentum_ms_[i].rows * momentum_ms_[i].columns);
 
         // momentum_vs_[i] = beta_2_ * momentum_vs_[i] + (1 - beta_2_) * pow(gradients[i], 2);
-        ele_squared(d_gradients, gradients[i].rows * gradients[i].columns);
+        ele_squared(d_gradients, gradients[i]->rows * gradients[i]->columns);
 
         check_cuda(cudaMalloc(&d_momentum_v, momentum_vs_[i].rows * momentum_vs_[i].columns * sizeof(float)));
         check_cuda(cudaMemcpy(d_momentum_v, momentum_vs_[i].values,

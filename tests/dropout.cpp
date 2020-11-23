@@ -27,7 +27,7 @@ int test_dropout(int chunk_size) {
         dropout_layer = new DropoutChunked(&cuda_helper, chunk_size, features.rows, features.columns);
     }
 
-    matrix<float> dropout_result = dropout_layer->forward(features);
+    matrix<float> *dropout_result = dropout_layer->forward(&features);
     path = test_dir_path + "/dropout_result.npy";
     save_npy_matrix(dropout_result, path);
 
@@ -42,7 +42,7 @@ int test_dropout(int chunk_size) {
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 
-    matrix<float> gradients = dropout_layer->backward(in_gradients);
+    matrix<float> *gradients = dropout_layer->backward(&in_gradients);
     path = test_dir_path + "/dropout_gradients.npy";
     save_npy_matrix(gradients, path);
 

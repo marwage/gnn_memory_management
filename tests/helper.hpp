@@ -7,9 +7,9 @@
 #include "tensors.hpp"
 
 
-void save_params(matrix<float> *parameters);
+void save_params(matrix<float> **parameters);
 
-void save_grads(SageLinearGradients *gradients, matrix<float> *weight_gradients);
+void save_grads(SageLinearGradients *gradients, matrix<float> **weight_gradients);
 
 matrix<float> gen_rand_matrix(long num_rows, long num_columns);
 
@@ -22,5 +22,13 @@ int read_return_value(std::string path);
 void write_value(int value, std::string path);
 
 int num_equal_rows(matrix<float> A, matrix<float> B);
+
+void print_matrix_features(matrix<float> *mat);
+
+int compare_mat(matrix<float> *mat_a, matrix<float> *mat_b, std::string name);
+
+long count_nans(matrix<float> *x);
+
+bool check_nans(matrix<float> *x, std::string name);
 
 #endif//HELPER_HPP

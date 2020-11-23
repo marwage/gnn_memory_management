@@ -8,13 +8,13 @@
 #include "sage_linear.hpp"
 #include "tensors.hpp"
 #include "adam.hpp"
+#include "helper.hpp"
 
+#include "catch2/catch.hpp"
 #include <iostream>
 
-#include <cmath> // DEBUGGING
 
-
-void alzheimer(std::string dataset, int chunk_size) {
+int test_alzheimer(std::string dataset, int chunk_size) {
     // read tensors
     // set path to directory
     std::string home = std::getenv("HOME");
@@ -110,42 +110,80 @@ void alzheimer(std::string dataset, int chunk_size) {
 
     int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
+        // DEBUGGING
+        std::cout << "Iteration " << i << std::endl;
 
         // dropout 0
         signals_dropout = dropout_0->forward(&features);
 
+        // DEBUGGING
+        if (check_nans(signals_dropout, "Dropout 0")) return 0;
+
         // graph convolution 0
         signals = graph_convolution_0.forward(signals_dropout);
+
+        // DEBUGGING
+        if (check_nans(signals, "Graph convolution 0")) return 0;
 
         // linear layer 0
         signals = linear_0->forward(signals_dropout, signals);
 
+        // DEBUGGING
+        if (check_nans(signals, "Sage-linear 0")) return 0;
+
         // ReLU 0
         signals = relu_0->forward(signals);
+
+        // DEBUGGING
+        if (check_nans(signals, "ReLU 0")) return 0;
 
         // dropout 1
         signals_dropout = dropout_1->forward(signals);
 
+        // DEBUGGING
+        if (check_nans(signals_dropout, "Dropout 1")) return 0;
+
         // graph convolution 1
         signals = graph_convolution_1.forward(signals_dropout);
+
+        // DEBUGGING
+        if (check_nans(signals, "Graph convolution 1")) return 0;
 
         // linear layer 1
         signals = linear_1->forward(signals_dropout, signals);
 
+        // DEBUGGING
+        if (check_nans(signals, "Sage-Linear 1")) return 0;
+
         // ReLU 1
         signals = relu_1->forward(signals);
+
+        // DEBUGGING
+        if (check_nans(signals, "ReLU 1")) return 0;
 
         // dropout 2
         signals_dropout = dropout_2->forward(signals);
 
+        // DEBUGGING
+        if (check_nans(signals_dropout, "Dropout 2")) return 0;
+
         // graph convolution 2
         signals = graph_convolution_2.forward(signals_dropout);
+
+        // DEBUGGING
+        if (check_nans(signals, "Graph convolution 2")) return 0;
 
         // linear layer 2
         signals = linear_2->forward(signals_dropout, signals);
 
+        // DEBUGGING
+        if (check_nans(signals, "Sage-Linear 2")) return 0;
+
         // log-softmax
         signals = log_softmax->forward(signals);
+
+        // DEBUGGING
+        if (check_nans(signals, "Log-softmax 2")) return 0;
 
         // loss
         loss = loss_layer.forward(signals, &classes);
@@ -155,41 +193,83 @@ void alzheimer(std::string dataset, int chunk_size) {
         //loss
         gradients = loss_layer.backward();
 
+        // DEBUGGING
+        if (check_nans(gradients, "Loss gradients")) return 0;
+
         // log-softmax
         gradients = log_softmax->backward(gradients);
+
+        // DEBUGGING
+        if (check_nans(gradients, "Log-softmax gradients")) return 0;
 
         // linear layer 2
         sage_linear_gradients = linear_2->backward(gradients);
 
+        // DEBUGGING
+        if (check_nans(sage_linear_gradients->self_grads, "Sage-Linear 2 self gradients")) return 0;
+        if (check_nans(sage_linear_gradients->neigh_grads, "Sage-Linear 2 neighbourhood gradients")) return 0;
+
         // graph convolution 2
         gradients = graph_convolution_2.backward(sage_linear_gradients->neigh_grads);
 
+        // DEBUGGING
+        if (check_nans(gradients, "Graph convolution 2 gradients")) return 0;
+
         // add sage_linear_gradients.self_grads + gradients
         add_gradients = add_matrices(&cuda_helper, sage_linear_gradients->self_grads, gradients);
+
+        // DEBUGGING
+        if (check_nans(&add_gradients, "Add 2 gradients")) return 0;
 
         // dropout 2
         gradients = dropout_2->backward(&add_gradients);
 
+        // DEBUGGING
+        if (check_nans(gradients, "Dropout 2 gradients")) return 0;
+
         // relu 1
         gradients = relu_1->backward(gradients);
+
+        // DEBUGGING
+        if (check_nans(gradients, "ReLU 1 gradients")) return 0;
 
         // linear layer 1
         sage_linear_gradients = linear_1->backward(gradients);
 
+        // DEBUGGING
+        if (check_nans(sage_linear_gradients->self_grads, "Sage-Linear 1 self gradients")) return 0;
+        if (check_nans(sage_linear_gradients->neigh_grads, "Sage-Linear 1 neighbourhood gradients")) return 0;
+
         // graph convolution 1
         gradients = graph_convolution_1.backward(gradients);
+
+        // DEBUGGING
+        if (check_nans(gradients, "Graph convolution 1 gradients")) return 0;
 
         // add sage_linear_gradients.self_grads + gradients
         add_gradients = add_matrices(&cuda_helper, sage_linear_gradients->self_grads, gradients);
 
+        // DEBUGGING
+        if (check_nans(&add_gradients, "Add 1 gradients")) return 0;
+
         // dropout 1
         gradients = dropout_1->backward(&add_gradients);
+
+        // DEBUGGING
+        if (check_nans(gradients, "Dropout 1 gradients")) return 0;
 
         // relu 0
         gradients = relu_0->backward(gradients);
 
+        // DEBUGGING
+        if (check_nans(gradients, "ReLU 1 gradients")) return 0;
+
         // linear layer 0
         sage_linear_gradients = linear_0->backward(gradients);
+
+        // DEBUGGING
+        if (check_nans(sage_linear_gradients->self_grads, "Sage-Linear 0 self gradients")) return 0;
+        if (check_nans(sage_linear_gradients->neigh_grads, "Sage-Linear 0 neighbourhood gradients")) return 0;
 
         // no need for graph conv 0 and dropout 0
 
@@ -202,4 +282,10 @@ void alzheimer(std::string dataset, int chunk_size) {
     // CLEAN-UP
     // destroy cuda handles
     cuda_helper.destroy_handles();
+
+    return 1;
+}
+
+TEST_CASE("Alzeheimer", "[alzheimer]") {
+    CHECK(test_alzheimer("flickr", 0));
 }

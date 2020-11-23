@@ -13,17 +13,17 @@ const std::string flickr_dir_path = dir_path + "/flickr";
 const std::string test_dir_path = dir_path + "/tests";
 
 
-int test_graph_conv(matrix<float> input, sparse_matrix<float> adj, matrix<float> in_gradients) {
+int test_graph_conv(matrix<float> *input, sparse_matrix<float> *adj, matrix<float> *in_gradients) {
     std::string path;
     CudaHelper cuda_helper;
-    GraphConvolution graph_conv(&cuda_helper, &adj, "mean", input.columns);
+    GraphConvolution graph_conv(&cuda_helper, adj, "mean", input->columns);
 
-    matrix<float> activations = graph_conv.forward(input);
+    matrix<float> *activations = graph_conv.forward(input);
 
     path = test_dir_path + "/activations.npy";
     save_npy_matrix(activations, path);
 
-    matrix<float> gradients = graph_conv.backward(in_gradients);
+    matrix<float> *gradients = graph_conv.backward(in_gradients);
 
     path = test_dir_path + "/gradients.npy";
     save_npy_matrix(gradients, path);
@@ -49,5 +49,5 @@ TEST_CASE("Graph convolution", "[graphconv]") {
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 
-    CHECK(test_graph_conv(features, adjacency, in_gradients));
+    CHECK(test_graph_conv(&features, &adjacency, &in_gradients));
 }
