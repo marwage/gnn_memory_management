@@ -19,16 +19,16 @@ int test_adam() {
     long num_nodes = 2048;
     long num_in_features = 1024;
     long num_out_features = 512;
-
     float learning_rate = 0.003;
+    long num_params = 2;
 
-    matrix<float> weight = gen_rand_matrix(num_in_features, num_out_features);
-    path = test_dir_path + "/weight.npy";
-    save_npy_matrix(weight, path);
-
-    matrix<float> bias = gen_rand_matrix(num_out_features, 1);
-    path = test_dir_path + "/bias.npy";
-    save_npy_matrix(bias, path);
+//    matrix<float> weight = gen_rand_matrix(num_in_features, num_out_features);
+//    path = test_dir_path + "/weight.npy";
+//    save_npy_matrix(weight, path);
+//
+//    matrix<float> bias = gen_rand_matrix(num_out_features, 1);
+//    path = test_dir_path + "/bias.npy";
+//    save_npy_matrix(bias, path);
 
     matrix<float> weight_grads = gen_rand_matrix(num_in_features, num_out_features);
     path = test_dir_path + "/weight_grads.npy";
@@ -38,23 +38,31 @@ int test_adam() {
     path = test_dir_path + "/bias_grads.npy";
     save_npy_matrix(bias_grads, path);
 
-    CudaHelper cuda_helper;
-    int num_params = 2;
-    matrix<float> *params = new matrix<float>[num_params];
-    params[0] = weight;
-    params[1] = bias;
-    Linear linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
-    linear.set_parameters(params);
-    Adam adam(&cuda_helper, learning_rate, params, num_params);
+//    int num_params = 2;
+//    matrix<float> **params = new matrix<float>*[num_params];
+//    params[0] = &weight;
+//    params[1] = &bias;
 
-    matrix<float> *grads = new matrix<float>[num_params];
-    grads[0] = weight_grads;
-    grads[1] = bias_grads;
+    CudaHelper cuda_helper;
+    Linear linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
+    matrix<float> **parameters = linear.get_parameters();
+    Adam adam(&cuda_helper, learning_rate, parameters, num_params);
+//    linear.set_parameters(params);
+
+    path = test_dir_path + "/weight.npy";
+    save_npy_matrix(parameters[0], path);
+    path = test_dir_path + "/bias.npy";
+    save_npy_matrix(parameters[1], path);
+
+    matrix<float> **grads = new matrix<float>*[num_params];
+    grads[0] = &weight_grads;
+    grads[1] = &bias_grads;
+
     matrix<float> *adam_gradients = adam.step(grads);
 
     linear.update_weights(adam_gradients);
 
-    matrix<float> *params_updated = linear.get_parameters();
+    matrix<float> **params_updated = linear.get_parameters();
 
     path = test_dir_path + "/weight_updated.npy";
     save_npy_matrix(params_updated[0], path);

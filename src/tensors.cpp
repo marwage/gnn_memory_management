@@ -11,33 +11,35 @@
 
 
 template<typename T>
-void print_matrix(matrix<T> mat) {
+void print_matrix(matrix<T> *mat) {
     int N;
-    if (mat.rows < 10) {
-        N = mat.rows;
+    if (mat->rows < 10) {
+        N = mat->rows;
     } else {
         N = 10;
     }
     int M;
-    if (mat.columns < 10) {
-        M = mat.columns;
+    if (mat->columns < 10) {
+        M = mat->columns;
     } else {
         M = 10;
     }
 
     std::cout << "-----" << std::endl;
-    // for (int i = 0; i < rows; i = i + 1) {
     for (int i = 0; i < N; i = i + 1) {
-        // for (int j = 0; j < cols; j = j + 1) {
         for (int j = 0; j < M; j = j + 1) {
-            std::cout << mat.values[j * mat.rows + i] << ",";
+            if (mat->row_major) {
+                std::cout << mat->values[i * mat->columns + j] << ",";
+            } else {
+                std::cout << mat->values[j * mat->rows + i] << ",";
+            }
         }
         std::cout << std::endl;
     }
 }
 
-template void print_matrix<float>(matrix<float> mat);
-template void print_matrix<int>(matrix<int> mat);
+template void print_matrix<float>(matrix<float> *mat);
+template void print_matrix<int>(matrix<int> *mat);
 
 
 long new_index(long old_idx, long rows, long cols) {
@@ -165,12 +167,19 @@ sparse_matrix<T> load_mtx_matrix(std::string path) {
 
 template sparse_matrix<float> load_mtx_matrix<float>(std::string path);
 
+template<typename T>
+void save_npy_matrix(matrix<T> *mat, std::string path) {
+    to_row_major_inplace(mat);
+    std::vector<size_t> shape = {(size_t) mat->rows, (size_t) mat->columns};
+    cnpy::npy_save<T>(path, mat->values, shape);
+}
+
+template void save_npy_matrix<float>(matrix<float> *mat, std::string path);
+template void save_npy_matrix<int>(matrix<int> *mat, std::string path);
 
 template<typename T>
 void save_npy_matrix(matrix<T> mat, std::string path) {
-    to_row_major_inplace(&mat);
-    std::vector<size_t> shape = {(size_t) mat.rows, (size_t) mat.columns};
-    cnpy::npy_save<T>(path, mat.values, shape);
+    save_npy_matrix(&mat, path);
 }
 
 template void save_npy_matrix<float>(matrix<float> mat, std::string path);
@@ -225,29 +234,32 @@ template matrix<float> to_row_major<float>(matrix<float> *mat);
 template matrix<int> to_row_major<int>(matrix<int> *mat);
 
 
-matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<float> mat_b) {
+matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> *mat_a, matrix<float> *mat_b) {
+    if (mat_a->row_major != mat_b->row_major) {
+        throw "Matrix shapes are unequal";
+    }
     float alpha = 1.0;
 
     float *d_a;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_a),
-                          mat_a.rows * mat_a.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_a, mat_a.values,
-                          mat_a.rows * mat_a.columns * sizeof(float),
+                          mat_a->rows * mat_a->columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_a, mat_a->values,
+                          mat_a->rows * mat_a->columns * sizeof(float),
                           cudaMemcpyHostToDevice));
 
     float *d_b;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_b),
-                          mat_b.rows * mat_b.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_b, mat_b.values,
-                          mat_b.rows * mat_b.columns * sizeof(float),
+                          mat_b->rows * mat_b->columns * sizeof(float)));
+    check_cuda(cudaMemcpy(d_b, mat_b->values,
+                          mat_b->rows * mat_b->columns * sizeof(float),
                           cudaMemcpyHostToDevice));
 
     check_cublas(cublasSaxpy(cuda_helper->cublas_handle,
-                             mat_a.rows * mat_a.columns,
+                             mat_a->rows * mat_a->columns,
                              &alpha, d_a, 1,
                              d_b, 1));
 
-    matrix<float> mat_c = new_float_matrix(mat_a.rows, mat_a.columns, false);
+    matrix<float> mat_c = new_float_matrix(mat_a->rows, mat_a->columns, mat_a->row_major);
 
     check_cuda(cudaMemcpy(mat_c.values, d_b,
                           mat_c.rows * mat_c.columns * sizeof(float),
@@ -258,6 +270,10 @@ matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<
     check_cuda(cudaFree(d_b));
 
     return mat_c;
+}
+
+matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<float> mat_b) {
+    return add_matrices(cuda_helper, &mat_a, &mat_b);
 }
 
 sparse_matrix<float> get_rows(sparse_matrix<float> mat, int start_row, int end_row) {

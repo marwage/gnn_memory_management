@@ -31,16 +31,16 @@ int test_linear() {
     CudaHelper cuda_helper;
     Linear linear(&cuda_helper, num_in_features, num_out_features, rows);
 
-    matrix<float> activations = linear.forward(input);
-    matrix<float> input_gradients = linear.backward(in_gradients);
+    matrix<float> *activations = linear.forward(&input);
+    matrix<float> *input_gradients = linear.backward(&in_gradients);
 
     path = test_dir_path + "/activations.npy";
     save_npy_matrix(activations, path);
     path = test_dir_path + "/input_gradients.npy";
     save_npy_matrix(input_gradients, path);
 
-    matrix<float> *params = linear.get_parameters();
-    matrix<float> *weight_gradients = linear.get_gradients();
+    matrix<float> **params = linear.get_parameters();
+    matrix<float> **weight_gradients = linear.get_gradients();
     path = test_dir_path + "/weight.npy";
     save_npy_matrix(params[0], path);
     path = test_dir_path + "/bias.npy";
@@ -57,7 +57,40 @@ int test_linear() {
     return read_return_value(path);
 }
 
+int test_linear_set_parameters() {
+    std::string home = std::getenv("HOME");
+    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
+    std::string flickr_dir_path = dir_path + "/flickr";
+    std::string test_dir_path = dir_path + "/tests";
+    std::string path;
+
+    long num_nodes = 2048;
+    long num_in_features = 1024;
+    long num_out_features = 512;
+    long num_params = 2;
+
+    matrix<float> weight = gen_rand_matrix(num_in_features, num_out_features);
+    matrix<float> bias = gen_rand_matrix(num_out_features, 1);
+
+    CudaHelper cuda_helper;
+    Linear linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
+
+    matrix<float> **parameters = new matrix<float>*[num_params];
+    parameters[0] = &weight;
+    parameters[1] = &bias;
+
+    linear.set_parameters(parameters);
+    matrix<float> **get_parameters = linear.get_parameters();
+
+    compare_mat(parameters[0], get_parameters[0], "weights");
+    compare_mat(parameters[1], get_parameters[1], "bias");
+}
+
 
 TEST_CASE("Linear", "[linear]") {
     CHECK(test_linear());
+}
+
+TEST_CASE("Linear, set parameters", "[linear][setparameters]") {
+    CHECK(test_linear_set_parameters());
 }

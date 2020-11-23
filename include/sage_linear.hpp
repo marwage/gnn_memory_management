@@ -11,16 +11,17 @@
 
 
 struct SageLinearGradients {
-    matrix<float> self_grads;
-    matrix<float> neigh_grads;
+    matrix<float> *self_grads;
+    matrix<float> *neigh_grads;
 };
 
 class SageLinearParent {
 public:
-    virtual matrix<float> forward(matrix<float> features, matrix<float> aggr) = 0;
-    virtual SageLinearGradients backward(matrix<float> in_gradients) = 0;
-    virtual matrix<float> *get_parameters() = 0;
-    virtual matrix<float> *get_gradients() = 0;
+    virtual matrix<float>* forward(matrix<float> *features, matrix<float> *aggr) = 0;
+    virtual SageLinearGradients* backward(matrix<float> *in_gradients) = 0;
+    virtual matrix<float>** get_parameters() = 0;
+    virtual void set_parameters(matrix<float> **parameters) = 0;
+    virtual matrix<float>** get_gradients() = 0;
     virtual void update_weights(matrix<float> *gradients) = 0;
 };
 
@@ -30,42 +31,47 @@ private:
     long num_out_features_;
     Linear linear_self_;
     Linear linear_neigh_;
+    SageLinearGradients input_gradients_;
 
     CudaHelper *cuda_helper_;
 
 public:
     SageLinear();
     SageLinear(CudaHelper *helper, long in_features, long out_features, long num_nodes);
-    matrix<float> *get_parameters();
-    matrix<float> *get_gradients();
-    void set_gradients(matrix<float> *grads);
-    void set_parameters(matrix<float> *parameters);
-    matrix<float> forward(matrix<float> features, matrix<float> aggr);
-    SageLinearGradients backward(matrix<float> in_gradients);
-    void update_weights(matrix<float> *gradients);
+    matrix<float>** get_parameters() override;
+    matrix<float>** get_gradients() override;
+    void set_gradients(matrix<float> **grads);
+    void set_parameters(matrix<float> **parameters);
+    matrix<float>* forward(matrix<float> *features, matrix<float> *aggr) override;
+    SageLinearGradients* backward(matrix<float> *in_gradients) override;
+    void update_weights(matrix<float> *gradients) override;
 };
 
 class SageLinearChunked : public SageLinearParent {
 private:
     std::vector<SageLinear> sage_linear_layers_;
     CudaHelper *cuda_helper_;
-    int num_in_features_;
-    int num_out_features_;
-    int chunk_size_;
-    int last_chunk_size_;
-    int num_chunks_;
+    long num_in_features_;
+    long num_out_features_;
+    long chunk_size_;
+    long last_chunk_size_;
+    long num_chunks_;
+    std::vector<matrix<float>> features_chunks_;
+    std::vector<matrix<float>> aggr_chunks_;
     matrix<float> y_;
+    matrix<float> self_gradients_;
+    matrix<float> neighbourhood_gradients_;
     SageLinearGradients input_gradients_;
 
 public:
-    SageLinearChunked(CudaHelper *helper, int num_in_features, int num_out_features, int chunk_size, int num_nodes);
-    matrix<float> forward(matrix<float> features, matrix<float> aggr);
-    SageLinearGradients backward(matrix<float> in_gradients);
-    matrix<float> *get_parameters();
-    void set_parameters(matrix<float> *parameters);
-    matrix<float> *get_gradients();
-    void update_weights(matrix<float> *gradients);
-    std::vector<SageLinear> get_layers();
+    SageLinearChunked(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes);
+    matrix<float>* forward(matrix<float> *features, matrix<float> *aggr) override;
+    SageLinearGradients* backward(matrix<float> *in_gradients) override;
+    matrix<float>** get_parameters() override;
+    void set_parameters(matrix<float> **parameters) override;
+    matrix<float>** get_gradients() override;
+    void update_weights(matrix<float> *gradients) override;
+    std::vector<SageLinear>* get_layers();
 };
 
 #endif

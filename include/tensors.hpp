@@ -27,13 +27,16 @@ struct sparse_matrix {
 };
 
 template<typename T>
-void print_matrix(matrix<T> mat);
+void print_matrix(matrix<T> *mat);
 
 template<typename T>
 matrix<T> load_npy_matrix(std::string path);
 
 template<typename T>
 sparse_matrix<T> load_mtx_matrix(std::string path);
+
+template<typename T>
+void save_npy_matrix(matrix<T> *mat, std::string path);
 
 template<typename T>
 void save_npy_matrix(matrix<T> mat, std::string path);
@@ -52,6 +55,8 @@ void to_column_major_inplace(matrix<T> *mat);
 
 template<typename T>
 void to_row_major_inplace(matrix<T> *mat);
+
+matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> *mat_a, matrix<float> *mat_b);
 
 matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<float> mat_b);
 

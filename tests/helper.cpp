@@ -5,13 +5,14 @@
 #include <Python.h>
 #include <iostream>
 #include <string>
+#include <cmath>
 
 
 std::string home = std::getenv("HOME");
 std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
 std::string test_dir_path = dir_path + "/tests";
 
-void save_params(matrix<float> *parameters) {
+void save_params(matrix<float> **parameters) {
     std::string path;
 
     path = test_dir_path + "/self_weight.npy";
@@ -24,7 +25,7 @@ void save_params(matrix<float> *parameters) {
     save_npy_matrix(parameters[3], path);
 }
 
-void save_grads(SageLinearGradients *gradients, matrix<float> *weight_gradients) {
+void save_grads(SageLinearGradients *gradients, matrix<float> **weight_gradients) {
     std::string path;
 
     path = test_dir_path + "/self_grads.npy";
@@ -134,4 +135,48 @@ int num_equal_rows(matrix<float> A, matrix<float> B) {
     }
 
     return num_rows;
+}
+
+void print_matrix_features(matrix<float> *mat) {
+    std::cout << "Shape: (" << mat->rows << ", " << mat->columns << ")" << std::endl;
+    std::cout << "Row major: " << mat->row_major << std::endl;
+    std::cout << "Values pointer: " << mat->values << std::endl;
+}
+
+int compare_mat(matrix<float> *mat_a, matrix<float> *mat_b, std::string name) {
+    std::string path_a = test_dir_path + "/a.npy";
+    std::string path_b = test_dir_path + "/b.npy";
+    std::string return_value_path = test_dir_path + "/value.npy";
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/compare.py";
+
+    save_npy_matrix(mat_a, path_a);
+    save_npy_matrix(mat_b, path_b);
+    system(command);
+    int return_value = read_return_value(return_value_path);
+    std::cout << name << ": " << return_value << std::endl;
+    return return_value;
+}
+
+long count_nans(matrix<float> *x) {
+    long num_nans = 0;
+
+    for (int i = 0; i < x->rows; ++i) {
+        for (int j = 0; j < x->columns; ++j) {
+            if (isnan(x->values[j * x->rows + i])) {
+                num_nans = num_nans + 1;
+            }
+        }
+    }
+
+    return num_nans;
+}
+
+bool check_nans(matrix<float> *x, std::string name) {
+    long num_nans = count_nans(x);
+    if (num_nans > 0) {
+        std::cout << name << " has " << num_nans << " NaNs" << std::endl;
+        return true;
+    } else {
+        return false;
+    }
 }

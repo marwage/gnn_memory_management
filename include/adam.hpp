@@ -20,8 +20,8 @@ private:
     matrix<float> *updates_;
 
 public:
-    Adam(CudaHelper *helper, float learning_rate, matrix<float> *parameters, int num_parameters);
-    matrix<float> *step(matrix<float> *gradients);
+    Adam(CudaHelper *helper, float learning_rate, matrix<float> **parameters, int num_parameters);
+    matrix<float> *step(matrix<float> **gradients);
 };
 
 #endif//ADAM_HPP

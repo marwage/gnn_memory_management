@@ -10,8 +10,8 @@
 
 class DropoutParent {
 public:
-    virtual matrix<float> forward(matrix<float> X) = 0;
-    virtual matrix<float> backward(matrix<float> in_gradients) = 0;
+    virtual matrix<float>* forward(matrix<float> *x) = 0;
+    virtual matrix<float>* backward(matrix<float> *in_gradients) = 0;
 };
 
 class Dropout : public DropoutParent {
@@ -28,8 +28,8 @@ private:
 public:
     Dropout();
     Dropout(CudaHelper *helper, long num_nodes, long num_features);
-    matrix<float> forward(matrix<float> x);
-    matrix<float> backward(matrix<float> in_gradients);
+    matrix<float>* forward(matrix<float> *x);
+    matrix<float>* backward(matrix<float> *in_gradients);
 };
 
 class DropoutChunked : public DropoutParent {
@@ -44,8 +44,8 @@ private:
 
 public:
     DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes, long num_features);
-    matrix<float> forward(matrix<float> x);
-    matrix<float> backward(matrix<float> in_gradients);
+    matrix<float>* forward(matrix<float> *x);
+    matrix<float>* backward(matrix<float> *in_gradients);
 };
 
 #endif
