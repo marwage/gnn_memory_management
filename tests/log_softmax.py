@@ -2,7 +2,7 @@ import numpy as np
 import os
 import torch
 from helper import (print_close_equal, check_close_equal,
-        to_torch, write_return, update_return)
+        to_torch, write_return, update_return, count_nans)
 
 
 def test_log_softmax():
@@ -32,6 +32,12 @@ def test_log_softmax():
     all_close = update_return(ratio_close) 
     print_close_equal("LogSoftmax", ratio_close, ratio_equal)
 
+    num_nans = count_nans(activations)
+    if (num_nans > 0):
+        print("LogSoftmax has {} NaNs".format(num_nans))
+        path = test_dir_path + "/value.npy"
+        write_return(0.0, path)
+
     # backward
     in_gradients_torch = torch.from_numpy(in_gradients)
     in_gradients_torch = in_gradients_torch.to(device)
@@ -41,6 +47,12 @@ def test_log_softmax():
     ratio_close, ratio_equal = check_close_equal(gradients, true_gradients)
     all_close = update_return(ratio_close) 
     print_close_equal("LogSoftmax gradients", ratio_close, ratio_equal)
+
+    num_nans = count_nans(gradients)
+    if (num_nans > 0):
+        print("LogSoftmax gradients has {} NaNs".format(num_nans))
+        path = test_dir_path + "/value.npy"
+        write_return(0.0, path)
 
     path = test_dir_path + "/value.npy"
     write_return(all_close, path)

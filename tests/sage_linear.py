@@ -4,7 +4,7 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (check_equal, check_isclose, save_return_value,
-        write_equal)
+        write_equal, count_nans)
 
 
 def test_sage_linear():
@@ -73,6 +73,11 @@ def test_sage_linear():
     ratio_equal = check_equal(sage_linear_result, true_sage_linear_result)
     print("SageLinear: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     all_close = all_close * ratio_close
+
+    num_nans = count_nans(sage_linear_result)
+    if num_nans > 0:
+        print("SageLinear: Number of NaNs: {}".format(num_nans))
+
 
     # BACKPROPAGATION
     true_sage_linear_result_torch.backward(in_gradients_torch)

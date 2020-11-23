@@ -3,8 +3,8 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import (check_isclose, write_equal,
-                    to_torch, check_equal, print_close_equal)
+from helper import (write_equal, check_close_equal, print_small,
+                    to_torch, print_close_equal)
 
 
 def test_adam():
@@ -47,14 +47,12 @@ def test_adam():
     bias_updated = np.load(path)
 
     true_weight = weight_torch.detach().cpu().numpy()
-    ratio_close = check_isclose(weight_updated, true_weight)
-    ratio_equal = check_equal(weight_updated, true_weight)
+    ratio_close, ratio_equal = check_close_equal(weight_updated, true_weight)
     all_equal = all_equal * ratio_equal
     print_close_equal("Adam weight", ratio_close, ratio_equal)
 
     true_bias = bias_torch.detach().cpu().numpy()
-    ratio_close = check_isclose(bias_updated, true_bias)
-    ratio_equal = check_equal(bias_updated, true_bias)
+    ratio_close, ratio_equal = check_close_equal(bias_updated, true_bias)
     all_equal = all_equal * ratio_equal
     print_close_equal("Adam bias", ratio_close, ratio_equal)
 

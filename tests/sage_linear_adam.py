@@ -3,7 +3,7 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import (load_col_major, check_isclose, check_equal, write_equal, print_close_equal,
+from helper import (write_equal, print_close_equal, to_torch,
                     check_close_equal)
 
 
@@ -18,48 +18,30 @@ def test_sage_linear_adam():
 
     # FORWARD
     path = test_dir_path + "/input_self.npy"
-    input_self = load_col_major(path)
+    input_self = np.load(path)
     path = test_dir_path + "/input_neigh.npy"
-    input_neigh = load_col_major(path)
+    input_neigh = np.load(path)
     path = test_dir_path + "/in_gradients.npy"
-    in_gradients = load_col_major(path)
+    in_gradients = np.load(path)
 
-    input_self_torch = torch.from_numpy(input_self)
-    input_self_torch = input_self_torch.to(device)
-    input_self_torch.requires_grad_()
-    input_self_torch.retain_grad()
-    input_neigh_torch = torch.from_numpy(input_neigh)
-    input_neigh_torch = input_neigh_torch.to(device)
-    input_neigh_torch.requires_grad_()
-    input_neigh_torch.retain_grad()
+    input_self_torch = to_torch(input_self)
+    input_neigh_torch = to_torch(input_neigh)
 
     path = test_dir_path + "/self_weight.npy"
-    self_weight = load_col_major(path)
+    self_weight = np.load(path)
     path = test_dir_path + "/self_bias.npy"
-    self_bias = load_col_major(path)
+    self_bias = np.load(path)
     path = test_dir_path + "/neigh_weight.npy"
-    neigh_weight = load_col_major(path)
+    neigh_weight = np.load(path)
     path = test_dir_path + "/neigh_bias.npy"
-    neigh_bias = load_col_major(path)
+    neigh_bias = np.load(path)
     path = test_dir_path + "/activations.npy"
-    activations = load_col_major(path)
+    activations = np.load(path)
 
-    self_weight_torch = torch.from_numpy(self_weight)
-    self_weight_torch = self_weight_torch.to(device)
-    self_weight_torch.requires_grad_()
-    self_weight_torch.retain_grad()
-    self_bias_torch = torch.from_numpy(self_bias)
-    self_bias_torch = self_bias_torch.to(device)
-    self_bias_torch.requires_grad_()
-    self_bias_torch.retain_grad()
-    neigh_weight_torch = torch.from_numpy(neigh_weight)
-    neigh_weight_torch = neigh_weight_torch.to(device)
-    neigh_weight_torch.requires_grad_()
-    neigh_weight_torch.retain_grad()
-    neigh_bias_torch = torch.from_numpy(neigh_bias)
-    neigh_bias_torch = neigh_bias_torch.to(device)
-    neigh_bias_torch.requires_grad_()
-    neigh_bias_torch.retain_grad()
+    self_weight_torch = to_torch(self_weight)
+    self_bias_torch = to_torch(self_bias)
+    neigh_weight_torch = to_torch(neigh_weight)
+    neigh_bias_torch = to_torch(neigh_bias)
 
     learning_rate = 0.003
     params = [self_weight_torch,
@@ -74,8 +56,8 @@ def test_sage_linear_adam():
     true_sage_linear_result_torch = self_result_torch + neigh_result_torch
 
     true_sage_linear_result = true_sage_linear_result_torch.detach().cpu().numpy()
-    ratio_close = check_isclose(activations, true_sage_linear_result)
-    ratio_equal = check_equal(activations, true_sage_linear_result)
+
+    ratio_close, ratio_equal = check_close_equal(activations, true_sage_linear_result)
     all_close = all_close * ratio_close
     print_close_equal("SageLinear", ratio_close, ratio_equal)
 
@@ -85,18 +67,18 @@ def test_sage_linear_adam():
     true_sage_linear_result_torch.backward(in_gradients_torch)
 
     path = test_dir_path + "/self_grads.npy"
-    self_grads = load_col_major(path)
+    self_grads = np.load(path)
     path = test_dir_path + "/neigh_grads.npy"
-    neigh_grads = load_col_major(path)
+    neigh_grads = np.load(path)
 
     path = test_dir_path + "/self_weight_grads.npy"
-    self_weight_grads = load_col_major(path)
+    self_weight_grads = np.load(path)
     path = test_dir_path + "/self_bias_grads.npy"
-    self_bias_grads = load_col_major(path)
+    self_bias_grads = np.load(path)
     path = test_dir_path + "/neigh_weight_grads.npy"
-    neigh_weight_grads = load_col_major(path)
+    neigh_weight_grads = np.load(path)
     path = test_dir_path + "/neigh_bias_grads.npy"
-    neigh_bias_grads = load_col_major(path)
+    neigh_bias_grads = np.load(path)
 
     true_self_grads = input_self_torch.grad.cpu().numpy()
     true_neigh_grads = input_neigh_torch.grad.cpu().numpy()
@@ -105,28 +87,22 @@ def test_sage_linear_adam():
     true_neigh_weight_grads = neigh_weight_torch.grad.cpu().numpy()
     true_neigh_bias_grads = neigh_bias_torch.grad.cpu().numpy()
 
-    ratio_close = check_isclose(self_grads, true_self_grads)
-    ratio_equal = check_equal(self_grads, true_self_grads)
+    ratio_close, ratio_equal = check_close_equal(self_grads, true_self_grads)
     all_close = all_close * ratio_close
     print_close_equal("LinearSage self", ratio_close, ratio_equal)
-    ratio_close = check_isclose(neigh_grads, true_neigh_grads)
-    ratio_equal = check_equal(neigh_grads, true_neigh_grads)
+    ratio_close, ratio_equal = check_close_equal(neigh_grads, true_neigh_grads)
     all_close = all_close * ratio_close
     print_close_equal("LinearSage neighbourhood", ratio_close, ratio_equal)
-    ratio_close = check_isclose(self_weight_grads, true_self_weight_grads)
-    ratio_equal = check_equal(self_weight_grads, true_self_weight_grads)
+    ratio_close, ratio_equal = check_close_equal(self_weight_grads, true_self_weight_grads)
     all_close = all_close * ratio_close
     print_close_equal("LinearSage self weight", ratio_close, ratio_equal)
-    ratio_close = check_isclose(self_bias_grads, true_self_bias_grads)
-    ratio_equal = check_equal(self_bias_grads, true_self_bias_grads)
+    ratio_close, ratio_equal = check_close_equal(self_bias_grads, true_self_bias_grads)
     all_close = all_close * ratio_close
     print_close_equal("LinearSage self bias", ratio_close, ratio_equal)
-    ratio_close = check_isclose(neigh_weight_grads, true_neigh_weight_grads)
-    ratio_equal = check_equal(neigh_weight_grads, true_neigh_weight_grads)
+    ratio_close, ratio_equal = check_close_equal(neigh_weight_grads, true_neigh_weight_grads)
     all_close = all_close * ratio_close
     print_close_equal("LinearSage neighbourhood weight", ratio_close, ratio_equal)
-    ratio_close = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
-    ratio_equal = check_equal(neigh_bias_grads, true_neigh_bias_grads)
+    ratio_close, ratio_equal = check_close_equal(neigh_bias_grads, true_neigh_bias_grads)
     all_close = all_close * ratio_close
     print_close_equal("LinearSage neighbourhood bias", ratio_close, ratio_equal)
 
@@ -134,27 +110,31 @@ def test_sage_linear_adam():
     optimiser.step()
 
     path = test_dir_path + "/self_weight_updated.npy";
-    self_weight_updated = load_col_major(path)
+    self_weight_updated = np.load(path)
     path = test_dir_path + "/self_bias_updated.npy";
-    self_bias_updated = load_col_major(path)
+    self_bias_updated = np.load(path)
     path = test_dir_path + "/neigh_weight_updated.npy";
-    neigh_weight_updated = load_col_major(path)
+    neigh_weight_updated = np.load(path)
     path = test_dir_path + "/neigh_bias_updated.npy";
-    neigh_bias_updated = load_col_major(path)
+    neigh_bias_updated = np.load(path)
 
-    true_self_weight = self_weight_torch.detach().cpu().numpy()
-    ratio_close, ratio_equal = check_close_equal(self_weight_updated, true_self_weight)
+    true_self_weight_updated = self_weight_torch.detach().cpu().numpy()
+    ratio_close, ratio_equal = check_close_equal(self_weight_updated, true_self_weight_updated)
     all_close = all_close * ratio_close
     print_close_equal("Adam self weight", ratio_close, ratio_equal)
-    true_self_bias = self_bias_torch.detach().cpu().numpy()
-    ratio_close, ratio_equal = check_close_equal(self_bias_updated, true_self_bias)
+
+    true_self_bias_updated = self_bias_torch.detach().cpu().numpy()
+    ratio_close, ratio_equal = check_close_equal(self_bias_updated, true_self_bias_updated)
     all_close = all_close * ratio_close
     print_close_equal("Adam self bias", ratio_close, ratio_equal)
-    ratio_close, ratio_equal = check_close_equal(neigh_weight_updated, neigh_weight_torch.detach().cpu().numpy())
+
+    true_neigh_weight_updated = neigh_weight_torch.detach().cpu().numpy()
+    ratio_close, ratio_equal = check_close_equal(neigh_weight_updated, true_neigh_weight_updated)
     all_close = all_close * ratio_close
     print_close_equal("Adam neighbourhood weight", ratio_close, ratio_equal)
-    true_neigh_bias = neigh_bias_torch.detach().cpu().numpy()
-    ratio_close, ratio_equal = check_close_equal(neigh_bias_updated, true_neigh_bias)
+
+    true_neigh_bias_updated = neigh_bias_torch.detach().cpu().numpy()
+    ratio_close, ratio_equal = check_close_equal(neigh_bias_updated, true_neigh_bias_updated)
     all_close = all_close * ratio_close
     print_close_equal("Adam neighbourhood bias", ratio_close, ratio_equal)
 
@@ -171,20 +151,20 @@ def compare_adam():
 
     for i in range(4):
         path = test_dir_path + "/gradient_" + str(i) + ".npy"
-        gradient = load_col_major(path)
+        gradient = np.load(path)
 
         path = test_dir_path + "/gradient_chunked_" + str(i) + ".npy"
-        gradient_chunked = load_col_major(path)
+        gradient_chunked = np.load(path)
 
         ratio_close, ratio_equal = check_close_equal(gradient, gradient_chunked)
         all_equal = all_equal * ratio_equal
         print_close_equal("Gradient layer {}".format(i), ratio_close, ratio_equal)
 
         path = test_dir_path + "/weight_" + str(i) + ".npy"
-        weight = load_col_major(path)
+        weight = np.load(path)
 
         path = test_dir_path + "/weight_chunked_" + str(i) + ".npy"
-        weight_chunked = load_col_major(path)
+        weight_chunked = np.load(path)
 
         ratio_close, ratio_equal = check_close_equal(weight, weight_chunked)
         all_equal = all_equal * ratio_equal

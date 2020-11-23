@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import torch
-from helper import (load_col_major, print_close_equal, check_close_equal,
+from helper import (print_close_equal, check_close_equal,
         to_torch, write_return, update_return)
 
 
@@ -16,12 +16,12 @@ def test_loss():
     path = flickr_dir_path + "/classes.npy"
     classes = np.load(path)
     path = test_dir_path + "/input.npy"
-    input_ = load_col_major(path)
+    input_ = np.load(path)
     path = test_dir_path + "/loss.npy"
     loss = np.load(path)
     loss = loss.squeeze()
     path = test_dir_path + "/gradients.npy"
-    gradients = load_col_major(path)
+    gradients = np.load(path)
 
     # forward
     input_torch = to_torch(input_)

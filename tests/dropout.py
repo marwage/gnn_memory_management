@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import torch
-from helper import (check_close_equal, print_close_equal, write_equal)
+from helper import (check_close_equal, print_close_equal, write_equal, count_nans)
 
 
 def test_dropout():
@@ -28,6 +28,9 @@ def test_dropout():
     ratio_close, ratio_equal = check_close_equal(dropout_result, true_dropout_result)
     all_equal = all_equal * ratio_equal
     print_close_equal("Dropout", ratio_close, ratio_equal)
+    num_nans = count_nans(dropout_result)
+    if (num_nans > 0):
+        print("Dropout has {} NaNs".format(num_nans))
 
     path = test_dir_path + "/dropout_gradients.npy"
     dropout_grads = np.load(path)
@@ -41,6 +44,9 @@ def test_dropout():
     ratio_close, ratio_equal = check_close_equal(dropout_grads, true_dropout_grads)
     all_equal = all_equal * ratio_equal
     print_close_equal("Dropout gradients", ratio_close, ratio_equal)
+    num_nans = count_nans(dropout_grads)
+    if (num_nans > 0):
+        print("Dropout gradients has {} NaNs".format(num_nans))
 
     path = test_dir_path + "/value.npy"
     write_equal(all_equal, path)
