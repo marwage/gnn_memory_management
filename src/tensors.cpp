@@ -54,7 +54,7 @@ long new_index(long old_idx, long rows, long cols) {
 }
 
 template<typename T>
-void transpose(T *a, T *a_copy, long rows, long cols,
+void transpose(T *a_T, T *a, long rows, long cols,
              long rows_lower, long rows_upper, long columns_lower, long columns_upper) {
     if (rows_upper - rows_lower < 1 ||
             columns_upper - columns_lower < 1) {
@@ -70,30 +70,30 @@ void transpose(T *a, T *a_copy, long rows, long cols,
                     old_idx = i * cols + j;
 
                     new_idx = new_index(old_idx, rows, cols);
-                    a[new_idx] = a_copy[old_idx];
+                    a_T[new_idx] = a[old_idx];
                 }
             }
         } else {
             int column_mid = (columns_upper - columns_lower) / 2 + columns_lower;
-            std::thread thread_one(transpose<T>, a, a_copy, rows, cols, rows_lower, rows_upper, columns_lower, column_mid);
-            std::thread thread_two(transpose<T>, a, a_copy, rows, cols, rows_lower, rows_upper, column_mid, columns_upper);
+            std::thread thread_one(transpose<T>, a_T, a, rows, cols, rows_lower, rows_upper, columns_lower, column_mid);
+            std::thread thread_two(transpose<T>, a_T, a, rows, cols, rows_lower, rows_upper, column_mid, columns_upper);
             thread_one.join();
             thread_two.join();
         }
     } else {
         if (columns_upper - columns_lower < boundary) {
             int row_mid = (rows_upper - rows_lower) / 2 + rows_lower;
-            std::thread thread_one(transpose<T>, a, a_copy, rows, cols, rows_lower, row_mid, columns_lower, columns_upper);
-            std::thread thread_two(transpose<T>, a, a_copy, rows, cols, row_mid, rows_upper, columns_lower, columns_upper);
+            std::thread thread_one(transpose<T>, a_T, a, rows, cols, rows_lower, row_mid, columns_lower, columns_upper);
+            std::thread thread_two(transpose<T>, a_T, a, rows, cols, row_mid, rows_upper, columns_lower, columns_upper);
             thread_one.join();
             thread_two.join();
         } else {
             int row_mid = (rows_upper - rows_lower) / 2 + rows_lower;
             int column_mid = (columns_upper - columns_lower) / 2 + columns_lower;
-            std::thread thread_one(transpose<T>, a, a_copy, rows, cols, rows_lower, row_mid, columns_lower, column_mid);
-            std::thread thread_two(transpose<T>, a, a_copy, rows, cols, rows_lower, row_mid, column_mid, columns_upper);
-            std::thread thread_three(transpose<T>, a, a_copy, rows, cols, row_mid, rows_upper, columns_lower, column_mid);
-            std::thread thread_four(transpose<T>, a, a_copy, rows, cols, row_mid, rows_upper, column_mid, columns_upper);
+            std::thread thread_one(transpose<T>, a_T, a, rows, cols, rows_lower, row_mid, columns_lower, column_mid);
+            std::thread thread_two(transpose<T>, a_T, a, rows, cols, rows_lower, row_mid, column_mid, columns_upper);
+            std::thread thread_three(transpose<T>, a_T, a, rows, cols, row_mid, rows_upper, columns_lower, column_mid);
+            std::thread thread_four(transpose<T>, a_T, a, rows, cols, row_mid, rows_upper, column_mid, columns_upper);
             thread_one.join();
             thread_two.join();
             thread_three.join();
@@ -103,13 +103,12 @@ void transpose(T *a, T *a_copy, long rows, long cols,
 }
 
 template<typename T>
-void transpose(T *a, long rows, long cols) {
-    T *a_copy = new T[rows * cols];
-    std::memcpy(a_copy, a, rows * cols * sizeof(T));
+T* transpose(T *a, long rows, long cols) {
+    T *a_T = new T[rows * cols];
 
-    transpose(a, a_copy, rows, cols, 0, rows, 0, cols);
+    transpose(a_T, a, rows, cols, 0, rows, 0, cols);
 
-    delete a_copy;
+    return a_T;
 }
 
 template<typename T>
@@ -197,7 +196,9 @@ template void save_npy_matrix_no_trans<int>(matrix<int> mat, std::string path);
 template<typename T>
 void to_column_major_inplace(matrix<T> *mat) {
     if (mat->row_major) {
-        transpose<T>(mat->values, mat->rows, mat->columns);
+        T* values_T = transpose<T>(mat->values, mat->rows, mat->columns);
+        delete mat->values;
+        mat->values = values_T;
         mat->row_major = false;
     }
 }
@@ -217,7 +218,9 @@ template matrix<int> to_column_major<int>(matrix<int> *mat);
 template<typename T>
 void to_row_major_inplace(matrix<T> *mat) {
     if (!mat->row_major) {
-        transpose<T>(mat->values, mat->columns, mat->rows);
+        T* values_T = transpose<T>(mat->values, mat->columns, mat->rows);
+        delete mat->values;
+        mat->values = values_T;
         mat->row_major = true;
     }
 }
