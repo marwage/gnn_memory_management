@@ -23,7 +23,7 @@ void write_value(int value, std::string path);
 
 int num_equal_rows(matrix<float> A, matrix<float> B);
 
-void print_matrix_features(matrix<float> *mat);
+
 
 int compare_mat(matrix<float> *mat_a, matrix<float> *mat_b, std::string name);
 

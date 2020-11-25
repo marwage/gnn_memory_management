@@ -137,12 +137,6 @@ int num_equal_rows(matrix<float> A, matrix<float> B) {
     return num_rows;
 }
 
-void print_matrix_features(matrix<float> *mat) {
-    std::cout << "Shape: (" << mat->rows << ", " << mat->columns << ")" << std::endl;
-    std::cout << "Row major: " << mat->row_major << std::endl;
-    std::cout << "Values pointer: " << mat->values << std::endl;
-}
-
 int compare_mat(matrix<float> *mat_a, matrix<float> *mat_b, std::string name) {
     std::string path_a = test_dir_path + "/a.npy";
     std::string path_b = test_dir_path + "/b.npy";

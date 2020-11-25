@@ -58,6 +58,7 @@ private:
     long num_chunks_;
     std::vector<matrix<float>> features_chunks_;
     std::vector<matrix<float>> aggr_chunks_;
+    std::vector<matrix<float>> in_gradients_chunks_;
     matrix<float> y_;
     matrix<float> self_gradients_;
     matrix<float> neighbourhood_gradients_;

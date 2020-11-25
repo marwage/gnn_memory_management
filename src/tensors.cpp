@@ -37,9 +37,17 @@ void print_matrix(matrix<T> *mat) {
         std::cout << std::endl;
     }
 }
-
 template void print_matrix<float>(matrix<float> *mat);
 template void print_matrix<int>(matrix<int> *mat);
+
+template<typename T>
+void print_matrix_features(matrix<T> *mat) {
+    std::cout << "Shape: (" << mat->rows << ", " << mat->columns << ")" << std::endl;
+    std::cout << "Row major: " << mat->row_major << std::endl;
+    std::cout << "Values pointer: " << mat->values << std::endl;
+}
+template void print_matrix_features<float>(matrix<float> *mat);
+template void print_matrix_features<int>(matrix<int> *mat);
 
 
 long new_index(long old_idx, long rows, long cols) {
@@ -105,6 +113,8 @@ void transpose(T *a_T, T *a, long rows, long cols,
 template<typename T>
 T* transpose(T *a, long rows, long cols) {
     T *a_T = new T[rows * cols];
+
+    T first_value = a[0]; // DEBUGGING
 
     transpose(a_T, a, rows, cols, 0, rows, 0, cols);
 

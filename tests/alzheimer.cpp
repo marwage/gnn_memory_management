@@ -8,6 +8,7 @@
 #include "sage_linear.hpp"
 #include "tensors.hpp"
 #include "adam.hpp"
+#include "add.hpp"
 #include "helper.hpp"
 
 #include "catch2/catch.hpp"
@@ -71,6 +72,8 @@ int test_alzheimer(std::string dataset, int chunk_size) {
     SageLinearParent *linear_2;
     LogSoftmaxParent *log_softmax;
     NLLLoss loss_layer(num_nodes, num_classes);
+    Add add_1(&cuda_helper, num_nodes, num_hidden_channels);
+    Add add_2(&cuda_helper, num_nodes, num_hidden_channels);
     if (chunk_size == 0) { // no chunking
         dropout_0 = new Dropout(&cuda_helper, num_nodes, features.columns);
         linear_0 = new SageLinear(&cuda_helper, features.columns, num_hidden_channels, num_nodes);
@@ -102,7 +105,6 @@ int test_alzheimer(std::string dataset, int chunk_size) {
     matrix<float> *signals_dropout;
     matrix<float> *gradients;
     SageLinearGradients *sage_linear_gradients;
-    matrix<float> add_gradients;
     matrix<float> *gradient_0;
     matrix<float> *gradient_1;
     matrix<float> *gradient_2;
@@ -216,13 +218,13 @@ int test_alzheimer(std::string dataset, int chunk_size) {
         if (check_nans(gradients, "Graph convolution 2 gradients")) return 0;
 
         // add sage_linear_gradients.self_grads + gradients
-        add_gradients = add_matrices(&cuda_helper, sage_linear_gradients->self_grads, gradients);
+        gradients = add_2.forward(sage_linear_gradients->self_grads, gradients);
 
         // DEBUGGING
-        if (check_nans(&add_gradients, "Add 2 gradients")) return 0;
+        if (check_nans(gradients, "Add 2 gradients")) return 0;
 
         // dropout 2
-        gradients = dropout_2->backward(&add_gradients);
+        gradients = dropout_2->backward(gradients);
 
         // DEBUGGING
         if (check_nans(gradients, "Dropout 2 gradients")) return 0;
@@ -247,13 +249,13 @@ int test_alzheimer(std::string dataset, int chunk_size) {
         if (check_nans(gradients, "Graph convolution 1 gradients")) return 0;
 
         // add sage_linear_gradients.self_grads + gradients
-        add_gradients = add_matrices(&cuda_helper, sage_linear_gradients->self_grads, gradients);
+        gradients = add_1.forward(sage_linear_gradients->self_grads, gradients);
 
         // DEBUGGING
-        if (check_nans(&add_gradients, "Add 1 gradients")) return 0;
+        if (check_nans(gradients, "Add 1 gradients")) return 0;
 
         // dropout 1
-        gradients = dropout_1->backward(&add_gradients);
+        gradients = dropout_1->backward(gradients);
 
         // DEBUGGING
         if (check_nans(gradients, "Dropout 1 gradients")) return 0;

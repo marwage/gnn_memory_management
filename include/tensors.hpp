@@ -30,6 +30,9 @@ template<typename T>
 void print_matrix(matrix<T> *mat);
 
 template<typename T>
+void print_matrix_features(matrix<T> *mat);
+
+template<typename T>
 matrix<T> load_npy_matrix(std::string path);
 
 template<typename T>

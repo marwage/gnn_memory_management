@@ -114,21 +114,29 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, l
         last_chunk_size_ = chunk_size_;
     }
 
+    sage_linear_layers_ = std::vector<SageLinear>(num_chunks_);
     features_chunks_ = std::vector<matrix<float>>(num_chunks_);
     aggr_chunks_ = std::vector<matrix<float>>(num_chunks_);
-    sage_linear_layers_ = std::vector<SageLinear>(num_chunks_);
+    in_gradients_chunks_ = std::vector<matrix<float>>(num_chunks_);
     for (int i = 0; i < num_chunks_; ++i) {
         features_chunks_[i].columns = num_in_features;
         aggr_chunks_[i].columns = num_in_features;
+        in_gradients_chunks_[i].columns = num_out_features;
         if (i == (num_chunks_ - 1)) {
+            sage_linear_layers_[i] = SageLinear(cuda_helper_, num_in_features_, num_out_features_, last_chunk_size_);
             features_chunks_[i].rows = last_chunk_size_;
             aggr_chunks_[i].rows = last_chunk_size_;
-            sage_linear_layers_[i] = SageLinear(cuda_helper_, num_in_features_, num_out_features_, last_chunk_size_);
+            in_gradients_chunks_[i].rows = last_chunk_size_;
         } else {
+            sage_linear_layers_[i] = SageLinear(cuda_helper_, num_in_features_, num_out_features_, chunk_size_);
             features_chunks_[i].rows = chunk_size_;
             aggr_chunks_[i].rows = chunk_size_;
-            sage_linear_layers_[i] = SageLinear(cuda_helper_, num_in_features_, num_out_features_, chunk_size_);
+            in_gradients_chunks_[i].rows = chunk_size_;
         }
+
+        features_chunks_[i].values = new float[features_chunks_[i].rows * features_chunks_[i].columns];
+        aggr_chunks_[i].values = new float[aggr_chunks_[i].rows * aggr_chunks_[i].columns];
+        in_gradients_chunks_[i].values = new float[in_gradients_chunks_[i].rows * in_gradients_chunks_[i].columns];
     }
 
     if (num_chunks_ > 1) {
@@ -154,8 +162,10 @@ matrix<float>* SageLinearChunked::forward(matrix<float> *features, matrix<float>
     for (int i = 0; i < num_chunks_; ++i) {
         features_chunks_[i].row_major = features->row_major;
         aggr_chunks_[i].row_major = aggr->row_major;
-        features_chunks_[i].values = &features->values[i * chunk_size_ * features->columns];
-        aggr_chunks_[i].values = &aggr->values[i * chunk_size_ * aggr->columns];
+        std::memcpy(features_chunks_[i].values, &features->values[i * chunk_size_ * features->columns],
+                    features_chunks_[i].rows * features_chunks_[i].columns * sizeof(float));
+        std::memcpy(aggr_chunks_[i].values, &aggr->values[i * chunk_size_ * aggr->columns],
+                    aggr_chunks_[i].rows * aggr_chunks_[i].columns * sizeof(float));
 
         y_chunk = sage_linear_layers_[i].forward(&features_chunks_[i], &aggr_chunks_[i]);
 
@@ -173,18 +183,12 @@ SageLinearGradients* SageLinearChunked::backward(matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
 
     SageLinearGradients *gradients_chunk;
-    matrix<float> in_gradients_chunk;
-    in_gradients_chunk.rows = chunk_size_;
-    in_gradients_chunk.columns = in_gradients->columns;
-    in_gradients_chunk.row_major = true;
-
     for (int i = 0; i < num_chunks_; ++i) {
-        if (i == (num_chunks_ - 1)) {
-            in_gradients_chunk.rows = last_chunk_size_;
-        }
-        in_gradients_chunk.values = &in_gradients->values[i * chunk_size_ * in_gradients->columns];
+        in_gradients_chunks_[i].row_major = in_gradients->row_major;
+        std::memcpy(in_gradients_chunks_[i].values, &in_gradients->values[i * chunk_size_ * in_gradients->columns],
+                    in_gradients_chunks_[i].rows * in_gradients_chunks_[i].columns * sizeof(float));
 
-        gradients_chunk = sage_linear_layers_[i].backward(&in_gradients_chunk);
+        gradients_chunk = sage_linear_layers_[i].backward(&in_gradients_chunks_[i]);
 
         to_row_major_inplace(gradients_chunk->self_grads);
         to_row_major_inplace(gradients_chunk->neigh_grads);

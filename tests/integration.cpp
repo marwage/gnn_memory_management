@@ -8,6 +8,7 @@
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
+#include "add.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -41,6 +42,7 @@ int integration_test(int chunk_size) {
     SageLinearParent *sage_linear_layer;
     ReluParent *relu_layer;
     LogSoftmaxParent *log_softmax_layer;
+    Add add(&cuda_helper, features.rows, features.columns);
     if (chunk_size == 0) {// no chunking
         sage_linear_layer = new SageLinear(&cuda_helper, features.columns, num_hidden_channels, features.rows);
         relu_layer = new Relu(&cuda_helper, features.rows, num_hidden_channels);
@@ -131,7 +133,7 @@ int integration_test(int chunk_size) {
     save_npy_matrix(graph_convolution_grads, path);
 
     // add sage_linear_gradients.self_grads + gradients
-    matrix<float> add_grads = add_matrices(&cuda_helper, linear_grads->self_grads, graph_convolution_grads);
+    matrix<float> *add_grads = add.forward(linear_grads->self_grads, graph_convolution_grads);
     path = test_dir_path + "/add_grads.npy";
     save_npy_matrix(add_grads, path);
 

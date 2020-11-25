@@ -25,7 +25,7 @@ static void BM_Alzheimer_Flickr(benchmark::State &state) {
         alzheimer(dataset, 0);
     system(kill_command);
 }
-BENCHMARK(BM_Alzheimer_Flickr);
+//BENCHMARK(BM_Alzheimer_Flickr);
 
 static void BM_Alzheimer_Reddit(benchmark::State &state) {
     std::string dataset = "reddit";
