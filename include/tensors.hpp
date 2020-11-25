@@ -56,10 +56,6 @@ void to_column_major_inplace(matrix<T> *mat);
 template<typename T>
 void to_row_major_inplace(matrix<T> *mat);
 
-matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> *mat_a, matrix<float> *mat_b);
-
-matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<float> mat_b);
-
 sparse_matrix<float> get_rows(sparse_matrix<float> mat, int start_row, int end_row);
 
 void print_sparse_matrix(sparse_matrix<float> mat);

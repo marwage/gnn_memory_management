@@ -27,7 +27,8 @@ set(HEADER_FILES
         include/axpby.h
         include/invsqrt.h
         include/elesq.h
-        include/axdy.h)
+        include/axdy.h
+        include/add.hpp)
 
 set(SOURCE_FILES
         src/tensors.cpp
@@ -45,7 +46,8 @@ set(SOURCE_FILES
         src/axpby.cu
         src/invsqrt.cu
         src/elesq.cu
-        src/axdy.cu)
+        src/axdy.cu
+        src/add.cpp)
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})

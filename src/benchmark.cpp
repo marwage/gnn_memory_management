@@ -12,7 +12,7 @@ const char kill_command[] = "pkill nvidia-smi";
 
 void log_gpu(std::string name) {
     std::time_t start = std::time(0);
-    std::string file_name = "/tmp/" + name + std::to_string(start) + ".smi";
+    std::string file_name = "/tmp/" + name + "_" + std::to_string(start) + ".smi";
     std::string command = "nvidia-smi dmon -s umt -o T -f " + file_name;
     system(command.c_str());
 }
@@ -35,11 +35,11 @@ static void BM_Alzheimer_Reddit(benchmark::State &state) {
         alzheimer(dataset, 0);
     system(kill_command);
 }
-BENCHMARK(BM_Alzheimer_Reddit);
+//BENCHMARK(BM_Alzheimer_Reddit);
 
 static void BM_Alzheimer_Chunked_Flickr_15(benchmark::State &state) {
     int power = 15;
-    std::thread gpu_logging(log_gpu, "flickr_chunked_" + std::to_string(power) + "_");
+    std::thread gpu_logging(log_gpu, "flickr_chunked_" + std::to_string(power));
     gpu_logging.detach();
     for (auto _ : state)
         alzheimer("flickr", 1 << power);
@@ -49,7 +49,7 @@ BENCHMARK(BM_Alzheimer_Chunked_Flickr_15);
 
 static void BM_Alzheimer_Chunked_Flickr_14(benchmark::State &state) {
     int power = 14;
-    std::thread gpu_logging(log_gpu, "flickr_chunked_" + std::to_string(power) + "_");
+    std::thread gpu_logging(log_gpu, "flickr_chunked_" + std::to_string(power));
     gpu_logging.detach();
     for (auto _ : state)
         alzheimer("flickr", 1 << power);
@@ -59,7 +59,7 @@ BENCHMARK(BM_Alzheimer_Chunked_Flickr_14);
 
 static void BM_Alzheimer_Chunked_Flickr_13(benchmark::State &state) {
     int power = 13;
-    std::thread gpu_logging(log_gpu, "flickr_chunked_" + std::to_string(power) + "_");
+    std::thread gpu_logging(log_gpu, "flickr_chunked_" + std::to_string(power));
     gpu_logging.detach();
     for (auto _ : state)
         alzheimer("flickr", 1 << power);
@@ -69,32 +69,32 @@ BENCHMARK(BM_Alzheimer_Chunked_Flickr_13);
 
 static void BM_Alzheimer_Chunked_Reddit_17(benchmark::State &state) {
     int power = 17;
-    std::thread gpu_logging(log_gpu, "flickr_chunked_" + std::to_string(power) + "_");
+    std::thread gpu_logging(log_gpu, "reddit_chunked_" + std::to_string(power));
     gpu_logging.detach();
     for (auto _ : state)
         alzheimer("reddit", 1 << power);
     system(kill_command);
 }
-BENCHMARK(BM_Alzheimer_Chunked_Reddit_17);
+//BENCHMARK(BM_Alzheimer_Chunked_Reddit_17);
 
 static void BM_Alzheimer_Chunked_Reddit_16(benchmark::State &state) {
     int power = 16;
-    std::thread gpu_logging(log_gpu, "flickr_chunked_" + std::to_string(power) + "_");
+    std::thread gpu_logging(log_gpu, "reddit_chunked_" + std::to_string(power));
     gpu_logging.detach();
     for (auto _ : state)
         alzheimer("reddit", 1 << power);
     system(kill_command);
 }
-BENCHMARK(BM_Alzheimer_Chunked_Reddit_16);
+//BENCHMARK(BM_Alzheimer_Chunked_Reddit_16);
 
 static void BM_Alzheimer_Chunked_Reddit_15(benchmark::State &state) {
     int power = 15;
-    std::thread gpu_logging(log_gpu, "flickr_chunked_" + std::to_string(power) + "_");
+    std::thread gpu_logging(log_gpu, "reddit_chunked_" + std::to_string(power));
     gpu_logging.detach();
     for (auto _ : state)
         alzheimer("reddit", 1 << power);
     system(kill_command);
 }
-BENCHMARK(BM_Alzheimer_Chunked_Reddit_15);
+//BENCHMARK(BM_Alzheimer_Chunked_Reddit_15);
 
 BENCHMARK_MAIN();

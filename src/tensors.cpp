@@ -236,7 +236,7 @@ template matrix<int> to_row_major<int>(matrix<int> *mat);
 
 matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> *mat_a, matrix<float> *mat_b) {
     if (mat_a->row_major != mat_b->row_major) {
-        throw "Matrix shapes are unequal";
+        throw "Matrices do not have equal majority";
     }
     float alpha = 1.0;
 
