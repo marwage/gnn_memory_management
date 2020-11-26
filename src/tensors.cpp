@@ -399,3 +399,25 @@ void transpose_csr_matrix(sparse_matrix<float> *mat, CudaHelper *cuda_helper){
     check_cuda(cudaFree(d_mat_csr_row_ptr));
     check_cuda(cudaFree(d_mat_csr_val));
 }
+
+long count_nans(matrix<float> *x) {
+    long num_nans = 0;
+
+    for (int i = 0; i < x->rows * x->columns; ++i) {
+        if (isnan(x->values[i])) {
+            num_nans = num_nans + 1;
+        }
+    }
+
+    return num_nans;
+}
+
+bool check_nans(matrix<float> *x, std::string name) {
+    long num_nans = count_nans(x);
+    if (num_nans > 0) {
+        std::cout << name << " has " << num_nans << " NaNs" << std::endl;
+        return true;
+    } else {
+        return false;
+    }
+}

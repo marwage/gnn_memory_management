@@ -67,4 +67,8 @@ matrix<float> new_float_matrix(long num_rows, long num_columns, bool row_major);
 
 void transpose_csr_matrix(sparse_matrix<float> *mat, CudaHelper *cuda_helper);
 
+long count_nans(matrix<float> *x);
+
+bool check_nans(matrix<float> *x, std::string name);
+
 #endif

@@ -150,27 +150,3 @@ int compare_mat(matrix<float> *mat_a, matrix<float> *mat_b, std::string name) {
     std::cout << name << ": " << return_value << std::endl;
     return return_value;
 }
-
-long count_nans(matrix<float> *x) {
-    long num_nans = 0;
-
-    for (int i = 0; i < x->rows; ++i) {
-        for (int j = 0; j < x->columns; ++j) {
-            if (isnan(x->values[j * x->rows + i])) {
-                num_nans = num_nans + 1;
-            }
-        }
-    }
-
-    return num_nans;
-}
-
-bool check_nans(matrix<float> *x, std::string name) {
-    long num_nans = count_nans(x);
-    if (num_nans > 0) {
-        std::cout << name << " has " << num_nans << " NaNs" << std::endl;
-        return true;
-    } else {
-        return false;
-    }
-}

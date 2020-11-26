@@ -25,10 +25,13 @@ int test_graph_conv(matrix<float> *input, sparse_matrix<float> *adj, matrix<floa
 
     matrix<float> *activations = graph_conv->forward(input);
 
-    path = test_dir_path + "/activations.npy";
-    save_npy_matrix(activations, path);
+    // DEBUGGING
+    check_nans(activations, "activations");
 
     matrix<float> *gradients = graph_conv->backward(in_gradients);
+
+    path = test_dir_path + "/activations.npy";
+    save_npy_matrix(activations, path);
 
     path = test_dir_path + "/gradients.npy";
     save_npy_matrix(gradients, path);
@@ -71,6 +74,6 @@ TEST_CASE("Graph convolution, chunked", "[graphconv][chunked]") {
     save_npy_matrix(in_gradients, path);
 
     CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 1 << 15));
-    CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 1 << 14));
-    CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 1 << 13));
+//    CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 1 << 14));
+//    CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 1 << 13));
 }
