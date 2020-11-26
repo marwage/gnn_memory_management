@@ -28,7 +28,7 @@ GraphConvolution::GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adj
 
     if (mean_) {
         sum_ = new_float_matrix(num_nodes, 1, false);
-        ones_ = new_float_matrix(adjacency_->columns, 1, false); // adjacency_->columns is chunk_size
+        ones_ = new_float_matrix(adjacency->columns, 1, false); // adjacency_->columns is chunk_size
         for (int i = 0; i < ones_.rows * ones_.columns; ++i) {
             ones_.values[i] = 1.0;
         }
@@ -108,7 +108,7 @@ matrix<float>* GraphConvolution::forward(matrix<float> *x) {
 
     // apply mean
     if (mean_) {
-        for (int i = 0; i < ones_.rows * ones_.columns; ++i) {
+        for (int i = 0; i < sum_.rows * sum_.columns; ++i) {
             sum_.values[i] = 0.0;
         }
 
@@ -194,7 +194,6 @@ matrix<float>* GraphConvolution::backward(matrix<float> *in_gradients) {
     }
 
     // gradients_ = adjacency.T * in_gradients
-    // START copy paste from forward
     float *d_A_csr_val;
     int *d_A_csr_row_offsets, *d_A_col_ind;
     check_cuda(cudaMalloc((void **) &d_A_csr_val,
@@ -216,7 +215,6 @@ matrix<float>* GraphConvolution::backward(matrix<float> *in_gradients) {
                                      d_A_csr_val,
                                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
                                      CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F));
-    // END copy paste from forward
 
     cusparseDnMatDescr_t g_desc;
     check_cusparse(cusparseCreateDnMat(&g_desc, in_gradients->rows, in_gradients->columns,
@@ -244,7 +242,6 @@ matrix<float>* GraphConvolution::backward(matrix<float> *in_gradients) {
 
     // compute SpMM
     check_cusparse(cusparseSpMM(cuda_helper_->cusparse_handle,
-//                                CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                 CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                 &alpha, A_desc, g_desc, &beta, dinput_desc,
                                 CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,

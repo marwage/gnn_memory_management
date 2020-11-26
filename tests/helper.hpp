@@ -23,12 +23,6 @@ void write_value(int value, std::string path);
 
 int num_equal_rows(matrix<float> A, matrix<float> B);
 
-
-
 int compare_mat(matrix<float> *mat_a, matrix<float> *mat_b, std::string name);
-
-long count_nans(matrix<float> *x);
-
-bool check_nans(matrix<float> *x, std::string name);
 
 #endif//HELPER_HPP
