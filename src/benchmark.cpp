@@ -45,7 +45,7 @@ static void BM_Alzheimer_Chunked_Flickr_15(benchmark::State &state) {
         alzheimer("flickr", 1 << power);
     system(kill_command);
 }
-BENCHMARK(BM_Alzheimer_Chunked_Flickr_15);
+//BENCHMARK(BM_Alzheimer_Chunked_Flickr_15);
 
 static void BM_Alzheimer_Chunked_Flickr_14(benchmark::State &state) {
     int power = 14;
@@ -55,7 +55,7 @@ static void BM_Alzheimer_Chunked_Flickr_14(benchmark::State &state) {
         alzheimer("flickr", 1 << power);
     system(kill_command);
 }
-BENCHMARK(BM_Alzheimer_Chunked_Flickr_14);
+//BENCHMARK(BM_Alzheimer_Chunked_Flickr_14);
 
 static void BM_Alzheimer_Chunked_Flickr_13(benchmark::State &state) {
     int power = 13;
@@ -65,7 +65,7 @@ static void BM_Alzheimer_Chunked_Flickr_13(benchmark::State &state) {
         alzheimer("flickr", 1 << power);
     system(kill_command);
 }
-BENCHMARK(BM_Alzheimer_Chunked_Flickr_13);
+//BENCHMARK(BM_Alzheimer_Chunked_Flickr_13);
 
 static void BM_Alzheimer_Chunked_Reddit_17(benchmark::State &state) {
     int power = 17;
@@ -95,6 +95,6 @@ static void BM_Alzheimer_Chunked_Reddit_15(benchmark::State &state) {
         alzheimer("reddit", 1 << power);
     system(kill_command);
 }
-//BENCHMARK(BM_Alzheimer_Chunked_Reddit_15);
+BENCHMARK(BM_Alzheimer_Chunked_Reddit_15);
 
 BENCHMARK_MAIN();

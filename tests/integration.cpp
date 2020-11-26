@@ -38,7 +38,7 @@ int integration_test(int chunk_size) {
     int num_classes = 7;
 
     // layers
-    GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.columns);
+    GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.rows, features.columns);
     SageLinearParent *sage_linear_layer;
     ReluParent *relu_layer;
     LogSoftmaxParent *log_softmax_layer;

@@ -60,15 +60,15 @@ int test_alzheimer(std::string dataset, int chunk_size) {
 
     // layers
     DropoutParent *dropout_0;
-    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean", features.columns);
+    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean", num_nodes, features.columns);
     SageLinearParent *linear_0;
     ReluParent *relu_0;
     DropoutParent *dropout_1;
-    GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean", num_hidden_channels);
+    GraphConvolution graph_convolution_1(&cuda_helper, &adjacency, "mean", num_nodes, num_hidden_channels);
     SageLinearParent *linear_1;
     ReluParent *relu_1;
     DropoutParent *dropout_2;
-    GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean", num_hidden_channels);
+    GraphConvolution graph_convolution_2(&cuda_helper, &adjacency, "mean", num_nodes, num_hidden_channels);
     SageLinearParent *linear_2;
     LogSoftmaxParent *log_softmax;
     NLLLoss loss_layer(num_nodes, num_classes);

@@ -55,3 +55,4 @@ TEST_CASE("Transpose to row-major", "[transpose][rowmajor]") {
     CHECK(test_transpose(85647, 6584, false));
     CHECK(test_transpose(84634, 8573, false));
 }
+

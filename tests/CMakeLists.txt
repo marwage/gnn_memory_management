@@ -19,7 +19,8 @@ set(TEST_FILES
         tests/sage_linear_adam.cpp
         tests/sum_rows.cpp
         tests/transpose.cpp
-        tests/alzheimer.cpp)
+        tests/alzheimer.cpp
+        tests/sparse.cpp)
 
 set(HELPER_FILES
         tests/helper.cpp)

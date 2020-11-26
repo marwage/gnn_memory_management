@@ -220,7 +220,6 @@ template<typename T>
 matrix<T> to_column_major(matrix<T> *mat) {
     throw "Not implemented";
 }
-
 template matrix<float> to_column_major<float>(matrix<float> *mat);
 template matrix<int> to_column_major<int>(matrix<int> *mat);
 
@@ -234,7 +233,6 @@ void to_row_major_inplace(matrix<T> *mat) {
         mat->row_major = true;
     }
 }
-
 template void to_row_major_inplace<float>(matrix<float> *mat);
 template void to_row_major_inplace<int>(matrix<int> *mat);
 
@@ -242,68 +240,24 @@ template<typename T>
 matrix<T> to_row_major(matrix<T> *mat) {
     throw "Not implemented";
 }
-
 template matrix<float> to_row_major<float>(matrix<float> *mat);
 template matrix<int> to_row_major<int>(matrix<int> *mat);
 
-
-matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> *mat_a, matrix<float> *mat_b) {
-    if (mat_a->row_major != mat_b->row_major) {
-        throw "Matrices do not have equal majority";
-    }
-    float alpha = 1.0;
-
-    float *d_a;
-    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_a),
-                          mat_a->rows * mat_a->columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_a, mat_a->values,
-                          mat_a->rows * mat_a->columns * sizeof(float),
-                          cudaMemcpyHostToDevice));
-
-    float *d_b;
-    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_b),
-                          mat_b->rows * mat_b->columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_b, mat_b->values,
-                          mat_b->rows * mat_b->columns * sizeof(float),
-                          cudaMemcpyHostToDevice));
-
-    check_cublas(cublasSaxpy(cuda_helper->cublas_handle,
-                             mat_a->rows * mat_a->columns,
-                             &alpha, d_a, 1,
-                             d_b, 1));
-
-    matrix<float> mat_c = new_float_matrix(mat_a->rows, mat_a->columns, mat_a->row_major);
-
-    check_cuda(cudaMemcpy(mat_c.values, d_b,
-                          mat_c.rows * mat_c.columns * sizeof(float),
-                          cudaMemcpyDeviceToHost));
-
-    // clean-up
-    check_cuda(cudaFree(d_a));
-    check_cuda(cudaFree(d_b));
-
-    return mat_c;
-}
-
-matrix<float> add_matrices(CudaHelper *cuda_helper, matrix<float> mat_a, matrix<float> mat_b) {
-    return add_matrices(cuda_helper, &mat_a, &mat_b);
-}
-
-sparse_matrix<float> get_rows(sparse_matrix<float> mat, int start_row, int end_row) {
+sparse_matrix<float> get_rows(sparse_matrix<float> *mat, int start_row, int end_row) {
     sparse_matrix<float> reduced_mat;
     reduced_mat.rows = end_row - start_row;
-    reduced_mat.columns = mat.columns;
+    reduced_mat.columns = mat->columns;
 
-    int first_index = mat.csr_row_ptr[start_row];
-    int last_index = mat.csr_row_ptr[end_row];
+    int first_index = mat->csr_row_ptr[start_row];
+    int last_index = mat->csr_row_ptr[end_row];
     reduced_mat.nnz = last_index - first_index;
     reduced_mat.csr_val = new float[reduced_mat.nnz];
     reduced_mat.csr_row_ptr = new int[(reduced_mat.rows + 1)];
     reduced_mat.csr_col_ind = new int[reduced_mat.nnz];
 
-    std::memcpy(reduced_mat.csr_val, &mat.csr_val[first_index], reduced_mat.nnz * sizeof(float));
-    std::memcpy(reduced_mat.csr_row_ptr, &mat.csr_row_ptr[start_row], reduced_mat.rows * sizeof(int));
-    std::memcpy(reduced_mat.csr_col_ind, &mat.csr_col_ind[first_index], reduced_mat.nnz * sizeof(int));
+    std::memcpy(reduced_mat.csr_val, &mat->csr_val[first_index], reduced_mat.nnz * sizeof(float));
+    std::memcpy(reduced_mat.csr_row_ptr, &mat->csr_row_ptr[start_row], (reduced_mat.rows + 1) * sizeof(int));
+    std::memcpy(reduced_mat.csr_col_ind, &mat->csr_col_ind[first_index], reduced_mat.nnz * sizeof(int));
     for (int i = 0; i < reduced_mat.rows; ++i) {
         reduced_mat.csr_row_ptr[i] = reduced_mat.csr_row_ptr[i] - first_index;
     }
@@ -311,20 +265,20 @@ sparse_matrix<float> get_rows(sparse_matrix<float> mat, int start_row, int end_r
     return reduced_mat;
 }
 
-void print_sparse_matrix(sparse_matrix<float> mat) {
+void print_sparse_matrix(sparse_matrix<float> *mat) {
     std::cout << "Row pointers" << std::endl;
-    for (int i = 0; i < mat.rows + 1; ++i) {
-        std::cout << mat.csr_row_ptr[i] << ", ";
+    for (int i = 0; i < mat->rows + 1; ++i) {
+        std::cout << mat->csr_row_ptr[i] << ", ";
     }
     std::cout << std::endl;
     std::cout << "Column indices" << std::endl;
-    for (int i = 0; i < mat.nnz; ++i) {
-        std::cout << mat.csr_col_ind[i] << ", ";
+    for (int i = 0; i < mat->nnz; ++i) {
+        std::cout << mat->csr_col_ind[i] << ", ";
     }
     std::cout << std::endl;
     std::cout << "Values" << std::endl;
-    for (int i = 0; i < mat.nnz; ++i) {
-        std::cout << mat.csr_val[i] << ", ";
+    for (int i = 0; i < mat->nnz; ++i) {
+        std::cout << mat->csr_val[i] << ", ";
     }
     std::cout << std::endl;
 }
@@ -341,4 +295,107 @@ matrix<float> new_float_matrix(long num_rows, long num_columns, bool row_major) 
     }
 
     return mat;
+}
+
+// NOT WORKING
+// copied from https://stackoverflow.com/a/55521870
+//void transpose_csr_matrix(sparse_matrix<float> *mat){
+//    std::vector<float> value(mat->nnz, 0.0);
+//    std::vector<int> column_index(mat->nnz, 0);
+//    std::vector<int> row_pointer(mat->columns + 2, 0); // one extra
+//
+//    // count per column
+//    for (int i = 0; i < mat->nnz; ++i) {
+//        ++row_pointer[mat->csr_col_ind[i] + 2];
+//    }
+//
+//    // from count per column generate new rowPtr (but shifted)
+//    for (int i = 2; i < row_pointer.size(); ++i) {
+//        // create incremental sum
+//        row_pointer[i] += row_pointer[i - 1];
+//    }
+//
+//    // perform the main part
+//    for (int i = 0; i < mat->rows; ++i) {
+//        for (int j = mat->csr_row_ptr[i]; j < mat->csr_row_ptr[i + 1]; ++j) {
+//            // calculate index to transposed matrix at which we should place current element, and at the same time build final rowPtr
+//            const int new_index = row_pointer[mat->csr_col_ind[j] + 1]++;
+//            value[new_index] = mat->csr_val[j];
+//            column_index[new_index] = i;
+//        }
+//    }
+//    row_pointer.pop_back(); // pop that one extra
+//
+//    int tmp = mat->rows;
+//    mat->rows = mat->columns;
+//    mat->columns = tmp;
+//    mat->csr_col_ind = column_index.data();
+//    mat->csr_val = value.data();
+//    mat->csr_row_ptr = row_pointer.data();
+//}
+
+void transpose_csr_matrix(sparse_matrix<float> *mat, CudaHelper *cuda_helper){
+    float *d_mat_csr_val;
+    int *d_mat_csr_row_ptr, *d_mat_csr_col_ind;
+    check_cuda(cudaMalloc(&d_mat_csr_val,mat->nnz * sizeof(float)));
+    check_cuda(cudaMalloc(&d_mat_csr_row_ptr,(mat->rows + 1) * sizeof(int)));
+    check_cuda(cudaMalloc(&d_mat_csr_col_ind,mat->nnz * sizeof(int)));
+    check_cuda(cudaMemcpy(d_mat_csr_val, mat->csr_val,
+                          mat->nnz * sizeof(float), cudaMemcpyHostToDevice));
+    check_cuda(cudaMemcpy(d_mat_csr_row_ptr, mat->csr_row_ptr,
+                          (mat->rows + 1) * sizeof(int), cudaMemcpyHostToDevice));
+    check_cuda(cudaMemcpy(d_mat_csr_col_ind, mat->csr_col_ind,
+                          mat->nnz * sizeof(int), cudaMemcpyHostToDevice));
+
+    float *d_mat_csc_val;
+    int *d_mat_csc_col_ptr, *d_mat_csc_row_ind;
+    check_cuda(cudaMalloc(&d_mat_csc_val,mat->nnz * sizeof(float)));
+    check_cuda(cudaMalloc(&d_mat_csc_col_ptr,(mat->columns + 1) * sizeof(int)));
+    check_cuda(cudaMalloc(&d_mat_csc_row_ind,mat->nnz * sizeof(int)));
+
+    size_t buffer_size;
+    check_cusparse(cusparseCsr2cscEx2_bufferSize(cuda_helper->cusparse_handle,
+                                                 mat->rows, mat->columns, mat->nnz,
+                                                 d_mat_csr_val, d_mat_csr_row_ptr, d_mat_csr_col_ind,
+                                                 d_mat_csc_val, d_mat_csc_col_ptr, d_mat_csc_row_ind,
+                                                 CUDA_R_32F,
+                                                 CUSPARSE_ACTION_SYMBOLIC, // could try CUSPARSE_ACTION_NUMERIC
+                                                 CUSPARSE_INDEX_BASE_ZERO,
+                                                 CUSPARSE_CSR2CSC_ALG1, // could try CUSPARSE_CSR2CSC_ALG2
+                                                 &buffer_size));
+
+    void *d_buffer;
+    check_cuda(cudaMalloc(&d_buffer, buffer_size));
+
+    check_cusparse(cusparseCsr2cscEx2(cuda_helper->cusparse_handle,
+                                      mat->rows, mat->columns, mat->nnz,
+                                      d_mat_csr_val, d_mat_csr_row_ptr, d_mat_csr_col_ind,
+                                      d_mat_csc_val, d_mat_csc_col_ptr, d_mat_csc_row_ind,
+                                      CUDA_R_32F,
+                                      CUSPARSE_ACTION_SYMBOLIC, // could try CUSPARSE_ACTION_NUMERIC
+                                      CUSPARSE_INDEX_BASE_ZERO,
+                                      CUSPARSE_CSR2CSC_ALG1, // could try CUSPARSE_CSR2CSC_ALG2
+                                      d_buffer));
+
+    long tmp = mat->rows;
+    mat->rows = mat->columns;
+    mat->columns = tmp;
+    delete mat->csr_row_ptr;
+    delete mat->csr_col_ind;
+    mat->csr_row_ptr = new int[mat->rows + 1];
+    mat->csr_col_ind = new int[mat->nnz];
+
+    check_cuda(cudaMemcpy(mat->csr_row_ptr, d_mat_csc_col_ptr,
+                          (mat->rows + 1) * sizeof(int), cudaMemcpyDeviceToHost));
+    check_cuda(cudaMemcpy(mat->csr_col_ind, d_mat_csc_row_ind,
+                          mat->nnz * sizeof(int), cudaMemcpyDeviceToHost));
+
+    // free GPU memory
+    check_cuda(cudaFree(d_buffer));
+    check_cuda(cudaFree(d_mat_csc_row_ind));
+    check_cuda(cudaFree(d_mat_csc_col_ptr));
+    check_cuda(cudaFree(d_mat_csc_val));
+    check_cuda(cudaFree(d_mat_csr_col_ind));
+    check_cuda(cudaFree(d_mat_csr_row_ptr));
+    check_cuda(cudaFree(d_mat_csr_val));
 }

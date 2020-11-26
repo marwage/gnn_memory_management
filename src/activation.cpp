@@ -371,6 +371,7 @@ matrix<float>* LogSoftmaxChunked::forward(matrix<float> *x) {
     matrix<float> *y_chunk;
     x_chunk.rows = chunk_size_;
     x_chunk.columns = x->columns;
+    x_chunk.row_major = x->row_major;
 
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {

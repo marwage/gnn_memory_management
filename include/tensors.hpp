@@ -59,10 +59,12 @@ void to_column_major_inplace(matrix<T> *mat);
 template<typename T>
 void to_row_major_inplace(matrix<T> *mat);
 
-sparse_matrix<float> get_rows(sparse_matrix<float> mat, int start_row, int end_row);
+sparse_matrix<float> get_rows(sparse_matrix<float> *mat, int start_row, int end_row);
 
-void print_sparse_matrix(sparse_matrix<float> mat);
+void print_sparse_matrix(sparse_matrix<float> *mat);
 
 matrix<float> new_float_matrix(long num_rows, long num_columns, bool row_major);
+
+void transpose_csr_matrix(sparse_matrix<float> *mat, CudaHelper *cuda_helper);
 
 #endif
