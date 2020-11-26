@@ -25,7 +25,7 @@ def check_graph_conv():
 
     num_nans = count_nans(graph_conv_result)
     if (num_nans > 0):
-        print("Number of NaNs is {}".format(num_nans))
+        print("Graph Convolution: Number of NaNs: {}".format(num_nans))
         all_close = 0.0
 
     features_torch = to_torch(features)
