@@ -26,10 +26,7 @@ def check_graph_conv():
     num_nans = count_nans(graph_conv_result)
     if (num_nans > 0):
         print("Number of NaNs is {}".format(num_nans))
-
-        path = test_dir_path + "/value.npy"
-        write_equal(all_close, path)
-        return
+        all_close = 0.0
 
     features_torch = to_torch(features)
 

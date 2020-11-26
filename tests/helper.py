@@ -11,9 +11,14 @@ def load_col_major(path):
     return mat
 
 
-def check_isclose(A, B):
+def check_isclose(A, B, loose=False):
     if (A.shape == B.shape):
-        is_close = np.isclose(A, B)
+        if not loose:
+            is_close = np.isclose(A, B)
+        else:
+            rtol = 1e-05
+            atol = 1e-08
+            is_close = np.isclose(A, B, 2 * rtol, 2 * atol)
         ratio_close = is_close.sum() / B.size
     else:
         print(A.shape)

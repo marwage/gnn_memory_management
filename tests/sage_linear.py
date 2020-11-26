@@ -78,6 +78,9 @@ def test_sage_linear():
     if num_nans > 0:
         print("SageLinear: Number of NaNs: {}".format(num_nans))
 
+    ratio_close = check_isclose(sage_linear_result, true_sage_linear_result, True)
+    print("SageLinear: Loose close: {}".format(ratio_close))
+
 
     # BACKPROPAGATION
     true_sage_linear_result_torch.backward(in_gradients_torch)
@@ -107,6 +110,9 @@ def test_sage_linear():
     ratio_equal = check_equal(self_grads, true_self_grads)
     print("Linear self input: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     all_close = all_close * ratio_close
+
+    ratio_close = check_isclose(self_grads, true_self_grads, True)
+    print("Linear self input: Loose close: {}".format(ratio_close))
 
     ratio_close = check_isclose(neigh_grads, true_neigh_grads)
     ratio_equal = check_equal(neigh_grads, true_neigh_grads)
