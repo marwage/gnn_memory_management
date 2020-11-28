@@ -3,9 +3,12 @@
 #include "graph_convolution.hpp"
 #include "cuda_helper.hpp"
 #include "divmv.h"
+#include "memory.hpp"
 
 #include <cmath>
 #include <string>
+
+const int LOG_MEMORY = 1;
 
 
 GraphConvolution::GraphConvolution() {}
@@ -158,6 +161,10 @@ matrix<float>* GraphConvolution::forward(matrix<float> *x) {
 
     y_.row_major = false;
 
+    if (LOG_MEMORY) {
+        log_allocated_memory("Graph convolution forward");
+    }
+
     // free memory
     check_cuda(cudaFree(d_A_csr_val));
     check_cuda(cudaFree(d_A_col_ind));
@@ -253,6 +260,10 @@ matrix<float>* GraphConvolution::backward(matrix<float> *in_gradients) {
 
     gradients_.row_major = false;
 
+    if (LOG_MEMORY) {
+        log_allocated_memory("Graph convolution backward");
+    }
+
     // clean-up
     check_cuda(cudaFree(d_buffer));
     check_cuda(cudaFree(d_dinput));
@@ -346,6 +357,15 @@ matrix<float>* GraphConvChunked::forward(matrix<float> *x) {
 
     y_.row_major = y_chunk->row_major;
 
+    if (LOG_MEMORY) {
+        log_allocated_memory("Graph convolution chunked forward");
+    }
+
+    // free GPU memory
+    check_cuda(cudaFree(d_y));
+    check_cuda(cudaFree(d_y_chunk));
+
+
     return &y_;
 }
 
@@ -388,6 +408,14 @@ matrix<float>* GraphConvChunked::backward(matrix<float> *in_gradients) {
                           cudaMemcpyDeviceToHost));
 
     gradients_.row_major = gradients_chunk->row_major;
+
+    if (LOG_MEMORY) {
+        log_allocated_memory("Graph convolution chunked backward");
+    }
+
+    // free GPU memory
+    check_cuda(cudaFree(d_gradients));
+    check_cuda(cudaFree(d_gradients_chunk));
 
     return &gradients_;
 }
