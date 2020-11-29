@@ -10,10 +10,10 @@
 class Add {
 private:
     CudaHelper *cuda_helper_;
-    matrix<float> y_;
+    Matrix<float> y_;
 public:
     Add(CudaHelper *cuda_helper, long num_nodes, long num_features);
-    matrix<float>* forward(matrix<float> *a, matrix<float> *b);
+    Matrix<float>* forward(Matrix<float> *a, Matrix<float> *b);
 };
 
 

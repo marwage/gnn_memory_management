@@ -12,7 +12,7 @@ std::string home = std::getenv("HOME");
 std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
 std::string test_dir_path = dir_path + "/tests";
 
-void save_params(matrix<float> **parameters) {
+void save_params(Matrix<float> **parameters) {
     std::string path;
 
     path = test_dir_path + "/self_weight.npy";
@@ -25,7 +25,7 @@ void save_params(matrix<float> **parameters) {
     save_npy_matrix(parameters[3], path);
 }
 
-void save_grads(SageLinearGradients *gradients, matrix<float> **weight_gradients) {
+void save_grads(SageLinearGradients *gradients, Matrix<float> **weight_gradients) {
     std::string path;
 
     path = test_dir_path + "/self_grads.npy";
@@ -80,12 +80,12 @@ int run_python(std::string module_name, std::string function_name) {
 }
 
 int read_return_value(std::string path) {
-    matrix<int> return_mat = load_npy_matrix<int>(path);
+    Matrix<int> return_mat = load_npy_matrix<int>(path);
     return return_mat.values[0];
 }
 
 void write_value(int value, std::string path) {
-    matrix<int> mat;
+    Matrix<int> mat;
     mat.rows = 1;
     mat.columns = 1;
     mat.row_major = true;
@@ -94,7 +94,7 @@ void write_value(int value, std::string path) {
     save_npy_matrix(mat, path);
 }
 
-int num_equal_rows(matrix<float> A, matrix<float> B) {
+int num_equal_rows(Matrix<float> A, Matrix<float> B) {
     int num_rows = 0;
     bool equal_row = true;
 
@@ -113,7 +113,7 @@ int num_equal_rows(matrix<float> A, matrix<float> B) {
     return num_rows;
 }
 
-int compare_mat(matrix<float> *mat_a, matrix<float> *mat_b, std::string name) {
+int compare_mat(Matrix<float> *mat_a, Matrix<float> *mat_b, std::string name) {
     std::string path_a = test_dir_path + "/a.npy";
     std::string path_b = test_dir_path + "/b.npy";
     std::string return_value_path = test_dir_path + "/value.npy";

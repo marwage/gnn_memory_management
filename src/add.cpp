@@ -5,10 +5,10 @@
 
 Add::Add(CudaHelper *cuda_helper, long num_nodes, long num_features) {
     cuda_helper_ = cuda_helper;
-    y_ = new_float_matrix(num_nodes, num_features, true);
+    y_ = Matrix<float>(num_nodes, num_features, true);
 }
 
-matrix<float>* Add::forward(matrix<float> *a, matrix<float> *b) {
+Matrix<float>* Add::forward(Matrix<float> *a, Matrix<float> *b) {
     if (a->row_major != b->row_major) {
         to_row_major_inplace(a);
         to_row_major_inplace(b);

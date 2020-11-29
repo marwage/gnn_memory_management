@@ -8,14 +8,14 @@
 
 class NLLLoss {
 private:
-    matrix<float> *input_;
-    matrix<int> *labels_;
-    matrix<float> gradients_;
+    Matrix<float> *input_;
+    Matrix<int> *labels_;
+    Matrix<float> gradients_;
 
 public:
     NLLLoss(long num_nodes, long num_features);
-    float forward(matrix<float> *x, matrix<int> *y);
-    matrix<float>* backward();
+    float forward(Matrix<float> *x, Matrix<int> *y);
+    Matrix<float>* backward();
 };
 
 #endif

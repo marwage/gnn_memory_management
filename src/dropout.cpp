@@ -16,11 +16,11 @@ Dropout::Dropout() {}
 Dropout::Dropout(CudaHelper *helper, long num_nodes, long num_features) {
     cuda_helper_ = helper;
 
-    y_ = new_float_matrix(num_nodes, num_features, true);
-    gradients_ = new_float_matrix(num_nodes, num_features, true);
+    y_ = Matrix<float>(num_nodes, num_features, true);
+    gradients_ = Matrix<float>(num_nodes, num_features, true);
 }
 
-matrix<float>* Dropout::forward(matrix<float> *x) {
+Matrix<float>* Dropout::forward(Matrix<float> *x) {
     to_row_major_inplace(x);
     if (y_.rows != x->rows || y_.columns != x->columns) {
         throw "Matrix shapes are unequal";
@@ -88,7 +88,7 @@ matrix<float>* Dropout::forward(matrix<float> *x) {
     return &y_;
 }
 
-matrix<float>* Dropout::backward(matrix<float> *in_gradients) {
+Matrix<float>* Dropout::backward(Matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
     to_row_major_inplace(&y_);
     if (y_.rows != in_gradients->rows || y_.columns != in_gradients->columns) {
@@ -160,17 +160,17 @@ DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes
         }
     }
 
-    y_ = new_float_matrix(num_nodes, num_features, true);
-    gradients_ = new_float_matrix(num_nodes, num_features, true);
+    y_ = Matrix<float>(num_nodes, num_features, true);
+    gradients_ = Matrix<float>(num_nodes, num_features, true);
 }
 
-matrix<float>* DropoutChunked::forward(matrix<float> *x) {
+Matrix<float>* DropoutChunked::forward(Matrix<float> *x) {
     to_row_major_inplace(x);
 
-    matrix<float> x_chunk;
+    Matrix<float> x_chunk;
     x_chunk.rows = chunk_size_;
     x_chunk.columns = x->columns;
-    matrix<float> *y_chunk;
+    Matrix<float> *y_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {
@@ -190,14 +190,14 @@ matrix<float>* DropoutChunked::forward(matrix<float> *x) {
     return &y_;
 }
 
-matrix<float>* DropoutChunked::backward(matrix<float> *in_gradients) {
+Matrix<float>* DropoutChunked::backward(Matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
     to_row_major_inplace(&y_);
 
-    matrix<float> in_gradients_chunk;
+    Matrix<float> in_gradients_chunk;
     in_gradients_chunk.rows = chunk_size_;
     in_gradients_chunk.columns = in_gradients->columns;
-    matrix<float> *gradients_chunk;
+    Matrix<float> *gradients_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {

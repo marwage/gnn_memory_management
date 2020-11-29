@@ -17,25 +17,25 @@ Linear::Linear(CudaHelper *helper, long in_features, long out_features, long num
     num_in_features_ = in_features;
     num_out_features_ = out_features;
 
-    weight_ = new_float_matrix(num_in_features_, num_out_features_, false);
-    bias_ = new_float_matrix(num_out_features_, 1, false);
+    weight_ = Matrix<float>(num_in_features_, num_out_features_, false);
+    bias_ = Matrix<float>(num_out_features_, 1, false);
 
-    grad_weight_ = new_float_matrix(weight_.rows, weight_.columns, false);
-    grad_bias_= new_float_matrix(bias_.rows, bias_.columns, false);
+    grad_weight_ = Matrix<float>(weight_.rows, weight_.columns, false);
+    grad_bias_= Matrix<float>(bias_.rows, bias_.columns, false);
 
     Linear::init_weight_bias();
 
-    bias_expanded_ = new_float_matrix(num_nodes, bias_.rows, false);
+    bias_expanded_ = Matrix<float>(num_nodes, bias_.rows, false);
 
 
-    y_ = new_float_matrix(num_nodes, weight_.columns, false);
+    y_ = Matrix<float>(num_nodes, weight_.columns, false);
 
     ones_ = new float[num_nodes];
     for (int i = 0; i < num_nodes; ++i) {
         ones_[i] = 1.0;
     }
 
-    gradients_input_ = new_float_matrix(num_nodes, in_features, false);
+    gradients_input_ = Matrix<float>(num_nodes, in_features, false);
 }
 
 void Linear::init_weight_bias() {
@@ -52,15 +52,15 @@ void Linear::init_weight_bias() {
     }
 }
 
-matrix<float>** Linear::get_parameters() {
-    matrix<float> **parameters = new matrix<float>*[2];
+Matrix<float>** Linear::get_parameters() {
+    Matrix<float> **parameters = new Matrix<float>*[2];
     parameters[0] = &weight_;
     parameters[1] = &bias_;
 
     return parameters;
 }
 
-void Linear::set_parameters(matrix<float> **parameters) {
+void Linear::set_parameters(Matrix<float> **parameters) {
     to_column_major_inplace(parameters[0]);
     to_column_major_inplace(parameters[1]);
 
@@ -68,15 +68,15 @@ void Linear::set_parameters(matrix<float> **parameters) {
     std::memcpy(bias_.values, parameters[1]->values, bias_.rows * bias_.columns * sizeof(float));
 }
 
-matrix<float>** Linear::get_gradients() {
-    matrix<float> **grads = new matrix<float>*[2];
+Matrix<float>** Linear::get_gradients() {
+    Matrix<float> **grads = new Matrix<float>*[2];
     grads[0] = &grad_weight_;
     grads[1] = &grad_bias_;
 
     return grads;
 }
 
-void Linear::set_gradients(matrix<float> **grads) {
+void Linear::set_gradients(Matrix<float> **grads) {
     to_column_major_inplace(grads[0]);
     to_column_major_inplace(grads[1]);
 
@@ -92,7 +92,7 @@ void Linear::expand_bias() {
     }
 }
 
-matrix<float>* Linear::forward(matrix<float> *x) {
+Matrix<float>* Linear::forward(Matrix<float> *x) {
     if (y_.rows != x->rows || num_in_features_ != x->columns) {
         throw "Matrix shapes unequal";
     }
@@ -147,7 +147,7 @@ matrix<float>* Linear::forward(matrix<float> *x) {
     return &y_;
 }
 
-matrix<float>* Linear::backward(matrix<float> *in_gradients) {
+Matrix<float>* Linear::backward(Matrix<float> *in_gradients) {
     to_column_major_inplace(in_gradients);
     to_column_major_inplace(x_);
     to_column_major_inplace(&weight_);
@@ -250,9 +250,9 @@ matrix<float>* Linear::backward(matrix<float> *in_gradients) {
     return &gradients_input_;
 }
 
-void Linear::update_weights(matrix<float> *gradients) {
-    matrix<float> *in_gradients_weight = &gradients[0];
-    matrix<float> *in_gradients_bias = &gradients[1];
+void Linear::update_weights(Matrix<float> *gradients) {
+    Matrix<float> *in_gradients_weight = &gradients[0];
+    Matrix<float> *in_gradients_bias = &gradients[1];
     to_column_major_inplace(in_gradients_weight);
     to_column_major_inplace(in_gradients_bias);
 

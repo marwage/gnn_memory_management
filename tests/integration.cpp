@@ -21,15 +21,15 @@ int integration_test(int chunk_size) {
 
     // read features
     std::string path = flickr_dir_path + "/features.npy";
-    matrix<float> features = load_npy_matrix<float>(path);
+    Matrix<float> features = load_npy_matrix<float>(path);
 
     // read classes
     path = flickr_dir_path + "/classes.npy";
-    matrix<int> classes = load_npy_matrix<int>(path);
+    Matrix<int> classes = load_npy_matrix<int>(path);
 
     // read adjacency
     path = flickr_dir_path + "/adjacency.mtx";
-    sparse_matrix<float> adjacency = load_mtx_matrix<float>(path);
+    SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     // FORWARD PASS
     CudaHelper cuda_helper;
@@ -58,15 +58,15 @@ int integration_test(int chunk_size) {
     Adam adam(&cuda_helper, learning_rate, sage_linear_layer->get_parameters(), 4);
 
     // graph convolution
-    matrix<float> *graph_convolution_result = graph_convolution_layer.forward(&features);
+    Matrix<float> *graph_convolution_result = graph_convolution_layer.forward(&features);
     path = test_dir_path + "/graph_convolution_result.npy";
     save_npy_matrix(graph_convolution_result, path);
 
     // linear layer
-    matrix<float> *linear_result = sage_linear_layer->forward(&features, graph_convolution_result);
+    Matrix<float> *linear_result = sage_linear_layer->forward(&features, graph_convolution_result);
     path = test_dir_path + "/linear_result.npy";
     save_npy_matrix(linear_result, path);
-    matrix<float> **parameters = sage_linear_layer->get_parameters();
+    Matrix<float> **parameters = sage_linear_layer->get_parameters();
     path = test_dir_path + "/self_weight.npy";
     save_npy_matrix(parameters[0], path);
     path = test_dir_path + "/self_bias.npy";
@@ -77,18 +77,18 @@ int integration_test(int chunk_size) {
     save_npy_matrix(parameters[3], path);
 
     // ReLU
-    matrix<float> *relu_result = relu_layer->forward(linear_result);
+    Matrix<float> *relu_result = relu_layer->forward(linear_result);
     path = test_dir_path + "/relu_result.npy";
     save_npy_matrix(relu_result, path);
 
     // log-softmax
-    matrix<float> *log_softmax_result = log_softmax_layer->forward(relu_result);
+    Matrix<float> *log_softmax_result = log_softmax_layer->forward(relu_result);
     path = test_dir_path + "/log_softmax_result.npy";
     save_npy_matrix(log_softmax_result, path);
 
     // loss
     float loss = loss_layer.forward(log_softmax_result, &classes);
-    matrix<float> loss_mat;
+    Matrix<float> loss_mat;
     loss_mat.rows = 1;
     loss_mat.columns = 1;
     loss_mat.values = &loss;
@@ -97,17 +97,17 @@ int integration_test(int chunk_size) {
 
     // BACKPROPAGATION
     //loss
-    matrix<float> *loss_grads = loss_layer.backward();
+    Matrix<float> *loss_grads = loss_layer.backward();
     path = test_dir_path + "/loss_grads.npy";
     save_npy_matrix(loss_grads, path);
 
     // log-softmax
-    matrix<float> *log_softmax_grads = log_softmax_layer->backward(loss_grads);
+    Matrix<float> *log_softmax_grads = log_softmax_layer->backward(loss_grads);
     path = test_dir_path + "/log_softmax_grads.npy";
     save_npy_matrix(log_softmax_grads, path);
 
     // ReLU
-    matrix<float> *relu_grads = relu_layer->backward(log_softmax_grads);
+    Matrix<float> *relu_grads = relu_layer->backward(log_softmax_grads);
     path = test_dir_path + "/relu_grads.npy";
     save_npy_matrix(relu_grads, path);
 
@@ -117,7 +117,7 @@ int integration_test(int chunk_size) {
     save_npy_matrix(linear_grads->self_grads, path);
     path = test_dir_path + "/neigh_grads.npy";
     save_npy_matrix(linear_grads->neigh_grads, path);
-    matrix<float> **gradients = sage_linear_layer->get_gradients();
+    Matrix<float> **gradients = sage_linear_layer->get_gradients();
     path = test_dir_path + "/self_weight_grads.npy";
     save_npy_matrix(gradients[0], path);
     path = test_dir_path + "/self_bias_grads.npy";
@@ -128,12 +128,12 @@ int integration_test(int chunk_size) {
     save_npy_matrix(gradients[3], path);
 
     // graph convolution
-    matrix<float> *graph_convolution_grads = graph_convolution_layer.backward(linear_grads->neigh_grads);
+    Matrix<float> *graph_convolution_grads = graph_convolution_layer.backward(linear_grads->neigh_grads);
     path = test_dir_path + "/graph_convolution_grads.npy";
     save_npy_matrix(graph_convolution_grads, path);
 
     // add sage_linear_gradients.self_grads + gradients
-    matrix<float> *add_grads = add.forward(linear_grads->self_grads, graph_convolution_grads);
+    Matrix<float> *add_grads = add.forward(linear_grads->self_grads, graph_convolution_grads);
     path = test_dir_path + "/add_grads.npy";
     save_npy_matrix(add_grads, path);
 

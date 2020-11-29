@@ -11,15 +11,15 @@ private:
     CudaHelper *cuda_helper_;
     long num_in_features_;
     long num_out_features_;
-    matrix<float> weight_;
-    matrix<float> bias_;
-    matrix<float> bias_expanded_;
-    matrix<float> grad_weight_;
-    matrix<float> grad_bias_;
-    matrix<float> *x_;
-    matrix<float> y_;
+    Matrix<float> weight_;
+    Matrix<float> bias_;
+    Matrix<float> bias_expanded_;
+    Matrix<float> grad_weight_;
+    Matrix<float> grad_bias_;
+    Matrix<float> *x_;
+    Matrix<float> y_;
     float *ones_;
-    matrix<float> gradients_input_;
+    Matrix<float> gradients_input_;
 
     void init_weight_bias();
     void expand_bias();
@@ -27,13 +27,13 @@ private:
 public:
     Linear();
     Linear(CudaHelper *helper, long in_features, long out_features, long num_nodes);
-    matrix<float> **get_parameters();
-    void set_parameters(matrix<float> **parameters);
-    matrix<float> **get_gradients();
-    void set_gradients(matrix<float> **grads);
-    matrix<float>* forward(matrix<float> *x);
-    matrix<float>* backward(matrix<float> *in_gradients);
-    void update_weights(matrix<float> *gradients);
+    Matrix<float> **get_parameters();
+    void set_parameters(Matrix<float> **parameters);
+    Matrix<float> **get_gradients();
+    void set_gradients(Matrix<float> **grads);
+    Matrix<float>* forward(Matrix<float> *x);
+    Matrix<float>* backward(Matrix<float> *in_gradients);
+    void update_weights(Matrix<float> *gradients);
 };
 
 #endif

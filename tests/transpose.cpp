@@ -14,7 +14,7 @@ int test_transpose(long rows, long columns, bool to_col_major) {
     std::string test_dir_path = dir_path + "/tests";
     std::string path;
 
-    matrix<float> mat = gen_rand_matrix(rows, columns);
+    Matrix<float> mat = gen_rand_matrix(rows, columns);
     if (!to_col_major) { // to_row_major
         mat.row_major = false;
     }

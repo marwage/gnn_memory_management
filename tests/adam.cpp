@@ -30,11 +30,11 @@ int test_adam() {
 //    path = test_dir_path + "/bias.npy";
 //    save_npy_matrix(bias, path);
 
-    matrix<float> weight_grads = gen_rand_matrix(num_in_features, num_out_features);
+    Matrix<float> weight_grads = gen_rand_matrix(num_in_features, num_out_features);
     path = test_dir_path + "/weight_grads.npy";
     save_npy_matrix(weight_grads, path);
 
-    matrix<float> bias_grads = gen_rand_matrix(num_out_features, 1);
+    Matrix<float> bias_grads = gen_rand_matrix(num_out_features, 1);
     path = test_dir_path + "/bias_grads.npy";
     save_npy_matrix(bias_grads, path);
 
@@ -45,7 +45,7 @@ int test_adam() {
 
     CudaHelper cuda_helper;
     Linear linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
-    matrix<float> **parameters = linear.get_parameters();
+    Matrix<float> **parameters = linear.get_parameters();
     Adam adam(&cuda_helper, learning_rate, parameters, num_params);
 //    linear.set_parameters(params);
 
@@ -54,15 +54,15 @@ int test_adam() {
     path = test_dir_path + "/bias.npy";
     save_npy_matrix(parameters[1], path);
 
-    matrix<float> **grads = new matrix<float>*[num_params];
+    Matrix<float> **grads = new Matrix<float>*[num_params];
     grads[0] = &weight_grads;
     grads[1] = &bias_grads;
 
-    matrix<float> *adam_gradients = adam.step(grads);
+    Matrix<float> *adam_gradients = adam.step(grads);
 
     linear.update_weights(adam_gradients);
 
-    matrix<float> **params_updated = linear.get_parameters();
+    Matrix<float> **params_updated = linear.get_parameters();
 
     path = test_dir_path + "/weight_updated.npy";
     save_npy_matrix(params_updated[0], path);

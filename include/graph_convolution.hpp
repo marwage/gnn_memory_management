@@ -11,28 +11,28 @@
 
 class GraphConvolutionParent {
 public:
-    virtual matrix<float>* forward(matrix<float> *x) = 0;
-    virtual matrix<float>* backward(matrix<float> *in_gradients) = 0;
+    virtual Matrix<float>* forward(Matrix<float> *x) = 0;
+    virtual Matrix<float>* backward(Matrix<float> *in_gradients) = 0;
 };
 
 class GraphConvolution: public GraphConvolutionParent {
 private:
     CudaHelper *cuda_helper_;
-    sparse_matrix<float> *adjacency_;
+    SparseMatrix<float> *adjacency_;
     std::string reduction_;
     bool mean_;
-    matrix<float> ones_;
-    matrix<float> sum_;
-    matrix<float> y_;
-    matrix<float> gradients_;
+    Matrix<float> ones_;
+    Matrix<float> sum_;
+    Matrix<float> y_;
+    Matrix<float> gradients_;
 
 public:
     GraphConvolution();
-    GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adjacency, std::string reduction,
+    GraphConvolution(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                      long num_nodes, long num_features);
-    matrix<float>* forward(matrix<float> *x);
-    matrix<float>* forward(sparse_matrix<float> *adj, matrix<float> *x);
-    matrix<float>* backward(matrix<float> *in_gradients);
+    Matrix<float>* forward(Matrix<float> *x);
+    Matrix<float>* forward(SparseMatrix<float> *adj, Matrix<float> *x);
+    Matrix<float>* backward(Matrix<float> *in_gradients);
 };
 
 class GraphConvChunked: public GraphConvolutionParent {
@@ -42,17 +42,17 @@ private:
     long last_chunk_size_;
     long num_chunks_;
     std::vector<GraphConvolution> graph_conv_layers_;
-    std::vector<sparse_matrix<float>> adjacencies_;
-    matrix<float> y_;
-    matrix<float> gradients_;
-    std::vector<matrix<float>> x_chunks_;
-    std::vector<matrix<float>> in_gradients_chunks_;
+    std::vector<SparseMatrix<float>> adjacencies_;
+    Matrix<float> y_;
+    Matrix<float> gradients_;
+    std::vector<Matrix<float>> x_chunks_;
+    std::vector<Matrix<float>> in_gradients_chunks_;
 
 public:
-    GraphConvChunked(CudaHelper *helper, sparse_matrix<float> *adjacency, std::string reduction,
+    GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                      long num_features, long chunk_size, long num_nodes);
-    matrix<float>* forward(matrix<float> *x);
-    matrix<float>* backward(matrix<float> *in_gradients);
+    Matrix<float>* forward(Matrix<float> *x);
+    Matrix<float>* backward(Matrix<float> *in_gradients);
 };
 
 #endif

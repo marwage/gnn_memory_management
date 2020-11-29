@@ -10,7 +10,7 @@
 
 GraphConvolution::GraphConvolution() {}
 
-GraphConvolution::GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adjacency, std::string reduction,
+GraphConvolution::GraphConvolution(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                                    long num_nodes, long num_features) {
     cuda_helper_ = helper;
     adjacency_ = adjacency;
@@ -23,19 +23,24 @@ GraphConvolution::GraphConvolution(CudaHelper *helper, sparse_matrix<float> *adj
         throw "Reduction not supported";
     }
 
-    y_ = new_float_matrix(num_nodes, num_features, false);
-    gradients_ = new_float_matrix(num_nodes, num_features, false);
+    y_= Matrix<float>(num_nodes, num_features, false);
+    gradients_ = Matrix<float>(num_nodes, num_features, false);
+
+    // DEBUGGING
+//    for (long i = 0; i < gradients_.size_; ++i) {
+//        gradients_.values[i] = 0.0;
+//    }
 
     if (mean_) {
-        sum_ = new_float_matrix(num_nodes, 1, false);
-        ones_ = new_float_matrix(adjacency->columns, 1, false); // adjacency_->columns is chunk_size
+        sum_ = Matrix<float>(num_nodes, 1, false);
+        ones_ = Matrix<float>(adjacency->columns, 1, false); // adjacency_->columns is chunk_size
         for (int i = 0; i < ones_.rows * ones_.columns; ++i) {
             ones_.values[i] = 1.0;
         }
     }
 }
 
-matrix<float>* GraphConvolution::forward(matrix<float> *x) {
+Matrix<float>* GraphConvolution::forward(Matrix<float> *x) {
     to_column_major_inplace(x);
 
     float *d_A_csr_val;
@@ -169,12 +174,12 @@ matrix<float>* GraphConvolution::forward(matrix<float> *x) {
     return &y_;
 }
 
-matrix<float>* GraphConvolution::forward(sparse_matrix<float> *adj, matrix<float> *x) {
+Matrix<float>* GraphConvolution::forward(SparseMatrix<float> *adj, Matrix<float> *x) {
     adjacency_ = adj;
     return forward(x);
 }
 
-matrix<float>* GraphConvolution::backward(matrix<float> *in_gradients) {
+Matrix<float>* GraphConvolution::backward(Matrix<float> *in_gradients) {
     to_column_major_inplace(in_gradients);
 
     float *d_g;
@@ -264,7 +269,7 @@ matrix<float>* GraphConvolution::backward(matrix<float> *in_gradients) {
     return &gradients_;
 }
 
-GraphConvChunked::GraphConvChunked(CudaHelper *helper, sparse_matrix<float> *adjacency, std::string reduction,
+GraphConvChunked::GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                                    long num_features, long chunk_size, long num_nodes) {
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
@@ -277,9 +282,9 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, sparse_matrix<float> *adj
     }
 
     graph_conv_layers_ = std::vector<GraphConvolution>(num_chunks_);
-    adjacencies_ = std::vector<sparse_matrix<float>>(num_chunks_);
-    x_chunks_ = std::vector<matrix<float>>(num_chunks_);
-    in_gradients_chunks_ = std::vector<matrix<float>>(num_chunks_);
+    adjacencies_ = std::vector<SparseMatrix<float>>(num_chunks_);
+    x_chunks_ = std::vector<Matrix<float>>(num_chunks_);
+    in_gradients_chunks_ = std::vector<Matrix<float>>(num_chunks_);
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == num_chunks_ - 1) {
             // ONLY POSSIBLE IF ADJACENCY IS SYMMETRIC
@@ -301,17 +306,17 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, sparse_matrix<float> *adj
         in_gradients_chunks_[i].values = new float[in_gradients_chunks_[i].rows * in_gradients_chunks_[i].columns];
     }
 
-    y_ = new_float_matrix(num_nodes, num_features, true);
-    gradients_ = new_float_matrix(num_nodes, num_features, true);
+    y_ = Matrix<float>(num_nodes, num_features, true);
+    gradients_ = Matrix<float>(num_nodes, num_features, true);
 }
 
-matrix<float>* GraphConvChunked::forward(matrix<float> *x) {
+Matrix<float>* GraphConvChunked::forward(Matrix<float> *x) {
     to_row_major_inplace(x);
     if (y_.rows != x->rows || y_.columns != x->columns) {
         throw "Matrix shapes are unequal";
     }
 
-    matrix<float> *y_chunk;
+    Matrix<float> *y_chunk;
 
     for (int i = 0; i < y_.rows * y_.columns; ++i) {
         y_.values[i] = 0.0;
@@ -354,13 +359,13 @@ matrix<float>* GraphConvChunked::forward(matrix<float> *x) {
     return &y_;
 }
 
-matrix<float>* GraphConvChunked::backward(matrix<float> *in_gradients) {
+Matrix<float>* GraphConvChunked::backward(Matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
     if (y_.rows != in_gradients->rows || y_.columns != in_gradients->columns) {
         throw "Matrix shapes are unequal";
     }
 
-    matrix<float> *gradients_chunk;
+    Matrix<float> *gradients_chunk;
     for (int i = 0; i < gradients_.rows * gradients_.columns; ++i) {
         gradients_.values[i] = 0.0;
     }

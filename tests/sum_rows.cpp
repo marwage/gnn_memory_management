@@ -7,7 +7,7 @@
 #include <cuda_runtime.h>
 
 
-matrix<float> sum_rows(matrix<float> in_mat) {
+Matrix<float> sum_rows(Matrix<float> in_mat) {
     CudaHelper cuda_helper;
     float alpha = 1.0;
     float beta = 0.0;
@@ -19,7 +19,7 @@ matrix<float> sum_rows(matrix<float> in_mat) {
                           in_mat.rows * in_mat.columns * sizeof(float),
                           cudaMemcpyHostToDevice));
 
-    matrix<float> ones;
+    Matrix<float> ones;
     ones.rows = in_mat.rows;
     ones.columns = 1;
     ones.values = reinterpret_cast<float *>(malloc(ones.rows * sizeof(float)));
@@ -33,7 +33,7 @@ matrix<float> sum_rows(matrix<float> in_mat) {
                           ones.rows * sizeof(float),
                           cudaMemcpyHostToDevice));
 
-    matrix<float> sum;
+    Matrix<float> sum;
     sum.rows = in_mat.columns;
     sum.columns = 1;
     sum.values = reinterpret_cast<float *>(malloc(sum.rows * sizeof(float)));
@@ -61,7 +61,7 @@ matrix<float> sum_rows(matrix<float> in_mat) {
 }
 
 int test_sum_rows() {
-    matrix<float> mat;
+    Matrix<float> mat;
     mat.rows = 1 << 15;
     mat.columns = 1 << 13;
     mat.values = (float *) malloc(mat.rows * mat.columns * sizeof(float));
@@ -69,7 +69,7 @@ int test_sum_rows() {
         mat.values[i] = 2.0;
     }
 
-    matrix<float> sum = sum_rows(mat);
+    Matrix<float> sum = sum_rows(mat);
 
     float expected_value = (float) mat.rows * 2;
     for (int i = 0; i < sum.rows; ++i) {

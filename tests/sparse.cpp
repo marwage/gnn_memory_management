@@ -18,7 +18,7 @@ int test_sparse_transpose() {
     CudaHelper cuda_helper;
 
     path = flickr_dir_path + "/adjacency.mtx";
-    sparse_matrix<float> adjacency = load_mtx_matrix<float>(path);
+    SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     transpose_csr_matrix(&adjacency, &cuda_helper);
 
@@ -34,7 +34,7 @@ int test_get_rows() {
 
     CudaHelper cuda_helper;
 
-    sparse_matrix<float> sp_mat;
+    SparseMatrix<float> sp_mat;
     sp_mat.rows = 10;
     sp_mat.columns = 9;
     sp_mat.nnz = 12;
@@ -47,7 +47,7 @@ int test_get_rows() {
 
     int start_row = 0;
     int end_row = 5;
-    sparse_matrix<float> sp_mat_chunked = get_rows(&sp_mat, start_row, end_row);
+    SparseMatrix<float> sp_mat_chunked = get_rows(&sp_mat, start_row, end_row);
 
     print_sparse_matrix(&sp_mat_chunked);
 

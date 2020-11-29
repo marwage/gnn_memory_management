@@ -7,10 +7,10 @@
 
 
 NLLLoss::NLLLoss(long num_nodes, long num_features) {
-    gradients_ = new_float_matrix(num_nodes, num_features, false);
+    gradients_ = Matrix<float>(num_nodes, num_features, false);
 }
 
-float NLLLoss::forward(matrix<float> *x, matrix<int> *labels) {
+float NLLLoss::forward(Matrix<float> *x, Matrix<int> *labels) {
     to_column_major_inplace(x);
 
     float loss = 0.0;
@@ -26,7 +26,7 @@ float NLLLoss::forward(matrix<float> *x, matrix<int> *labels) {
     return static_cast<float>(loss);
 }
 
-matrix<float>* NLLLoss::backward() {
+Matrix<float>* NLLLoss::backward() {
     for (int i = 0; i < gradients_.rows * gradients_.columns; ++i) {
         gradients_.values[i] = 0.0;
     }

@@ -10,31 +10,31 @@
 #include "invsqrt.h"
 
 
-Adam::Adam(CudaHelper *helper, float learning_rate, matrix<float> **parameters, int num_parameters) {
+Adam::Adam(CudaHelper *helper, float learning_rate, Matrix<float> **parameters, int num_parameters) {
     cuda_helper_ = helper;
     learning_rate_ = learning_rate;
     num_parameters_ = num_parameters;
     t_ = 1;
 
-    momentum_vs_ = new matrix<float>[num_parameters];
-    momentum_ms_ = new matrix<float>[num_parameters];
-    updates_ = new matrix<float>[num_parameters_];
+    momentum_vs_ = new Matrix<float>[num_parameters];
+    momentum_ms_ = new Matrix<float>[num_parameters];
+    updates_ = new Matrix<float>[num_parameters_];
     for (int i = 0; i < num_parameters; ++i) {
-        momentum_vs_[i] = new_float_matrix(parameters[i]->rows, parameters[i]->columns, false);
+        momentum_vs_[i] = Matrix<float>(parameters[i]->rows, parameters[i]->columns, false);
         for (int j = 0; j < momentum_vs_[i].rows * momentum_vs_[i].columns; ++j) {
             momentum_vs_[i].values[j] = 0.0;
         }
 
-        momentum_ms_[i] = new_float_matrix(parameters[i]->rows, parameters[i]->columns, false);
+        momentum_ms_[i] = Matrix<float>(parameters[i]->rows, parameters[i]->columns, false);
         for (int j = 0; j < momentum_ms_[i].rows * momentum_ms_[i].columns; ++j) {
             momentum_ms_[i].values[j] = 0.0;
         }
 
-        updates_[i] = new_float_matrix(parameters[i]->rows, parameters[i]->columns, false);
+        updates_[i] = Matrix<float>(parameters[i]->rows, parameters[i]->columns, false);
     }
 }
 
-matrix<float>* Adam::step(matrix<float> **gradients) {
+Matrix<float>* Adam::step(Matrix<float> **gradients) {
     for (int i = 0; i < num_parameters_; ++i) {
         to_column_major_inplace(gradients[i]);
     }

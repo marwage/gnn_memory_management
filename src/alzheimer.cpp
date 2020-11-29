@@ -22,11 +22,11 @@ void alzheimer(std::string dataset, int chunk_size) {
 
     // read features
     std::string path = dataset_path + "/features.npy";
-    matrix<float> features = load_npy_matrix<float>(path);
+    Matrix<float> features = load_npy_matrix<float>(path);
 
     // read classes
     path = dataset_path + "/classes.npy";
-    matrix<int> classes = load_npy_matrix<int>(path);
+    Matrix<int> classes = load_npy_matrix<int>(path);
 
     //    // read train_mask
     //    path = dataset_path + "/train_mask.npy";
@@ -42,7 +42,7 @@ void alzheimer(std::string dataset, int chunk_size) {
 
     // read adjacency
     path = dataset_path + "/adjacency.mtx";
-    sparse_matrix<float> adjacency = load_mtx_matrix<float>(path);
+    SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     // FORWARD PASS
     CudaHelper cuda_helper;
@@ -107,13 +107,13 @@ void alzheimer(std::string dataset, int chunk_size) {
     Adam adam_1(&cuda_helper, learning_rate, linear_1->get_parameters(), 4);
     Adam adam_2(&cuda_helper, learning_rate, linear_2->get_parameters(), 4);
 
-    matrix<float> *signals;
-    matrix<float> *signals_dropout;
-    matrix<float> *gradients;
+    Matrix<float> *signals;
+    Matrix<float> *signals_dropout;
+    Matrix<float> *gradients;
     SageLinearGradients *sage_linear_gradients;
-    matrix<float> *gradient_0;
-    matrix<float> *gradient_1;
-    matrix<float> *gradient_2;
+    Matrix<float> *gradient_0;
+    Matrix<float> *gradient_1;
+    Matrix<float> *gradient_2;
     float loss;
 
     int num_epochs = 10;

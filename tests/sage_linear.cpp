@@ -14,7 +14,7 @@ const std::string flickr_dir_path = dir_path + "/flickr";
 const std::string test_dir_path = dir_path + "/tests";
 
 
-int test_sage_linear(matrix<float> *input_self, matrix<float> *input_neigh, matrix<float> *in_gradients, int chunk_size) {
+int test_sage_linear(Matrix<float> *input_self, Matrix<float> *input_neigh, Matrix<float> *in_gradients, int chunk_size) {
     std::string path;
 
     CudaHelper cuda_helper;
@@ -25,7 +25,7 @@ int test_sage_linear(matrix<float> *input_self, matrix<float> *input_neigh, matr
         sage_linear_layer = new SageLinearChunked(&cuda_helper, input_self->columns, in_gradients->columns, chunk_size, input_self->rows);
     }
 
-    matrix<float> *result = sage_linear_layer->forward(input_self, input_neigh);
+    Matrix<float> *result = sage_linear_layer->forward(input_self, input_neigh);
 
     SageLinearGradients *gradients = sage_linear_layer->backward(in_gradients);
 
@@ -52,22 +52,22 @@ int test_sage_linear_non_random(int chunk_size) {
     int columns = 512;
     int num_out_features = 256;
 
-    matrix<float> input_self = gen_non_rand_matrix(rows, columns);
+    Matrix<float> input_self = gen_non_rand_matrix(rows, columns);
     path = test_dir_path + "/input_self.npy";
     save_npy_matrix(input_self, path);
 
-    matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
+    Matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
     path = test_dir_path + "/input_neigh.npy";
     save_npy_matrix(input_neigh, path);
 
-    matrix<float> in_gradients = gen_non_rand_matrix(rows, num_out_features);
+    Matrix<float> in_gradients = gen_non_rand_matrix(rows, num_out_features);
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 
     CudaHelper cuda_helper;
     SageLinear sage_linear(&cuda_helper, columns, num_out_features, rows);
 
-    matrix<float> *result = sage_linear.forward(&input_self, &input_neigh);
+    Matrix<float> *result = sage_linear.forward(&input_self, &input_neigh);
     SageLinearGradients *gradients = sage_linear.backward(&in_gradients);
 
     path = test_dir_path + "/result.npy";
@@ -93,13 +93,13 @@ int test_parameters() {
     SageLinearChunked sage_linear_chunked(&cuda_helper, num_in_features, num_out_features, chunk_size, num_nodes);
 
     std::vector<SageLinear> *sage_linear_layers = sage_linear_chunked.get_layers();
-    matrix<float> **params = sage_linear_layers->at(0).get_parameters();
+    Matrix<float> **params = sage_linear_layers->at(0).get_parameters();
 
     int equal = 1;
     long num_parameters = 4;
     int num_chunks = ceil((float) num_nodes / (float) chunk_size);
     for (int i = 1; i < num_chunks; ++i) {
-        matrix<float> **other_params = sage_linear_layers->at(0).get_parameters();
+        Matrix<float> **other_params = sage_linear_layers->at(0).get_parameters();
         for (int j = 0; j < num_parameters; ++j) {
             for (int k = 0; k < params[j]->rows * params[j]->columns; ++k) {
                 if (params[j]->values[k] != other_params[j]->values[k]) {
@@ -120,9 +120,9 @@ int compare_sage_linear(int chunk_size) {
     int columns = 1 << 9;
     int num_out_features = 1 << 8;
 
-    matrix<float> input_self = gen_rand_matrix(rows, columns);
-    matrix<float> input_neigh = gen_rand_matrix(rows, columns);
-    matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
+    Matrix<float> input_self = gen_rand_matrix(rows, columns);
+    Matrix<float> input_neigh = gen_rand_matrix(rows, columns);
+    Matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
 
     CudaHelper cuda_helper;
     int num_nodes = rows;
@@ -130,8 +130,8 @@ int compare_sage_linear(int chunk_size) {
     SageLinearChunked sage_linear_chunked(&cuda_helper, columns, num_out_features, chunk_size, num_nodes);
     sage_linear_chunked.set_parameters(sage_linear.get_parameters());
 
-    matrix<float> *activations = sage_linear.forward(&input_self, &input_neigh);
-    matrix<float> *activations_chunked = sage_linear_chunked.forward(&input_self, &input_neigh);
+    Matrix<float> *activations = sage_linear.forward(&input_self, &input_neigh);
+    Matrix<float> *activations_chunked = sage_linear_chunked.forward(&input_self, &input_neigh);
     works = works * compare_mat(activations, activations_chunked, "Activations");
 
     SageLinearGradients *gradients = sage_linear_chunked.backward(&in_gradients);
@@ -139,8 +139,8 @@ int compare_sage_linear(int chunk_size) {
     works = works * compare_mat(gradients->self_grads, gradients_chunked->self_grads, "Gradients self");
     works = works * compare_mat(gradients->neigh_grads, gradients_chunked->neigh_grads, "Gradients neighbourhood");
 
-    matrix<float> **weight_gradients = sage_linear.get_gradients();
-    matrix<float> **weight_gradients_chunked = sage_linear_chunked.get_gradients();
+    Matrix<float> **weight_gradients = sage_linear.get_gradients();
+    Matrix<float> **weight_gradients_chunked = sage_linear_chunked.get_gradients();
     works = works * compare_mat(weight_gradients[0], weight_gradients_chunked[0], "Gradients self weights");
     works = works * compare_mat(weight_gradients[1], weight_gradients_chunked[1], "Gradients self bias");
     works = works * compare_mat(weight_gradients[2], weight_gradients_chunked[2], "Gradients neighbourhood weights");
@@ -161,22 +161,22 @@ int test_sage_linear_set_parameters() {
     long num_out_features = 512;
     long num_params = 4;
 
-    matrix<float> self_weight = gen_rand_matrix(num_in_features, num_out_features);
-    matrix<float> self_bias = gen_rand_matrix(num_out_features, 1);
-    matrix<float> neigh_weight = gen_rand_matrix(num_in_features, num_out_features);
-    matrix<float> neigh_bias = gen_rand_matrix(num_out_features, 1);
+    Matrix<float> self_weight = gen_rand_matrix(num_in_features, num_out_features);
+    Matrix<float> self_bias = gen_rand_matrix(num_out_features, 1);
+    Matrix<float> neigh_weight = gen_rand_matrix(num_in_features, num_out_features);
+    Matrix<float> neigh_bias = gen_rand_matrix(num_out_features, 1);
 
     CudaHelper cuda_helper;
     SageLinear sage_linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
 
-    matrix<float> **parameters = new matrix<float>*[num_params];
+    Matrix<float> **parameters = new Matrix<float>*[num_params];
     parameters[0] = &self_weight;
     parameters[1] = &self_bias;
     parameters[2] = &neigh_weight;
     parameters[3] = &neigh_bias;
 
     sage_linear.set_parameters(parameters);
-    matrix<float> **get_parameters = sage_linear.get_parameters();
+    Matrix<float> **get_parameters = sage_linear.get_parameters();
 
     compare_mat(parameters[0], get_parameters[0], "self weights");
     compare_mat(parameters[1], get_parameters[1], "self bias");
@@ -201,9 +201,9 @@ int test_sage_linear_get_set_parameters() {
     CudaHelper cuda_helper;
     SageLinear sage_linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
 
-    matrix<float> **get_parameters_before = sage_linear.get_parameters();
+    Matrix<float> **get_parameters_before = sage_linear.get_parameters();
     sage_linear.set_parameters(get_parameters_before);
-    matrix<float> **get_parameters_after = sage_linear.get_parameters();
+    Matrix<float> **get_parameters_after = sage_linear.get_parameters();
 
     compare_mat(get_parameters_before[0], get_parameters_after[0], "self weights");
     compare_mat(get_parameters_before[1], get_parameters_after[1], "self bias");
@@ -220,15 +220,15 @@ TEST_CASE("SageLinear", "[sagelinear]") {
     int columns = 1 << 9;
     int num_out_features = 1 << 8;
 
-    matrix<float> input_self = gen_rand_matrix(rows, columns);
+    Matrix<float> input_self = gen_rand_matrix(rows, columns);
     path = test_dir_path + "/input_self.npy";
     save_npy_matrix(input_self, path);
 
-    matrix<float> input_neigh = gen_rand_matrix(rows, columns);
+    Matrix<float> input_neigh = gen_rand_matrix(rows, columns);
     path = test_dir_path + "/input_neigh.npy";
     save_npy_matrix(input_neigh, path);
 
-    matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
+    Matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 
@@ -241,15 +241,15 @@ TEST_CASE("SageLinear, non-random input", "[sagelinear][nonrandom]") {
     int columns = 1 << 9;
     int num_out_features = 1 << 8;
 
-    matrix<float> input_self = gen_non_rand_matrix(rows, columns);
+    Matrix<float> input_self = gen_non_rand_matrix(rows, columns);
     path = test_dir_path + "/input_self.npy";
     save_npy_matrix(input_self, path);
 
-    matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
+    Matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
     path = test_dir_path + "/input_neigh.npy";
     save_npy_matrix(input_neigh, path);
 
-    matrix<float> in_gradients = gen_non_rand_matrix(rows, num_out_features);
+    Matrix<float> in_gradients = gen_non_rand_matrix(rows, num_out_features);
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 
@@ -262,15 +262,15 @@ TEST_CASE("SageLinear, chunked", "[sagelinear][chunked]") {
     int columns = 1 << 9;
     int num_out_features = 1 << 8;
 
-    matrix<float> input_self = gen_rand_matrix(rows, columns);
+    Matrix<float> input_self = gen_rand_matrix(rows, columns);
     path = test_dir_path + "/input_self.npy";
     save_npy_matrix(input_self, path);
 
-    matrix<float> input_neigh = gen_rand_matrix(rows, columns);
+    Matrix<float> input_neigh = gen_rand_matrix(rows, columns);
     path = test_dir_path + "/input_neigh.npy";
     save_npy_matrix(input_neigh, path);
 
-    matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
+    Matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 
@@ -285,15 +285,15 @@ TEST_CASE("SageLinear, chunked, non-random input", "[sagelinear][chunked][nonran
     int columns = 1 << 9;
     int num_out_features = 1 << 8;
 
-    matrix<float> input_self = gen_non_rand_matrix(rows, columns);
+    Matrix<float> input_self = gen_non_rand_matrix(rows, columns);
     path = test_dir_path + "/input_self.npy";
     save_npy_matrix(input_self, path);
 
-    matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
+    Matrix<float> input_neigh = gen_non_rand_matrix(rows, columns);
     path = test_dir_path + "/input_neigh.npy";
     save_npy_matrix(input_neigh, path);
 
-    matrix<float> in_gradients = gen_non_rand_matrix(rows, num_out_features);
+    Matrix<float> in_gradients = gen_non_rand_matrix(rows, num_out_features);
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 

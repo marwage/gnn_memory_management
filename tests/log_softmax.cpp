@@ -16,9 +16,9 @@ int test_log_softmax(int chunk_size) {
     std::string test_dir_path = dir_path + "/tests";
 
     std::string path = flickr_dir_path + "/features.npy";
-    matrix<float> features = load_npy_matrix<float>(path);
+    Matrix<float> features = load_npy_matrix<float>(path);
 
-    matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 
@@ -30,11 +30,11 @@ int test_log_softmax(int chunk_size) {
         log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.rows, features.columns);
     }
 
-    matrix<float> *activations = log_softmax_layer->forward(&features);
+    Matrix<float> *activations = log_softmax_layer->forward(&features);
     path = test_dir_path + "/activations.npy";
     save_npy_matrix(activations, path);
 
-    matrix<float> *gradients = log_softmax_layer->backward(&in_gradients);
+    Matrix<float> *gradients = log_softmax_layer->backward(&in_gradients);
     path = test_dir_path + "/gradients.npy";
     save_npy_matrix(gradients, path);
 

@@ -13,7 +13,7 @@ const std::string flickr_dir_path = dir_path + "/flickr";
 const std::string test_dir_path = dir_path + "/tests";
 
 
-int test_graph_conv(matrix<float> *input, sparse_matrix<float> *adj, matrix<float> *in_gradients, long chunk_size) {
+int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float> *in_gradients, long chunk_size) {
     std::string path;
     CudaHelper cuda_helper;
     GraphConvolutionParent *graph_conv;
@@ -23,12 +23,12 @@ int test_graph_conv(matrix<float> *input, sparse_matrix<float> *adj, matrix<floa
         graph_conv = new GraphConvChunked(&cuda_helper, adj, "mean", input->columns, chunk_size, input->rows);
     }
 
-    matrix<float> *activations = graph_conv->forward(input);
+    Matrix<float> *activations = graph_conv->forward(input);
 
     // DEBUGGING
     check_nans(activations, "activations");
 
-    matrix<float> *gradients = graph_conv->backward(in_gradients);
+    Matrix<float> *gradients = graph_conv->backward(in_gradients);
 
     path = test_dir_path + "/activations.npy";
     save_npy_matrix(activations, path);
@@ -47,13 +47,13 @@ int test_graph_conv(matrix<float> *input, sparse_matrix<float> *adj, matrix<floa
 TEST_CASE("Graph convolution", "[graphconv]") {
     std::string path;
     path = flickr_dir_path + "/features.npy";
-    matrix<float> features = load_npy_matrix<float>(path);
+    Matrix<float> features = load_npy_matrix<float>(path);
     to_column_major_inplace(&features);
 
     path = flickr_dir_path + "/adjacency.mtx";
-    sparse_matrix<float> adjacency = load_mtx_matrix<float>(path);
+    SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
-    matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 
@@ -63,13 +63,13 @@ TEST_CASE("Graph convolution", "[graphconv]") {
 TEST_CASE("Graph convolution, chunked", "[graphconv][chunked]") {
     std::string path;
     path = flickr_dir_path + "/features.npy";
-    matrix<float> features = load_npy_matrix<float>(path);
+    Matrix<float> features = load_npy_matrix<float>(path);
     to_column_major_inplace(&features);
 
     path = flickr_dir_path + "/adjacency.mtx";
-    sparse_matrix<float> adjacency = load_mtx_matrix<float>(path);
+    SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
-    matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(in_gradients, path);
 

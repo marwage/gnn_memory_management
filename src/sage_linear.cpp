@@ -20,10 +20,10 @@ SageLinear::SageLinear(CudaHelper *helper, long in_features, long out_features, 
     linear_neigh_ = Linear(cuda_helper_, num_in_features_, num_out_features_, num_nodes);
 }
 
-matrix<float>** SageLinear::get_parameters() {
-    matrix<float> **self_params = linear_self_.get_parameters();
-    matrix<float> **neigh_params = linear_neigh_.get_parameters();
-    matrix<float> **params = new matrix<float>*[4];
+Matrix<float>** SageLinear::get_parameters() {
+    Matrix<float> **self_params = linear_self_.get_parameters();
+    Matrix<float> **neigh_params = linear_neigh_.get_parameters();
+    Matrix<float> **params = new Matrix<float>*[4];
     params[0] = self_params[0];
     params[1] = self_params[1];
     params[2] = neigh_params[0];
@@ -33,15 +33,15 @@ matrix<float>** SageLinear::get_parameters() {
 }
 
 // assume number of parameters is 4
-void SageLinear::set_parameters(matrix<float> **parameters) {
+void SageLinear::set_parameters(Matrix<float> **parameters) {
     linear_self_.set_parameters(parameters);
     linear_neigh_.set_parameters(&parameters[2]);
 }
 
-matrix<float>** SageLinear::get_gradients() {
-    matrix<float> **self_grads = linear_self_.get_gradients();
-    matrix<float> **neigh_grads = linear_neigh_.get_gradients();
-    matrix<float> **grads = new matrix<float>*[4];
+Matrix<float>** SageLinear::get_gradients() {
+    Matrix<float> **self_grads = linear_self_.get_gradients();
+    Matrix<float> **neigh_grads = linear_neigh_.get_gradients();
+    Matrix<float> **grads = new Matrix<float>*[4];
     grads[0] = self_grads[0];
     grads[1] = self_grads[1];
     grads[2] = neigh_grads[0];
@@ -50,14 +50,14 @@ matrix<float>** SageLinear::get_gradients() {
     return grads;
 }
 
-void SageLinear::set_gradients(matrix<float> **grads) {
+void SageLinear::set_gradients(Matrix<float> **grads) {
     linear_self_.set_gradients(grads);
     linear_neigh_.set_gradients(&grads[2]);
 }
 
-matrix<float>* SageLinear::forward(matrix<float> *features, matrix<float> *aggr) {
-    matrix<float> *self_result = linear_self_.forward(features);
-    matrix<float> *neigh_result = linear_neigh_.forward(aggr);
+Matrix<float>* SageLinear::forward(Matrix<float> *features, Matrix<float> *aggr) {
+    Matrix<float> *self_result = linear_self_.forward(features);
+    Matrix<float> *neigh_result = linear_neigh_.forward(aggr);
 
     float *d_self;
     check_cuda(cudaMalloc((void **) &d_self,
@@ -89,14 +89,14 @@ matrix<float>* SageLinear::forward(matrix<float> *features, matrix<float> *aggr)
     return self_result;
 }
 
-SageLinearGradients* SageLinear::backward(matrix<float> *in_gradients) {
+SageLinearGradients* SageLinear::backward(Matrix<float> *in_gradients) {
     input_gradients_.self_grads = linear_self_.backward(in_gradients);
     input_gradients_.neigh_grads = linear_neigh_.backward(in_gradients);
 
     return &input_gradients_;
 }
 
-void SageLinear::update_weights(matrix<float> *gradients) {
+void SageLinear::update_weights(Matrix<float> *gradients) {
     linear_self_.update_weights(gradients);
     linear_neigh_.update_weights(&gradients[2]);
 }
@@ -115,9 +115,9 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, l
     }
 
     sage_linear_layers_ = std::vector<SageLinear>(num_chunks_);
-    features_chunks_ = std::vector<matrix<float>>(num_chunks_);
-    aggr_chunks_ = std::vector<matrix<float>>(num_chunks_);
-    in_gradients_chunks_ = std::vector<matrix<float>>(num_chunks_);
+    features_chunks_ = std::vector<Matrix<float>>(num_chunks_);
+    aggr_chunks_ = std::vector<Matrix<float>>(num_chunks_);
+    in_gradients_chunks_ = std::vector<Matrix<float>>(num_chunks_);
     for (int i = 0; i < num_chunks_; ++i) {
         features_chunks_[i].columns = num_in_features;
         aggr_chunks_[i].columns = num_in_features;
@@ -140,25 +140,25 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, l
     }
 
     if (num_chunks_ > 1) {
-        matrix<float> **params = sage_linear_layers_[0].get_parameters();
+        Matrix<float> **params = sage_linear_layers_[0].get_parameters();
         for (int i = 1; i < num_chunks_; ++i) {
             sage_linear_layers_[i].set_parameters(params);
         }
     }
 
-    y_ = new_float_matrix(num_nodes, num_out_features, true);
+    y_ = Matrix<float>(num_nodes, num_out_features, true);
 
-    self_gradients_ = new_float_matrix(num_nodes, num_in_features, true);
-    neighbourhood_gradients_ = new_float_matrix(num_nodes, num_in_features, true);
+    self_gradients_ = Matrix<float>(num_nodes, num_in_features, true);
+    neighbourhood_gradients_ = Matrix<float>(num_nodes, num_in_features, true);
     input_gradients_.self_grads = &self_gradients_;
     input_gradients_.neigh_grads = &neighbourhood_gradients_;
 }
 
-matrix<float>* SageLinearChunked::forward(matrix<float> *features, matrix<float> *aggr) {
+Matrix<float>* SageLinearChunked::forward(Matrix<float> *features, Matrix<float> *aggr) {
     to_row_major_inplace(features);
     to_row_major_inplace(aggr);
 
-    matrix<float> *y_chunk;
+    Matrix<float> *y_chunk;
     for (int i = 0; i < num_chunks_; ++i) {
         features_chunks_[i].row_major = features->row_major;
         aggr_chunks_[i].row_major = aggr->row_major;
@@ -179,7 +179,7 @@ matrix<float>* SageLinearChunked::forward(matrix<float> *features, matrix<float>
     return &y_;
 }
 
-SageLinearGradients* SageLinearChunked::backward(matrix<float> *in_gradients) {
+SageLinearGradients* SageLinearChunked::backward(Matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
 
     SageLinearGradients *gradients_chunk;
@@ -202,7 +202,7 @@ SageLinearGradients* SageLinearChunked::backward(matrix<float> *in_gradients) {
 
     // add gradients of all layers
     if (num_chunks_ > 1) {
-        matrix<float> **gradients = sage_linear_layers_[0].get_gradients();
+        Matrix<float> **gradients = sage_linear_layers_[0].get_gradients();
         int num_parameters = 4;
         float alpha = 1;
         float *d_sum;
@@ -217,7 +217,7 @@ SageLinearGradients* SageLinearChunked::backward(matrix<float> *in_gradients) {
                                   gradients[j]->rows * gradients[j]->columns * sizeof(float)));
 
             for (int i = 1; i < num_chunks_; ++i) {
-                matrix<float> **gradients_i = sage_linear_layers_[i].get_gradients();
+                Matrix<float> **gradients_i = sage_linear_layers_[i].get_gradients();
                 check_cuda(cudaMemcpy(d_gradient, gradients_i[j]->values,
                                       gradients_i[j]->rows * gradients_i[j]->columns * sizeof(float),
                                       cudaMemcpyHostToDevice));
@@ -244,21 +244,21 @@ SageLinearGradients* SageLinearChunked::backward(matrix<float> *in_gradients) {
     return &input_gradients_;
 }
 
-matrix<float>** SageLinearChunked::get_parameters() {
+Matrix<float>** SageLinearChunked::get_parameters() {
     return sage_linear_layers_[0].get_parameters();
 }
 
-void SageLinearChunked::set_parameters(matrix<float> **parameters) {
+void SageLinearChunked::set_parameters(Matrix<float> **parameters) {
     for (int i = 0; i < num_chunks_; ++i) {
         sage_linear_layers_[i].set_parameters(parameters);
     }
 }
 
-matrix<float>** SageLinearChunked::get_gradients() {
+Matrix<float>** SageLinearChunked::get_gradients() {
     return sage_linear_layers_[0].get_gradients();
 }
 
-void SageLinearChunked::update_weights(matrix<float> *gradients) {
+void SageLinearChunked::update_weights(Matrix<float> *gradients) {
     for (int i = 0; i < num_chunks_; ++i) {
         sage_linear_layers_[i].update_weights(gradients);
     }

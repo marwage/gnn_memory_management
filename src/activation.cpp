@@ -16,11 +16,11 @@ Relu::Relu(CudaHelper *helper, long num_nodes, long num_features) {
     alpha_ = 1.0;
     beta_ = 0.0;
 
-    y_ = new_float_matrix(num_nodes, num_features, true);
-    gradients_ = new_float_matrix(num_nodes, num_features, true);
+    y_ = Matrix<float>(num_nodes, num_features, true);
+    gradients_ = Matrix<float>(num_nodes, num_features, true);
 }
 
-matrix<float>* Relu::forward(matrix<float> *x) {
+Matrix<float>* Relu::forward(Matrix<float> *x) {
     to_row_major_inplace(x);
     if (y_.rows != x->rows || y_.columns != x->columns) {
         throw "Matrix shapes are unequal";
@@ -74,7 +74,7 @@ matrix<float>* Relu::forward(matrix<float> *x) {
     return &y_;
 }
 
-matrix<float>* Relu::backward(matrix<float> *in_gradients) {
+Matrix<float>* Relu::backward(Matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
     to_row_major_inplace(&y_);
     to_row_major_inplace(x_);
@@ -144,11 +144,11 @@ LogSoftmax::LogSoftmax(CudaHelper *helper, long num_nodes, long num_features) {
     alpha_ = 1.0;
     beta_ = 0.0;
 
-    y_ = new_float_matrix(num_nodes, num_features, true);
-    gradients_ = new_float_matrix(num_nodes, num_features, true);
+    y_ = Matrix<float>(num_nodes, num_features, true);
+    gradients_ = Matrix<float>(num_nodes, num_features, true);
 }
 
-matrix<float>* LogSoftmax::forward(matrix<float> *x) {
+Matrix<float>* LogSoftmax::forward(Matrix<float> *x) {
     to_row_major_inplace(x);
     if (y_.rows != x->rows || y_.columns != x->columns) {
         throw "Matrix shapes are unequal";
@@ -197,7 +197,7 @@ matrix<float>* LogSoftmax::forward(matrix<float> *x) {
     return &y_;
 }
 
-matrix<float>* LogSoftmax::backward(matrix<float> *in_gradients) {
+Matrix<float>* LogSoftmax::backward(Matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
     to_row_major_inplace(&y_);
     if (y_.rows != in_gradients->rows || y_.columns != in_gradients->columns) {
@@ -269,7 +269,7 @@ ReluChunked::ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, lo
         last_chunk_size_ = chunk_size_;
     }
     relu_layers_ = std::vector<Relu>(num_chunks_);
-    x_chunks_ = std::vector<matrix<float>>(num_chunks_);
+    x_chunks_ = std::vector<Matrix<float>>(num_chunks_);
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == num_chunks_ - 1) {
             relu_layers_[i] = Relu(cuda_helper_, last_chunk_size_, num_features);
@@ -282,17 +282,17 @@ ReluChunked::ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, lo
         x_chunks_[i].row_major = true;
     }
 
-    y_ = new_float_matrix(num_nodes, num_features, true);
-    gradients_ = new_float_matrix(num_nodes, num_features, true);
+    y_ = Matrix<float>(num_nodes, num_features, true);
+    gradients_ = Matrix<float>(num_nodes, num_features, true);
 }
 
-matrix<float>* ReluChunked::forward(matrix<float> *x) {
+Matrix<float>* ReluChunked::forward(Matrix<float> *x) {
     to_row_major_inplace(x);
     if (y_.rows != x->rows || y_.columns != x->columns) {
         throw "Matrix shapes are unequal";
     }
 
-    matrix<float> *y_chunk;
+    Matrix<float> *y_chunk;
     for (int i = 0; i < num_chunks_; ++i) {
         x_chunks_[i].values = &x->values[i * chunk_size_ * x->columns];
 
@@ -307,16 +307,16 @@ matrix<float>* ReluChunked::forward(matrix<float> *x) {
     return &y_;
 }
 
-matrix<float>* ReluChunked::backward(matrix<float> *in_gradients) {
+Matrix<float>* ReluChunked::backward(Matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
     if (y_.rows != in_gradients->rows || y_.columns != in_gradients->columns) {
         throw "Matrix shapes are unequal";
     }
 
-    matrix<float> in_gradients_chunk;
+    Matrix<float> in_gradients_chunk;
     in_gradients_chunk.rows = chunk_size_;
     in_gradients_chunk.columns = in_gradients->columns;
-    matrix<float> *input_gradients_chunk;
+    Matrix<float> *input_gradients_chunk;
 
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {
@@ -357,18 +357,18 @@ LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long n
         }
     }
 
-    y_ = new_float_matrix(num_nodes, num_features, true);
-    gradients_ = new_float_matrix(num_nodes, num_features, true);
+    y_ = Matrix<float>(num_nodes, num_features, true);
+    gradients_ = Matrix<float>(num_nodes, num_features, true);
 }
 
-matrix<float>* LogSoftmaxChunked::forward(matrix<float> *x) {
+Matrix<float>* LogSoftmaxChunked::forward(Matrix<float> *x) {
     to_row_major_inplace(x);
     if (y_.rows != x->rows || y_.columns != x->columns) {
         throw "Matrix shapes are unequal";
     }
 
-    matrix<float> x_chunk;
-    matrix<float> *y_chunk;
+    Matrix<float> x_chunk;
+    Matrix<float> *y_chunk;
     x_chunk.rows = chunk_size_;
     x_chunk.columns = x->columns;
     x_chunk.row_major = x->row_major;
@@ -391,14 +391,14 @@ matrix<float>* LogSoftmaxChunked::forward(matrix<float> *x) {
     return &y_;
 }
 
-matrix<float>* LogSoftmaxChunked::backward(matrix<float> *in_gradients) {
+Matrix<float>* LogSoftmaxChunked::backward(Matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
     if (y_.rows != in_gradients->rows || y_.columns != in_gradients->columns) {
         throw "Matrix shapes are unequal";
     }
 
-    matrix<float> *gradients_chunk;
-    matrix<float> in_gradients_chunk;
+    Matrix<float> *gradients_chunk;
+    Matrix<float> in_gradients_chunk;
     in_gradients_chunk.rows = chunk_size_;
     in_gradients_chunk.columns = in_gradients->columns;
 
