@@ -95,8 +95,43 @@ def preprocess_reddit():
     path = reddit_path + "/adjacency.mtx"
     scipy.io.mmwrite(path, adjacency)
 
+def preprocess_products():
+    products_path = data_path + "/products"
+    
+    path = products_path + "/raw/num-edge-list.csv"
+    num_edges_np = np.genfromtxt(path, dtype=np.int64)
+    num_edges = num_edges_np.item()
+    path = products_path + "/raw/num-node-list.csv"
+    num_classes_np = np.genfromtxt(path, dtype=np.int64)
+    num_classes = num_classes_np.item()
+
+    print("Number of edges: {}".format(num_edges))
+    print("Number of classes: {}".format(num_classes))
+
+    path = products_path + "/raw/edge.csv"
+    edges = np.genfromtxt(path, dtype=np.int64, delimiter=",")
+    data = np.ones(num_edges)
+    adjacency = sp.coo_matrix((data, (edges[:, 0], edges[:, 1])), shape=(num_classes, num_classes))
+    adjacency = adjacency.tocsr()
+    adjacency = adjacency.astype(np.float32)
+    path = products_path + "/adjacency.mtx"
+    scipy.io.mmwrite(path, adjacency)
+
+    path = products_path + "/raw/node-feat.csv"
+    features = np.genfromtxt(path, dtype=np.float64, delimiter=",")
+    features = features.astype(np.float32)
+    path = products_path + "/features.npy"
+    np.save(path, features)
+
+    path = products_path + "/raw/node-label.csv"
+    classes = np.genfromtxt(path, dtype=np.int64, delimiter=",")
+    classes = classes.astype(np.int32)
+    path = products_path + "/classes.npy"
+    np.save(path, classes)
+
 
 if __name__ == "__main__":
     #  preprocess_flickr()
-    preprocess_reddit()
+    #  preprocess_reddit()
+    preprocess_products()
 
