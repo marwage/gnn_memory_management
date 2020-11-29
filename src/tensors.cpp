@@ -11,6 +11,24 @@
 
 
 template<typename T>
+matrix<T>::matrix() {}
+
+template<typename T>
+matrix<T>::~matrix() {
+    delete values;
+}
+
+template<typename T>
+sparse_matrix<T>::sparse_matrix() {}
+
+template<typename T>
+sparse_matrix<T>::~sparse_matrix() {
+    delete csr_col_ind;
+    delete csr_row_ptr;
+    delete csr_val;
+}
+
+template<typename T>
 void print_matrix(matrix<T> *mat) {
     int N;
     if (mat->rows < 10) {
@@ -297,43 +315,6 @@ matrix<float> new_float_matrix(long num_rows, long num_columns, bool row_major) 
     return mat;
 }
 
-// NOT WORKING
-// copied from https://stackoverflow.com/a/55521870
-//void transpose_csr_matrix(sparse_matrix<float> *mat){
-//    std::vector<float> value(mat->nnz, 0.0);
-//    std::vector<int> column_index(mat->nnz, 0);
-//    std::vector<int> row_pointer(mat->columns + 2, 0); // one extra
-//
-//    // count per column
-//    for (int i = 0; i < mat->nnz; ++i) {
-//        ++row_pointer[mat->csr_col_ind[i] + 2];
-//    }
-//
-//    // from count per column generate new rowPtr (but shifted)
-//    for (int i = 2; i < row_pointer.size(); ++i) {
-//        // create incremental sum
-//        row_pointer[i] += row_pointer[i - 1];
-//    }
-//
-//    // perform the main part
-//    for (int i = 0; i < mat->rows; ++i) {
-//        for (int j = mat->csr_row_ptr[i]; j < mat->csr_row_ptr[i + 1]; ++j) {
-//            // calculate index to transposed matrix at which we should place current element, and at the same time build final rowPtr
-//            const int new_index = row_pointer[mat->csr_col_ind[j] + 1]++;
-//            value[new_index] = mat->csr_val[j];
-//            column_index[new_index] = i;
-//        }
-//    }
-//    row_pointer.pop_back(); // pop that one extra
-//
-//    int tmp = mat->rows;
-//    mat->rows = mat->columns;
-//    mat->columns = tmp;
-//    mat->csr_col_ind = column_index.data();
-//    mat->csr_val = value.data();
-//    mat->csr_row_ptr = row_pointer.data();
-//}
-
 void transpose_csr_matrix(sparse_matrix<float> *mat, CudaHelper *cuda_helper){
     float *d_mat_csr_val;
     int *d_mat_csr_row_ptr, *d_mat_csr_col_ind;
@@ -420,4 +401,28 @@ bool check_nans(matrix<float> *x, std::string name) {
     } else {
         return false;
     }
+}
+
+matrix<float> gen_matrix(long num_rows, long num_columns, bool random) {
+    long max = 5;
+
+    matrix<float> mat = new_float_matrix(num_rows, num_columns, true);
+
+    for (long i = 0; i < mat.rows * mat.columns; ++i) {
+        if (random) {
+            mat.values[i] = rand();
+        } else {
+            mat.values[i] = (float) ((i % max) + 1);
+        }
+    }
+
+    return mat;
+}
+
+matrix<float> gen_rand_matrix(long num_rows, long num_columns) {
+    return gen_matrix(num_rows, num_columns, true);
+}
+
+matrix<float> gen_non_rand_matrix(long num_rows, long num_columns) {
+    return gen_matrix(num_rows, num_columns, false);
 }

@@ -43,30 +43,6 @@ void save_grads(SageLinearGradients *gradients, matrix<float> **weight_gradients
     save_npy_matrix(weight_gradients[3], path);
 }
 
-matrix<float> gen_matrix(long num_rows, long num_columns, bool random) {
-    long max = 5;
-
-    matrix<float> mat = new_float_matrix(num_rows, num_columns, true);
-
-    for (long i = 0; i < mat.rows * mat.columns; ++i) {
-        if (random) {
-            mat.values[i] = rand();
-        } else {
-            mat.values[i] = (float) ((i % max) + 1);
-        }
-    }
-
-    return mat;
-}
-
-matrix<float> gen_rand_matrix(long num_rows, long num_columns) {
-        return gen_matrix(num_rows, num_columns, true);
-}
-
-matrix<float> gen_non_rand_matrix(long num_rows, long num_columns) {
-    return gen_matrix(num_rows, num_columns, false);
-}
-
 int run_python(std::string module_name, std::string function_name) {
     std::string path_tests = "/home/ubuntu/gpu_memory_reduction/alzheimer/tests";
     int return_value = 0;

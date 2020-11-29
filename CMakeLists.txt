@@ -50,9 +50,6 @@ install(TARGETS ${PROJECT_NAME} DESTINATION lib)
 install(FILES ${HEADER_FILES} DESTINATION include)
 
 
-include(tests/CMakeLists.txt)
-
-
 set(EXECUTABLE_NAME run_${PROJECT_NAME})
 add_executable(${EXECUTABLE_NAME}
         src/alzheimer.cpp
@@ -61,7 +58,7 @@ target_link_libraries(${EXECUTABLE_NAME}
         ${PROJECT_NAME})
 
 
-set(EXECUTABLE_NAME benchmark)
+set(EXECUTABLE_NAME benchmark_old)
 add_executable(${EXECUTABLE_NAME}
         src/benchmark.cpp
         src/alzheimer.cpp
@@ -69,3 +66,9 @@ add_executable(${EXECUTABLE_NAME}
 target_link_libraries(${EXECUTABLE_NAME}
         ${PROJECT_NAME}
         benchmark::benchmark)
+
+
+include(tests/CMakeLists.txt)
+
+
+include(benchmark/CMakeLists.txt)
