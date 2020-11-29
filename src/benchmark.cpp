@@ -27,16 +27,6 @@ static void BM_Alzheimer_Flickr(benchmark::State &state) {
 }
 BENCHMARK(BM_Alzheimer_Flickr);
 
-static void BM_Alzheimer_Reddit(benchmark::State &state) {
-    std::string dataset = "reddit";
-    std::thread gpu_logging(log_gpu, dataset);
-    gpu_logging.detach();
-    for (auto _ : state)
-        alzheimer(dataset, 0);
-    system(kill_command);
-}
-BENCHMARK(BM_Alzheimer_Reddit);
-
 static void BM_Alzheimer_Chunked_Flickr_15(benchmark::State &state) {
     int power = 15;
     std::thread gpu_logging(log_gpu, "flickr_chunked_" + std::to_string(power));
@@ -67,6 +57,17 @@ static void BM_Alzheimer_Chunked_Flickr_13(benchmark::State &state) {
 }
 BENCHMARK(BM_Alzheimer_Chunked_Flickr_13);
 
+
+static void BM_Alzheimer_Reddit(benchmark::State &state) {
+    std::string dataset = "reddit";
+    std::thread gpu_logging(log_gpu, dataset);
+    gpu_logging.detach();
+    for (auto _ : state)
+        alzheimer(dataset, 0);
+    system(kill_command);
+}
+BENCHMARK(BM_Alzheimer_Reddit);
+
 static void BM_Alzheimer_Chunked_Reddit_17(benchmark::State &state) {
     int power = 17;
     std::thread gpu_logging(log_gpu, "reddit_chunked_" + std::to_string(power));
@@ -96,5 +97,47 @@ static void BM_Alzheimer_Chunked_Reddit_15(benchmark::State &state) {
     system(kill_command);
 }
 BENCHMARK(BM_Alzheimer_Chunked_Reddit_15);
+
+
+static void BM_Alzheimer_Products(benchmark::State &state) {
+    std::string dataset = "products";
+    std::thread gpu_logging(log_gpu, dataset);
+    gpu_logging.detach();
+    for (auto _ : state)
+        alzheimer(dataset, 0);
+    system(kill_command);
+}
+BENCHMARK(BM_Alzheimer_Products);
+
+static void BM_Alzheimer_Chunked_Products_20(benchmark::State &state) {
+    int power = 20;
+    std::thread gpu_logging(log_gpu, "products_chunked_" + std::to_string(power));
+    gpu_logging.detach();
+    for (auto _ : state)
+        alzheimer("products", 1 << power);
+    system(kill_command);
+}
+BENCHMARK(BM_Alzheimer_Chunked_Products_20);
+
+static void BM_Alzheimer_Chunked_Products_18(benchmark::State &state) {
+    int power = 18;
+    std::thread gpu_logging(log_gpu, "products_chunked_" + std::to_string(power));
+    gpu_logging.detach();
+    for (auto _ : state)
+        alzheimer("products", 1 << power);
+    system(kill_command);
+}
+BENCHMARK(BM_Alzheimer_Chunked_Products_18);
+
+static void BM_Alzheimer_Chunked_Products_16(benchmark::State &state) {
+    int power = 16;
+    std::thread gpu_logging(log_gpu, "products_chunked_" + std::to_string(power));
+    gpu_logging.detach();
+    for (auto _ : state)
+        alzheimer("products", 1 << power);
+    system(kill_command);
+}
+BENCHMARK(BM_Alzheimer_Chunked_Products_16);
+
 
 BENCHMARK_MAIN();

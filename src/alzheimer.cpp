@@ -54,6 +54,8 @@ void alzheimer(std::string dataset, int chunk_size) {
         num_classes = 7;
     } else if (dataset == "reddit") {
         num_classes = 41;
+    } else if (dataset == "products") {
+        num_classes = 47;
     }
 
     // layers

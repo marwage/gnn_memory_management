@@ -346,6 +346,11 @@ matrix<float>* GraphConvChunked::forward(matrix<float> *x) {
 
     y_.row_major = y_chunk->row_major;
 
+    // free GPU memory
+    check_cuda(cudaFree(d_y));
+    check_cuda(cudaFree(d_y_chunk));
+
+
     return &y_;
 }
 
@@ -388,6 +393,10 @@ matrix<float>* GraphConvChunked::backward(matrix<float> *in_gradients) {
                           cudaMemcpyDeviceToHost));
 
     gradients_.row_major = gradients_chunk->row_major;
+
+    // free GPU memory
+    check_cuda(cudaFree(d_gradients));
+    check_cuda(cudaFree(d_gradients_chunk));
 
     return &gradients_;
 }

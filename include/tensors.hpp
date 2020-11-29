@@ -9,21 +9,27 @@
 
 
 template<typename T>
-struct matrix {
+class matrix {
+public:
     long rows = 0;
     long columns = 0;
     T *values = 0;
     bool row_major = true;
+    matrix();
+    ~matrix();
 };
 
 template<typename T>
-struct sparse_matrix {
+class sparse_matrix {
+public:
     int rows = 0;
     int columns = 0;
     int nnz = 0;
     T *csr_val = NULL;
     int *csr_row_ptr = NULL;
     int *csr_col_ind = NULL;
+    sparse_matrix();
+    ~sparse_matrix();
 };
 
 template<typename T>
@@ -70,5 +76,9 @@ void transpose_csr_matrix(sparse_matrix<float> *mat, CudaHelper *cuda_helper);
 long count_nans(matrix<float> *x);
 
 bool check_nans(matrix<float> *x, std::string name);
+
+matrix<float> gen_rand_matrix(long num_rows, long num_columns);
+
+matrix<float> gen_non_rand_matrix(long num_rows, long num_columns);
 
 #endif
