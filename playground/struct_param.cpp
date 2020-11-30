@@ -9,15 +9,15 @@ struct holder {
 };
 
 class Klasse {
- public:
-        holder holder_;
+public:
+    holder holder_;
 
-        Klasse();
-        void func_a(holder hol);
-        void func_b();
+    Klasse();
+    void func_a(holder hol);
+    void func_b();
 };
 
-Klasse::Klasse() { }
+Klasse::Klasse() {}
 
 void Klasse::func_a(holder hol) {
     holder_ = hol;
@@ -49,4 +49,3 @@ int main() {
     klasse.func_a(hol);
     klasse.func_b();
 }
-

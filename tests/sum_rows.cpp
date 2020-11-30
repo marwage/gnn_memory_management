@@ -14,43 +14,43 @@ Matrix<float> sum_rows(Matrix<float> in_mat) {
 
     float *d_mat;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_mat),
-                          in_mat.rows * in_mat.columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_mat, in_mat.values,
-                          in_mat.rows * in_mat.columns * sizeof(float),
+                          in_mat.num_rows_ * in_mat.num_columns_ * sizeof(float)));
+    check_cuda(cudaMemcpy(d_mat, in_mat.values_,
+                          in_mat.num_rows_ * in_mat.num_columns_ * sizeof(float),
                           cudaMemcpyHostToDevice));
 
     Matrix<float> ones;
-    ones.rows = in_mat.rows;
-    ones.columns = 1;
-    ones.values = reinterpret_cast<float *>(malloc(ones.rows * sizeof(float)));
-    for (int i = 0; i < ones.rows; ++i) {
-        ones.values[i] = 1.0;
+    ones.num_rows_ = in_mat.num_rows_;
+    ones.num_columns_ = 1;
+    ones.values_ = reinterpret_cast<float *>(malloc(ones.num_rows_ * sizeof(float)));
+    for (int i = 0; i < ones.num_rows_; ++i) {
+        ones.values_[i] = 1.0;
     }
     float *d_ones;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_ones),
-                          ones.rows * sizeof(float)));
-    check_cuda(cudaMemcpy(d_ones, ones.values,
-                          ones.rows * sizeof(float),
+                          ones.num_rows_ * sizeof(float)));
+    check_cuda(cudaMemcpy(d_ones, ones.values_,
+                          ones.num_rows_ * sizeof(float),
                           cudaMemcpyHostToDevice));
 
     Matrix<float> sum;
-    sum.rows = in_mat.columns;
-    sum.columns = 1;
-    sum.values = reinterpret_cast<float *>(malloc(sum.rows * sizeof(float)));
+    sum.num_rows_ = in_mat.num_columns_;
+    sum.num_columns_ = 1;
+    sum.values_ = reinterpret_cast<float *>(malloc(sum.num_rows_ * sizeof(float)));
     float *d_sum;
     check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_sum),
-                          sum.rows * sizeof(float)));
+                          sum.num_rows_ * sizeof(float)));
 
 
     check_cublas(cublasSgemv(cuda_helper.cublas_handle,
                              CUBLAS_OP_T,
-                             in_mat.rows, in_mat.columns,
-                             &alpha, d_mat, in_mat.rows,
+                             in_mat.num_rows_, in_mat.num_columns_,
+                             &alpha, d_mat, in_mat.num_rows_,
                              d_ones, 1,
                              &beta, d_sum, 1));
 
-    check_cuda(cudaMemcpy(sum.values, d_sum,
-                          sum.rows * sizeof(float),
+    check_cuda(cudaMemcpy(sum.values_, d_sum,
+                          sum.num_rows_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
     check_cuda(cudaFree(d_mat));
@@ -62,18 +62,18 @@ Matrix<float> sum_rows(Matrix<float> in_mat) {
 
 int test_sum_rows() {
     Matrix<float> mat;
-    mat.rows = 1 << 15;
-    mat.columns = 1 << 13;
-    mat.values = (float *) malloc(mat.rows * mat.columns * sizeof(float));
-    for (int i = 0; i < mat.rows * mat.columns; ++i) {
-        mat.values[i] = 2.0;
+    mat.num_rows_ = 1 << 15;
+    mat.num_columns_ = 1 << 13;
+    mat.values_ = (float *) malloc(mat.num_rows_ * mat.num_columns_ * sizeof(float));
+    for (int i = 0; i < mat.num_rows_ * mat.num_columns_; ++i) {
+        mat.values_[i] = 2.0;
     }
 
     Matrix<float> sum = sum_rows(mat);
 
-    float expected_value = (float) mat.rows * 2;
-    for (int i = 0; i < sum.rows; ++i) {
-        if (sum.values[i] != expected_value) {
+    float expected_value = (float) mat.num_rows_ * 2;
+    for (int i = 0; i < sum.num_rows_; ++i) {
+        if (sum.values_[i] != expected_value) {
             return 0;
         }
     }

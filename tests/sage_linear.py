@@ -4,7 +4,7 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (check_equal, check_isclose, save_return_value,
-        write_equal, count_nans)
+                    write_equal, count_nans)
 
 
 def test_sage_linear():
@@ -80,7 +80,6 @@ def test_sage_linear():
 
     ratio_close = check_isclose(sage_linear_result, true_sage_linear_result, True)
     print("SageLinear: Loose close: {}".format(ratio_close))
-
 
     # BACKPROPAGATION
     true_sage_linear_result_torch.backward(in_gradients_torch)

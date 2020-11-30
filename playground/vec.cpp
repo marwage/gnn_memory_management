@@ -12,7 +12,6 @@ int main() {
         numbers[i] = i;
     }
     for (int i = 0; i < N; ++i) {
-        std::cout << "Number " << i << ": " << numbers[i] << std::endl; 
+        std::cout << "Number " << i << ": " << numbers[i] << std::endl;
     }
 }
-

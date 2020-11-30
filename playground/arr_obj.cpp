@@ -23,4 +23,3 @@ int main() {
         std::cout << "Number " << i << " " << numbers[i].number_ << std::endl;
     }
 }
-

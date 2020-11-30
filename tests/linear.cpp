@@ -20,13 +20,15 @@ int test_linear() {
     int num_in_features = 512;
     int num_out_features = 256;
 
-    Matrix<float> input = gen_rand_matrix(rows, num_in_features);
+    Matrix<float> input(rows, num_in_features, true);
+    input.set_values(true);
     path = test_dir_path + "/input.npy";
-    save_npy_matrix(input, path);
+    save_npy_matrix(&input, path);
 
-    Matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
+    Matrix<float> in_gradients(rows, num_out_features, true);
+    in_gradients.set_values(true);
     path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(in_gradients, path);
+    save_npy_matrix(&in_gradients, path);
 
     CudaHelper cuda_helper;
     Linear linear(&cuda_helper, num_in_features, num_out_features, rows);
@@ -69,13 +71,15 @@ int test_linear_set_parameters() {
     long num_out_features = 512;
     long num_params = 2;
 
-    Matrix<float> weight = gen_rand_matrix(num_in_features, num_out_features);
-    Matrix<float> bias = gen_rand_matrix(num_out_features, 1);
+    Matrix<float> weight(num_in_features, num_out_features, false);
+    weight.set_values(true);
+    Matrix<float> bias(num_out_features, 1, false);
+    bias.set_values(true);
 
     CudaHelper cuda_helper;
     Linear linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
 
-    Matrix<float> **parameters = new Matrix<float>*[num_params];
+    Matrix<float> **parameters = new Matrix<float> *[num_params];
     parameters[0] = &weight;
     parameters[1] = &bias;
 

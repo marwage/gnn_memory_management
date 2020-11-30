@@ -7,4 +7,3 @@ int main() {
     int sum = add(5, 2);
     std::cout << sum << std::endl;
 }
-

@@ -2,8 +2,8 @@
 
 #include "graph_convolution.hpp"
 #include "cuda_helper.hpp"
-#include "tensors.hpp"
 #include "memory.hpp"
+#include "tensors.hpp"
 
 #include <benchmark/benchmark.h>
 #include <future>
@@ -24,7 +24,7 @@ static void BM_Graph_Convolution_Flickr_Forward(benchmark::State &state) {
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     CudaHelper cuda_helper;
-    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.rows, features.columns);
+    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
 
     std::promise<void> signal_exit;
     std::future<void> future = signal_exit.get_future();
@@ -48,7 +48,7 @@ static void BM_Graph_Convolution_Chunked_Flickr_Forward(benchmark::State &state)
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     CudaHelper cuda_helper;
-    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.columns, state.range(0), features.rows);
+    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.num_columns_, state.range(0), features.num_rows_);
 
     std::promise<void> signal_exit;
     std::future<void> future = signal_exit.get_future();
@@ -70,10 +70,11 @@ static void BM_Graph_Convolution_Flickr_Backward(benchmark::State &state) {
     Matrix<float> features = load_npy_matrix<float>(path);
     path = flickr_dir_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
-    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
+    in_gradients.set_values(true);
 
     CudaHelper cuda_helper;
-    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.rows, features.columns);
+    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
 
     Matrix<float> *activations = graph_convolution.forward(&features);
 
@@ -97,10 +98,11 @@ static void BM_Graph_Convolution_Flickr_Chunked_Backward(benchmark::State &state
     Matrix<float> features = load_npy_matrix<float>(path);
     path = flickr_dir_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
-    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
+    in_gradients.set_values(true);
 
     CudaHelper cuda_helper;
-    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.columns, state.range(0), features.rows);
+    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.num_columns_, state.range(0), features.num_rows_);
 
     Matrix<float> *activations = graph_convolution.forward(&features);
 
@@ -126,7 +128,7 @@ static void BM_Graph_Convolution_Reddit_Forward(benchmark::State &state) {
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     CudaHelper cuda_helper;
-    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.rows, features.columns);
+    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
 
     std::promise<void> signal_exit;
     std::future<void> future = signal_exit.get_future();
@@ -150,7 +152,7 @@ static void BM_Graph_Convolution_Reddit_Chunked_Forward(benchmark::State &state)
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     CudaHelper cuda_helper;
-    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.columns, state.range(0), features.rows);
+    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.num_columns_, state.range(0), features.num_rows_);
 
     std::promise<void> signal_exit;
     std::future<void> future = signal_exit.get_future();
@@ -172,10 +174,11 @@ static void BM_Graph_Reddit_Convolution_Backward(benchmark::State &state) {
     Matrix<float> features = load_npy_matrix<float>(path);
     path = reddit_dir_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
-    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
+    in_gradients.set_values(true);
 
     CudaHelper cuda_helper;
-    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.rows, features.columns);
+    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
 
     Matrix<float> *activations = graph_convolution.forward(&features);
 
@@ -199,10 +202,11 @@ static void BM_Graph_Convolution_Reddit_Chunked_Backward(benchmark::State &state
     Matrix<float> features = load_npy_matrix<float>(path);
     path = reddit_dir_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
-    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
+    in_gradients.set_values(true);
 
     CudaHelper cuda_helper;
-    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.columns, state.range(0), features.rows);
+    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.num_columns_, state.range(0), features.num_rows_);
 
     Matrix<float> *activations = graph_convolution.forward(&features);
 
@@ -228,7 +232,7 @@ static void BM_Graph_Convolution_Products_Forward(benchmark::State &state) {
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     CudaHelper cuda_helper;
-    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.rows, features.columns);
+    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
 
     std::promise<void> signal_exit;
     std::future<void> future = signal_exit.get_future();
@@ -252,7 +256,7 @@ static void BM_Graph_Convolution_Products_Chunked_Forward(benchmark::State &stat
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     CudaHelper cuda_helper;
-    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.columns, state.range(0), features.rows);
+    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.num_columns_, state.range(0), features.num_rows_);
 
     std::promise<void> signal_exit;
     std::future<void> future = signal_exit.get_future();
@@ -274,10 +278,11 @@ static void BM_Graph_Products_Convolution_Backward(benchmark::State &state) {
     Matrix<float> features = load_npy_matrix<float>(path);
     path = products_dir_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
-    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
+    in_gradients.set_values(true);
 
     CudaHelper cuda_helper;
-    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.rows, features.columns);
+    GraphConvolution graph_convolution(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
 
     Matrix<float> *activations = graph_convolution.forward(&features);
 
@@ -301,10 +306,11 @@ static void BM_Graph_Convolution_Products_Chunked_Backward(benchmark::State &sta
     Matrix<float> features = load_npy_matrix<float>(path);
     path = products_dir_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
-    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
+    in_gradients.set_values(true);
 
     CudaHelper cuda_helper;
-    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.columns, state.range(0), features.rows);
+    GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", features.num_columns_, state.range(0), features.num_rows_);
 
     Matrix<float> *activations = graph_convolution.forward(&features);
 

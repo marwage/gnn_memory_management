@@ -1,7 +1,7 @@
-#include <iostream>
-#include <stdlib.h>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <iostream>
+#include <stdlib.h>
 
 
 void init_matrix(float *a, const int kN) {
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
     init_matrix(cpu_A, kM * kK);
     init_matrix(cpu_B, kK * kN);
     init_matrix(cpu_C, kM * kN);
-    
+
     status = cublasCreate(&handle);
     if (status != CUBLAS_STATUS_SUCCESS) {
         std::cout << "cublasCreate failed\n";
@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
         std::cout << "cublasSetMathMode failed\n";
     }
 
-    cublasOperation_t operation_t = CUBLAS_OP_N; 
+    cublasOperation_t operation_t = CUBLAS_OP_N;
     status = cublasSgemm(handle, operation_t, operation_t,
                          kM, kN, kK,
                          &alpha,
@@ -97,10 +97,8 @@ int main(int argc, char **argv) {
     free(cpu_C);
 
     status = cublasDestroy(handle);
-    
+
     error = cudaFree(gpu_A);
     error = cudaFree(gpu_B);
     error = cudaFree(gpu_C);
-
 }
-

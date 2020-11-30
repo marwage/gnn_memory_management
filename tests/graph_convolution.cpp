@@ -7,10 +7,12 @@
 
 #include "catch2/catch.hpp"
 
+
 const std::string home = std::getenv("HOME");
 const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string flickr_dir_path = dir_path + "/flickr";
 const std::string test_dir_path = dir_path + "/tests";
+const std::string flickr_dir_path = dir_path + "/flickr";
+const std::string products_dir_path = dir_path + "/products";
 
 
 int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float> *in_gradients, long chunk_size) {
@@ -18,14 +20,13 @@ int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float
     CudaHelper cuda_helper;
     GraphConvolutionParent *graph_conv;
     if (chunk_size == 0) {
-        graph_conv = new GraphConvolution(&cuda_helper, adj, "mean", input->rows, input->columns);
+        graph_conv = new GraphConvolution(&cuda_helper, adj, "mean", input->num_rows_, input->num_columns_);
     } else {
-        graph_conv = new GraphConvChunked(&cuda_helper, adj, "mean", input->columns, chunk_size, input->rows);
+        graph_conv = new GraphConvChunked(&cuda_helper, adj, "mean", input->num_columns_, chunk_size, input->num_rows_);
     }
 
     Matrix<float> *activations = graph_conv->forward(input);
 
-    // DEBUGGING
     check_nans(activations, "activations");
 
     Matrix<float> *gradients = graph_conv->backward(in_gradients);
@@ -48,14 +49,14 @@ TEST_CASE("Graph convolution", "[graphconv]") {
     std::string path;
     path = flickr_dir_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
-    to_column_major_inplace(&features);
 
     path = flickr_dir_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
-    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
+    in_gradients.set_values(true);
     path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(in_gradients, path);
+    save_npy_matrix(&in_gradients, path);
 
     CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 0));
 }
@@ -64,16 +65,16 @@ TEST_CASE("Graph convolution, chunked", "[graphconv][chunked]") {
     std::string path;
     path = flickr_dir_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
-    to_column_major_inplace(&features);
 
     path = flickr_dir_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
-    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
+    in_gradients.set_values(true);
     path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(in_gradients, path);
+    save_npy_matrix(&in_gradients, path);
 
     CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 1 << 15));
-//    CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 1 << 14));
-//    CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 1 << 13));
+    CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 1 << 14));
+    CHECK(test_graph_conv(&features, &adjacency, &in_gradients, 1 << 13));
 }

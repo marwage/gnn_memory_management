@@ -14,12 +14,13 @@ int test_transpose(long rows, long columns, bool to_col_major) {
     std::string test_dir_path = dir_path + "/tests";
     std::string path;
 
-    Matrix<float> mat = gen_rand_matrix(rows, columns);
-    if (!to_col_major) { // to_row_major
-        mat.row_major = false;
+    Matrix<float> mat(rows, columns, true);
+    mat.set_values(true);
+    if (!to_col_major) {// to_row_major
+        mat.is_row_major_ = false;
     }
     path = test_dir_path + "/matrix.npy";
-    save_npy_matrix_no_trans(mat, path);
+    save_npy_matrix_no_trans(&mat, path);
 
     if (to_col_major) {
         to_column_major_inplace(&mat);
@@ -27,7 +28,7 @@ int test_transpose(long rows, long columns, bool to_col_major) {
         to_row_major_inplace(&mat);
     }
     path = test_dir_path + "/matrix_transposed.npy";
-    save_npy_matrix_no_trans(mat, path);
+    save_npy_matrix_no_trans(&mat, path);
 
     path = test_dir_path + "/to_col_major.npy";
     if (to_col_major) {
@@ -55,4 +56,3 @@ TEST_CASE("Transpose to row-major", "[transpose][rowmajor]") {
     CHECK(test_transpose(85647, 6584, false));
     CHECK(test_transpose(84634, 8573, false));
 }
-

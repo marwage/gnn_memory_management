@@ -2,13 +2,13 @@
 
 #include "activation.hpp"
 #include "adam.hpp"
+#include "add.hpp"
 #include "cuda_helper.hpp"
 #include "graph_convolution.hpp"
 #include "helper.hpp"
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
-#include "add.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -38,21 +38,21 @@ int integration_test(int chunk_size) {
     int num_classes = 7;
 
     // layers
-    GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.rows, features.columns);
+    GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
     SageLinearParent *sage_linear_layer;
     ReluParent *relu_layer;
     LogSoftmaxParent *log_softmax_layer;
-    Add add(&cuda_helper, features.rows, features.columns);
+    Add add(&cuda_helper, features.num_rows_, features.num_columns_);
     if (chunk_size == 0) {// no chunking
-        sage_linear_layer = new SageLinear(&cuda_helper, features.columns, num_hidden_channels, features.rows);
-        relu_layer = new Relu(&cuda_helper, features.rows, num_hidden_channels);
-        log_softmax_layer = new LogSoftmax(&cuda_helper, features.rows, num_hidden_channels);
+        sage_linear_layer = new SageLinear(&cuda_helper, features.num_columns_, num_hidden_channels, features.num_rows_);
+        relu_layer = new Relu(&cuda_helper, features.num_rows_, num_hidden_channels);
+        log_softmax_layer = new LogSoftmax(&cuda_helper, features.num_rows_, num_hidden_channels);
     } else {
-        sage_linear_layer = new SageLinearChunked(&cuda_helper, features.columns, num_hidden_channels, chunk_size, features.rows);
-        relu_layer = new ReluChunked(&cuda_helper, chunk_size, features.rows, num_hidden_channels);
-        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.rows, num_hidden_channels);
+        sage_linear_layer = new SageLinearChunked(&cuda_helper, features.num_columns_, num_hidden_channels, chunk_size, features.num_rows_);
+        relu_layer = new ReluChunked(&cuda_helper, chunk_size, features.num_rows_, num_hidden_channels);
+        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.num_rows_, num_hidden_channels);
     }
-    NLLLoss loss_layer(features.rows, num_hidden_channels);
+    NLLLoss loss_layer(features.num_rows_, num_hidden_channels);
 
     // optimiser
     Adam adam(&cuda_helper, learning_rate, sage_linear_layer->get_parameters(), 4);
@@ -89,11 +89,11 @@ int integration_test(int chunk_size) {
     // loss
     float loss = loss_layer.forward(log_softmax_result, &classes);
     Matrix<float> loss_mat;
-    loss_mat.rows = 1;
-    loss_mat.columns = 1;
-    loss_mat.values = &loss;
+    loss_mat.num_rows_ = 1;
+    loss_mat.num_columns_ = 1;
+    loss_mat.values_ = &loss;
     path = test_dir_path + "/loss_result.npy";
-    save_npy_matrix(loss_mat, path);
+    save_npy_matrix(&loss_mat, path);
 
     // BACKPROPAGATION
     //loss
@@ -145,8 +145,8 @@ int integration_test(int chunk_size) {
     cuda_helper.destroy_handles();
 
     // free memory
-    free(features.values);
-    free(classes.values);
+    free(features.values_);
+    free(classes.values_);
 
     path = test_dir_path + "/value.npy";
     return read_return_value(path);

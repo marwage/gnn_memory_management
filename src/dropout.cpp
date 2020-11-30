@@ -16,13 +16,18 @@ Dropout::Dropout() {}
 Dropout::Dropout(CudaHelper *helper, long num_nodes, long num_features) {
     cuda_helper_ = helper;
 
-    y_ = Matrix<float>(num_nodes, num_features, true);
-    gradients_ = Matrix<float>(num_nodes, num_features, true);
+    y_.set(num_nodes, num_features, true);
+    gradients_.set(num_nodes, num_features, true);
 }
 
-Matrix<float>* Dropout::forward(Matrix<float> *x) {
+Dropout::~Dropout() {
+    delete[] reserve_space_;
+    delete[] states_;
+}
+
+Matrix<float> *Dropout::forward(Matrix<float> *x) {
     to_row_major_inplace(x);
-    if (y_.rows != x->rows || y_.columns != x->columns) {
+    if (y_.num_rows_ != x->num_rows_ || y_.num_columns_ != x->num_columns_) {
         throw "Matrix shapes are unequal";
     }
 
@@ -40,19 +45,19 @@ Matrix<float>* Dropout::forward(Matrix<float> *x) {
     check_cudnn(cudnnCreateTensorDescriptor(&x_descr));
     check_cudnn(cudnnSetTensor4dDescriptor(x_descr,
                                            CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                                           x->rows, 1, 1, x->columns));
+                                           x->num_rows_, 1, 1, x->num_columns_));
     cudnnTensorDescriptor_t y_descr;
     check_cudnn(cudnnCreateTensorDescriptor(&y_descr));
     check_cudnn(cudnnSetTensor4dDescriptor(y_descr,
                                            CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                                           y_.rows, 1, 1, y_.columns));
+                                           y_.num_rows_, 1, 1, y_.num_columns_));
 
     void *d_x;
-    check_cuda(cudaMalloc(&d_x, x->rows * x->columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_x, x->values, x->rows * x->columns * sizeof(float),
+    check_cuda(cudaMalloc(&d_x, x->size_ * sizeof(float)));
+    check_cuda(cudaMemcpy(d_x, x->values_, x->size_ * sizeof(float),
                           cudaMemcpyHostToDevice));
     void *d_y;
-    check_cuda(cudaMalloc(&d_y, y_.rows * y_.columns * sizeof(float)));
+    check_cuda(cudaMalloc(&d_y, y_.size_ * sizeof(float)));
 
     void *d_reserve_space;
     check_cudnn(cudnnDropoutGetReserveSpaceSize(x_descr, &reserve_space_size_));
@@ -62,20 +67,20 @@ Matrix<float>* Dropout::forward(Matrix<float> *x) {
                                     y_descr, d_y,
                                     d_reserve_space, reserve_space_size_));
 
-    check_cuda(cudaMemcpy(y_.values, d_y, y_.rows * y_.columns * sizeof(float),
+    check_cuda(cudaMemcpy(y_.values_, d_y, y_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
-    y_.row_major = true;
+    y_.is_row_major_ = true;
 
     if (reserve_space_ == NULL) {
-        reserve_space_ = reinterpret_cast<void *>(malloc(reserve_space_size_));
+        reserve_space_ = new char[reserve_space_size_];
     }
     check_cuda(cudaMemcpy(reserve_space_, d_reserve_space,
                           reserve_space_size_,
                           cudaMemcpyDeviceToHost));
 
     if (states_ == NULL) {
-        states_ = reinterpret_cast<void *>(malloc(state_size_));
+        states_ = new char[state_size_];
     }
     check_cuda(cudaMemcpy(states_, d_states, state_size_,
                           cudaMemcpyDeviceToHost));
@@ -88,10 +93,10 @@ Matrix<float>* Dropout::forward(Matrix<float> *x) {
     return &y_;
 }
 
-Matrix<float>* Dropout::backward(Matrix<float> *in_gradients) {
+Matrix<float> *Dropout::backward(Matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
     to_row_major_inplace(&y_);
-    if (y_.rows != in_gradients->rows || y_.columns != in_gradients->columns) {
+    if (y_.num_rows_ != in_gradients->num_rows_ || y_.num_columns_ != in_gradients->num_columns_) {
         throw "Matrix shapes are unequal";
     }
 
@@ -99,19 +104,19 @@ Matrix<float>* Dropout::backward(Matrix<float> *in_gradients) {
     check_cudnn(cudnnCreateTensorDescriptor(&dy_desc));
     check_cudnn(cudnnSetTensor4dDescriptor(dy_desc,
                                            CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                                           in_gradients->rows, 1, 1, in_gradients->columns));
+                                           in_gradients->num_rows_, 1, 1, in_gradients->num_columns_));
     float *d_dy;
-    check_cuda(cudaMalloc(&d_dy, in_gradients->rows * in_gradients->columns * sizeof(float)));
-    check_cuda(cudaMemcpy(d_dy, in_gradients->values,
-                          in_gradients->rows * in_gradients->columns,
+    check_cuda(cudaMalloc(&d_dy, in_gradients->size_ * sizeof(float)));
+    check_cuda(cudaMemcpy(d_dy, in_gradients->values_,
+                          in_gradients->size_,
                           cudaMemcpyHostToDevice));
     cudnnTensorDescriptor_t dx_desc;
     check_cudnn(cudnnCreateTensorDescriptor(&dx_desc));
     check_cudnn(cudnnSetTensor4dDescriptor(dx_desc,
                                            CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                                           in_gradients->rows, 1, 1, in_gradients->columns));
+                                           in_gradients->num_rows_, 1, 1, in_gradients->num_columns_));
     float *d_dx;
-    check_cuda(cudaMalloc(&d_dx, in_gradients->rows * in_gradients->columns * sizeof(float)));
+    check_cuda(cudaMalloc(&d_dx, in_gradients->size_ * sizeof(float)));
 
     void *d_reserve_space;
     check_cuda(cudaMalloc(&d_reserve_space, reserve_space_size_));
@@ -126,11 +131,11 @@ Matrix<float>* Dropout::backward(Matrix<float> *in_gradients) {
                                      dx_desc, d_dx,
                                      d_reserve_space, reserve_space_size_));
 
-    check_cuda(cudaMemcpy(gradients_.values, d_dx,
-                          gradients_.rows * gradients_.columns * sizeof(float),
+    check_cuda(cudaMemcpy(gradients_.values_, d_dx,
+                          gradients_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
-    gradients_.row_major = true;
+    gradients_.is_row_major_ = true;
 
     //clean-up
     check_cuda(cudaFree(d_dy));
@@ -160,60 +165,58 @@ DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes
         }
     }
 
-    y_ = Matrix<float>(num_nodes, num_features, true);
-    gradients_ = Matrix<float>(num_nodes, num_features, true);
+    y_.set(num_nodes, num_features, true);
+    gradients_.set(num_nodes, num_features, true);
 }
 
-Matrix<float>* DropoutChunked::forward(Matrix<float> *x) {
+Matrix<float> *DropoutChunked::forward(Matrix<float> *x) {
     to_row_major_inplace(x);
 
     Matrix<float> x_chunk;
-    x_chunk.rows = chunk_size_;
-    x_chunk.columns = x->columns;
     Matrix<float> *y_chunk;
-
+    long current_chunk_size = chunk_size_;
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {
-            x_chunk.rows = last_chunk_size_;
+            current_chunk_size = last_chunk_size_;
         }
-
-        x_chunk.values = &x->values[i * chunk_size_ * x->columns];
+        x_chunk.set(current_chunk_size, x->num_columns_,
+                    &x->values_[i * chunk_size_ * x->num_columns_],
+                    x->is_row_major_, false);
 
         y_chunk = dropout_layers_[i].forward(&x_chunk);
-        to_row_major_inplace(y_chunk);
 
-        std::memcpy(&y_.values[i * chunk_size_ * y_chunk->columns], y_chunk->values, y_chunk->rows * y_chunk->columns * sizeof(float));
+        to_row_major_inplace(y_chunk);
+        std::memcpy(&y_.values_[i * chunk_size_ * y_chunk->num_columns_], y_chunk->values_, y_chunk->size_ * sizeof(float));
     }
 
-    y_.row_major = true;
+    y_.is_row_major_ = true;
 
     return &y_;
 }
 
-Matrix<float>* DropoutChunked::backward(Matrix<float> *in_gradients) {
+Matrix<float> *DropoutChunked::backward(Matrix<float> *in_gradients) {
     to_row_major_inplace(in_gradients);
     to_row_major_inplace(&y_);
 
     Matrix<float> in_gradients_chunk;
-    in_gradients_chunk.rows = chunk_size_;
-    in_gradients_chunk.columns = in_gradients->columns;
     Matrix<float> *gradients_chunk;
-
+    long current_chunk_size = chunk_size_;
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {
-            in_gradients_chunk.rows = last_chunk_size_;
+            current_chunk_size = last_chunk_size_;
         }
-
-        in_gradients_chunk.values = &in_gradients->values[i * chunk_size_ * in_gradients->columns];
+        in_gradients_chunk.set(current_chunk_size, in_gradients->num_columns_,
+                               &in_gradients->values_[i * chunk_size_ * in_gradients->num_columns_],
+                               in_gradients->is_row_major_, false);
 
         gradients_chunk = dropout_layers_[i].backward(&in_gradients_chunk);
-        to_row_major_inplace(gradients_chunk);
 
-        std::memcpy(&gradients_.values[i * chunk_size_ * gradients_chunk->columns], gradients_chunk->values,
-                    gradients_chunk->rows * gradients_chunk->columns * sizeof(float));
+        to_row_major_inplace(gradients_chunk);
+        std::memcpy(&gradients_.values_[i * chunk_size_ * gradients_chunk->num_columns_], gradients_chunk->values_,
+                    gradients_chunk->size_ * sizeof(float));
     }
 
-    gradients_.row_major = true;
+    gradients_.is_row_major_ = true;
 
     return &gradients_;
 }

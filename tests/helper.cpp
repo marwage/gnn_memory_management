@@ -3,9 +3,9 @@
 #include "helper.hpp"
 
 #include <Python.h>
+#include <cmath>
 #include <iostream>
 #include <string>
-#include <cmath>
 
 
 std::string home = std::getenv("HOME");
@@ -81,27 +81,27 @@ int run_python(std::string module_name, std::string function_name) {
 
 int read_return_value(std::string path) {
     Matrix<int> return_mat = load_npy_matrix<int>(path);
-    return return_mat.values[0];
+    return return_mat.values_[0];
 }
 
 void write_value(int value, std::string path) {
     Matrix<int> mat;
-    mat.rows = 1;
-    mat.columns = 1;
-    mat.row_major = true;
-    mat.values = new int[1];
-    mat.values[0] = value;
-    save_npy_matrix(mat, path);
+    mat.num_rows_ = 1;
+    mat.num_columns_ = 1;
+    mat.is_row_major_ = true;
+    mat.values_ = new int[1];
+    mat.values_[0] = value;
+    save_npy_matrix(&mat, path);
 }
 
 int num_equal_rows(Matrix<float> A, Matrix<float> B) {
     int num_rows = 0;
     bool equal_row = true;
 
-    for (int i = 0; i < A.rows; ++i) {
+    for (int i = 0; i < A.num_rows_; ++i) {
         equal_row = true;
-        for (int j = 0; j < A.columns; ++j) {
-            if (A.values[j * A.rows + i] != B.values[j * A.rows + i]) {
+        for (int j = 0; j < A.num_columns_; ++j) {
+            if (A.values_[j * A.num_rows_ + i] != B.values_[j * A.num_rows_ + i]) {
                 equal_row = false;
             }
         }

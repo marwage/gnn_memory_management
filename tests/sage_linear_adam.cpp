@@ -9,7 +9,7 @@
 #include "catch2/catch.hpp"
 #include <string>
 
-#include <iostream> // DEBUGGING
+#include <iostream>// DEBUGGING
 
 
 const std::string home = std::getenv("HOME");
@@ -25,9 +25,9 @@ int test_sage_linear_adam(Matrix<float> *input_self, Matrix<float> *input_neigh,
     CudaHelper cuda_helper;
     SageLinearParent *sage_linear_layer;
     if (chunk_size == 0) {// no chunking
-        sage_linear_layer = new SageLinear(&cuda_helper, input_self->columns, in_gradients->columns, input_self->rows);
+        sage_linear_layer = new SageLinear(&cuda_helper, input_self->num_columns_, in_gradients->num_columns_, input_self->num_rows_);
     } else {
-        sage_linear_layer = new SageLinearChunked(&cuda_helper, input_self->columns, in_gradients->columns, chunk_size, input_self->rows);
+        sage_linear_layer = new SageLinearChunked(&cuda_helper, input_self->num_columns_, in_gradients->num_columns_, chunk_size, input_self->num_rows_);
     }
     Matrix<float> **params = sage_linear_layer->get_parameters();
     Adam adam(&cuda_helper, learning_rate, params, 4);
@@ -64,14 +64,17 @@ TEST_CASE("SageLinear and Adam", "[sagelinear][adam]") {
     int columns = 1 << 9;
     int num_out_features = 1 << 8;
 
-    Matrix<float> input_self = gen_rand_matrix(rows, columns);
-    save_npy_matrix(input_self, test_dir_path + "/input_self.npy");
+    Matrix<float> input_self(rows, columns, true);
+    input_self.set_values(true);
+    save_npy_matrix(&input_self, test_dir_path + "/input_self.npy");
 
-    Matrix<float> input_neigh = gen_rand_matrix(rows, columns);
-    save_npy_matrix(input_neigh, test_dir_path + "/input_neigh.npy");
+    Matrix<float> input_neigh(rows, columns, true);
+    input_neigh.set_values(true);
+    save_npy_matrix(&input_neigh, test_dir_path + "/input_neigh.npy");
 
-    Matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
-    save_npy_matrix(in_gradients, test_dir_path + "/in_gradients.npy");
+    Matrix<float> in_gradients(rows, num_out_features, true);
+    in_gradients.set_values(true);
+    save_npy_matrix(&in_gradients, test_dir_path + "/in_gradients.npy");
 
     CHECK(test_sage_linear_adam(&input_self, &input_neigh, &in_gradients, 0));
 }
@@ -81,14 +84,17 @@ TEST_CASE("SageLinear and Adam chunked", "[sagelinear][adam][chunked]") {
     int columns = 1 << 9;
     int num_out_features = 1 << 8;
 
-    Matrix<float> input_self = gen_rand_matrix(rows, columns);
-    save_npy_matrix(input_self, test_dir_path + "/input_self.npy");
+    Matrix<float> input_self(rows, columns, true);
+    input_self.set_values(true);
+    save_npy_matrix(&input_self, test_dir_path + "/input_self.npy");
 
-    Matrix<float> input_neigh = gen_rand_matrix(rows, columns);
-    save_npy_matrix(input_neigh, test_dir_path + "/input_neigh.npy");
+    Matrix<float> input_neigh(rows, columns, true);
+    input_neigh.set_values(true);
+    save_npy_matrix(&input_neigh, test_dir_path + "/input_neigh.npy");
 
-    Matrix<float> in_gradients = gen_rand_matrix(rows, num_out_features);
-    save_npy_matrix(in_gradients, test_dir_path + "/in_gradients.npy");
+    Matrix<float> in_gradients(rows, num_out_features, true);
+    in_gradients.set_values(true);
+    save_npy_matrix(&in_gradients, test_dir_path + "/in_gradients.npy");
 
     CHECK(test_sage_linear_adam(&input_self, &input_neigh, &in_gradients, 1 << 15));
     CHECK(test_sage_linear_adam(&input_self, &input_neigh, &in_gradients, 1 << 12));

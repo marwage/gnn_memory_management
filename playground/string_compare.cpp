@@ -9,4 +9,3 @@ int main() {
         std::cout << "equal" << std::endl;
     }
 }
-

@@ -4,8 +4,8 @@
 #define ALZHEIMER_MEMORY_H
 
 #include <cuda_runtime.h>
-#include <string>
 #include <future>
+#include <string>
 
 
 long get_allocated_memory();

@@ -9,7 +9,7 @@
 #include <iostream>
 #include <thread>
 
-#include "catch2/catch.hpp" // DEBUGGING
+#include "catch2/catch.hpp"// DEBUGGING
 
 
 template<typename T>
@@ -80,8 +80,8 @@ template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int nu
 
 template<typename T>
 SparseMatrix<T>::~SparseMatrix() {
-    delete csr_col_ind;
-    delete csr_row_ptr;
-    delete csr_val;
+    delete[] csr_col_ind;
+    delete[] csr_row_ptr;
+    delete[] csr_val;
 }
 template SparseMatrix<float>::~SparseMatrix();

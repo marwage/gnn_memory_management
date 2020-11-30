@@ -2,10 +2,11 @@
 
 
 class Linear {
- private:
+private:
     int num_in_features_;
     int num_out_features_;
- public:
+
+public:
     Linear();
     Linear(int in_features, int out_features);
 };
@@ -21,9 +22,10 @@ Linear::Linear(int in_features, int out_features) {
 }
 
 class SageLinear {
- private:
+private:
     Linear linear;
- public:
+
+public:
     SageLinear(int in_features, int out_features);
 };
 
@@ -34,4 +36,3 @@ SageLinear::SageLinear(int in_features, int out_features) {
 int main() {
     SageLinear sage(5, 4);
 }
-

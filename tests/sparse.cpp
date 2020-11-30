@@ -1,7 +1,7 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "helper.hpp"
 #include "cuda_helper.hpp"
+#include "helper.hpp"
 #include "tensors.hpp"
 
 #include "catch2/catch.hpp"
@@ -22,7 +22,7 @@ int test_sparse_transpose() {
 
     transpose_csr_matrix(&adjacency, &cuda_helper);
 
-    return 1; // TODO
+    return 1;// TODO
 }
 
 int test_get_rows() {
@@ -35,23 +35,24 @@ int test_get_rows() {
     CudaHelper cuda_helper;
 
     SparseMatrix<float> sp_mat;
-    sp_mat.rows = 10;
-    sp_mat.columns = 9;
-    sp_mat.nnz = 12;
+    sp_mat.num_rows_ = 10;
+    sp_mat.num_columns_ = 9;
+    sp_mat.nnz_ = 12;
     float values[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0};
-    sp_mat.csr_val = values;
+    sp_mat.csr_val_ = values;
     int col_ind[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2};
-    sp_mat.csr_col_ind = col_ind;
+    sp_mat.csr_col_ind_ = col_ind;
     int row_ptr[] = {0, 2, 2, 2, 5, 5, 6, 8, 8, 8, 10};
-    sp_mat.csr_row_ptr = row_ptr;
+    sp_mat.csr_row_ptr_ = row_ptr;
 
     int start_row = 0;
     int end_row = 5;
-    SparseMatrix<float> sp_mat_chunked = get_rows(&sp_mat, start_row, end_row);
+    SparseMatrix<float> sp_mat_chunked;
+    get_rows(&sp_mat_chunked, &sp_mat, start_row, end_row);
 
     print_sparse_matrix(&sp_mat_chunked);
 
-    return 1; // TODO
+    return 1;// TODO
 }
 
 

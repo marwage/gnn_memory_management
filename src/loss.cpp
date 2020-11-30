@@ -2,22 +2,19 @@
 
 #include "loss.hpp"
 
-// debug
-#include <iostream>
-
 
 NLLLoss::NLLLoss(long num_nodes, long num_features) {
-    gradients_ = Matrix<float>(num_nodes, num_features, false);
+    gradients_.set(num_nodes, num_features, false);
 }
 
 float NLLLoss::forward(Matrix<float> *x, Matrix<int> *labels) {
     to_column_major_inplace(x);
 
     float loss = 0.0;
-    for (int i = 0; i < x->rows; ++i) {
-        loss = loss + x->values[labels->values[i] * x->rows + i];
+    for (int i = 0; i < x->num_rows_; ++i) {
+        loss = loss + x->values_[labels->values_[i] * x->num_rows_ + i];
     }
-    loss = loss / (float) x->rows;
+    loss = loss / (float) x->num_rows_;
     loss = -loss;
 
     input_ = x;
@@ -26,13 +23,11 @@ float NLLLoss::forward(Matrix<float> *x, Matrix<int> *labels) {
     return static_cast<float>(loss);
 }
 
-Matrix<float>* NLLLoss::backward() {
-    for (int i = 0; i < gradients_.rows * gradients_.columns; ++i) {
-        gradients_.values[i] = 0.0;
-    }
+Matrix<float> *NLLLoss::backward() {
+    gradients_.values_ = {};
 
-    for (int i = 0; i < labels_->rows; ++i) {
-        gradients_.values[labels_->values[i] * labels_->rows + i] = -1.0 / input_->rows;
+    for (int i = 0; i < labels_->num_rows_; ++i) {
+        gradients_.values_[labels_->values_[i] * labels_->num_rows_ + i] = -1.0 / input_->num_rows_;
     }
 
     return &gradients_;

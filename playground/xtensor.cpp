@@ -1,7 +1,7 @@
-#include <cstdlib>
 #include "string.h"
 #include "xtensor/xarray.hpp"
 #include "xtensor/xnpy.hpp"
+#include <cstdlib>
 
 
 int main(int argc, char **argv) {
@@ -13,4 +13,3 @@ int main(int argc, char **argv) {
 
     return 0;
 }
-

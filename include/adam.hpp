@@ -6,6 +6,8 @@
 #include "cuda_helper.hpp"
 #include "tensors.hpp"
 
+#include <vector>
+
 class Adam {
 private:
     float learning_rate_;
@@ -13,11 +15,11 @@ private:
     const float beta_1_ = 0.9;
     const float beta_2_ = 0.999;
     const float epsilon_ = 1e-8;
-    Matrix<float> *momentum_ms_;
-    Matrix<float> *momentum_vs_;
+    std::vector<Matrix<float>> momentum_ms_;
+    std::vector<Matrix<float>> momentum_vs_;
     int num_parameters_;
-    CudaHelper *cuda_helper_;
-    Matrix<float> *updates_;
+    CudaHelper *cuda_helper_ = NULL;
+    std::vector<Matrix<float>> updates_;
 
 public:
     Adam(CudaHelper *helper, float learning_rate, Matrix<float> **parameters, int num_parameters);

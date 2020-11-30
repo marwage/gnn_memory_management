@@ -18,16 +18,17 @@ int test_log_softmax(int chunk_size) {
     std::string path = flickr_dir_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
 
-    Matrix<float> in_gradients = gen_rand_matrix(features.rows, features.columns);
+    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
+    in_gradients.set_values(true);
     path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(in_gradients, path);
+    save_npy_matrix(&in_gradients, path);
 
     CudaHelper cuda_helper;
     LogSoftmaxParent *log_softmax_layer;
     if (chunk_size == 0) {
-        log_softmax_layer = new LogSoftmax(&cuda_helper, features.rows, features.columns);
+        log_softmax_layer = new LogSoftmax(&cuda_helper, features.num_rows_, features.num_columns_);
     } else {
-        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.rows, features.columns);
+        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
     }
 
     Matrix<float> *activations = log_softmax_layer->forward(&features);

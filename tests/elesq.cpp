@@ -8,9 +8,9 @@
 
 
 int test_elesq(int num_elements) {
-    float *x = new float [num_elements];
-    float *x_result = new float [num_elements];
-    float *d_x_result = new float [num_elements];
+    float *x = new float[num_elements];
+    float *x_result = new float[num_elements];
+    float *d_x_result = new float[num_elements];
     float *d_x;
 
     for (int i = 0; i < num_elements; ++i) {

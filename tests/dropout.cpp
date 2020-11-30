@@ -22,9 +22,9 @@ int test_dropout(int chunk_size) {
     CudaHelper cuda_helper;
     DropoutParent *dropout_layer;
     if (chunk_size == 0) {// no chunking
-        dropout_layer = new Dropout(&cuda_helper, features.rows, features.columns);
+        dropout_layer = new Dropout(&cuda_helper, features.num_rows_, features.num_columns_);
     } else {
-        dropout_layer = new DropoutChunked(&cuda_helper, chunk_size, features.rows, features.columns);
+        dropout_layer = new DropoutChunked(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
     }
 
     Matrix<float> *dropout_result = dropout_layer->forward(&features);
@@ -32,15 +32,15 @@ int test_dropout(int chunk_size) {
     save_npy_matrix(dropout_result, path);
 
     Matrix<float> in_gradients;
-    in_gradients.rows = features.rows;
-    in_gradients.columns = features.columns;
-    in_gradients.values = reinterpret_cast<float *>(
-            malloc(in_gradients.rows * in_gradients.columns * sizeof(float)));
-    for (int i = 0; i < in_gradients.rows * in_gradients.columns; ++i) {
-        in_gradients.values[i] = rand();
+    in_gradients.num_rows_ = features.num_rows_;
+    in_gradients.num_columns_ = features.num_columns_;
+    in_gradients.values_ = reinterpret_cast<float *>(
+            malloc(in_gradients.num_rows_ * in_gradients.num_columns_ * sizeof(float)));
+    for (int i = 0; i < in_gradients.num_rows_ * in_gradients.num_columns_; ++i) {
+        in_gradients.values_[i] = rand();
     }
     path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(in_gradients, path);
+    save_npy_matrix(&in_gradients, path);
 
     Matrix<float> *gradients = dropout_layer->backward(&in_gradients);
     path = test_dir_path + "/dropout_gradients.npy";

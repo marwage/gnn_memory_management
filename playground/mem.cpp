@@ -1,19 +1,19 @@
 // Copyright 2020 Marcel Wagenländer
 #include <chrono>
-#include <thread>
 #include <iostream>
+#include <thread>
 
 
 void overwrite() {
     long num_elements = 1 << 30;
     long *array = (long *) malloc(num_elements * sizeof(long));
-    for(long i = 0; i < num_elements; ++i) {
+    for (long i = 0; i < num_elements; ++i) {
         array[i] = i;
     }
     std::this_thread::sleep_for(std::chrono::seconds(15));
     // free(array);
     array = (long *) malloc(num_elements * sizeof(long));
-    for(long j = 0; j < num_elements; ++j) {
+    for (long j = 0; j < num_elements; ++j) {
         array[j] = j;
     }
     std::this_thread::sleep_for(std::chrono::seconds(15));
@@ -25,7 +25,7 @@ void free_pointer() {
     long num_elements = 1 << 30;
     std::cout << "Number of elements " << num_elements << std::endl;
     long *array = (long *) malloc(num_elements * sizeof(long));
-    for(long i = 0; i < num_elements; ++i) {
+    for (long i = 0; i < num_elements; ++i) {
         array[i] = i + 1;
     }
     std::cout << "Array pointer " << array << std::endl;
@@ -38,4 +38,3 @@ void free_pointer() {
 int main() {
     free_pointer();
 }
-

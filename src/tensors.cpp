@@ -12,37 +12,70 @@
 
 template<typename T>
 Matrix<T>::Matrix() {}
-template Matrix<int>::Matrix();
 template Matrix<float>::Matrix();
+template Matrix<int>::Matrix();
 
 template<typename T>
 Matrix<T>::Matrix(long num_rows, long num_columns, bool is_row_major) {
-    rows = num_rows;
-    columns = num_columns;
-    size_ = rows * columns;
-    values = new T[size_];
-    row_major = is_row_major;
+    set(num_rows, num_columns, is_row_major);
 }
 template Matrix<int>::Matrix(long num_rows, long num_columns, bool is_row_major);
 template Matrix<float>::Matrix(long num_rows, long num_columns, bool is_row_major);
 
 template<typename T>
-Matrix<T>::Matrix(long num_rows, long num_columns, T *matrix_values, bool is_row_major) {
-    rows = num_rows;
-    columns = num_columns;
-    size_ = rows * columns;
-    values = matrix_values;
-    row_major = is_row_major;
+Matrix<T>::Matrix(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free) {
+    set(num_rows, num_columns, matrix_values, is_row_major, free);
 }
-template Matrix<float>::Matrix(long num_rows, long num_columns, float *matrix_values, bool is_row_major);
-template Matrix<int>::Matrix(long num_rows, long num_columns, int *matrix_values, bool is_row_major);
+template Matrix<float>::Matrix(long num_rows, long num_columns, float *matrix_values, bool is_row_major, bool free);
+template Matrix<int>::Matrix(long num_rows, long num_columns, int *matrix_values, bool is_row_major, bool free);
 
 template<typename T>
 Matrix<T>::~Matrix() {
-    delete[] values;
+    if (free_) {
+        delete[] values_;
+    }
 }
 template Matrix<float>::~Matrix();
 template Matrix<int>::~Matrix();
+
+template<typename T>
+void Matrix<T>::set(long num_rows, long num_columns, bool is_row_major) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    size_ = num_rows_ * num_columns;
+    values_ = new T[size_];
+    is_row_major_ = is_row_major;
+    free_ = true;
+}
+template void Matrix<int>::set(long num_rows, long num_columns, bool is_row_major);
+template void Matrix<float>::set(long num_rows, long num_columns, bool is_row_major);
+
+template<typename T>
+void Matrix<T>::set(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    size_ = num_rows_ * num_columns;
+    values_ = matrix_values;
+    is_row_major_ = is_row_major;
+    free_ = false;
+}
+template void Matrix<float>::set(long num_rows, long num_columns, float *matrix_values, bool is_row_major, bool free);
+template void Matrix<int>::set(long num_rows, long num_columns, int *matrix_values, bool is_row_major, bool free);
+
+template<typename T>
+void Matrix<T>::set_values(bool random) {
+    long max = 5;
+
+    for (long i = 0; i < num_rows_ * num_columns_; ++i) {
+        if (random) {
+            values_[i] = rand();
+        } else {
+            values_[i] = (T)((i % max) + 1);
+        }
+    }
+}
+template void Matrix<float>::set_values(bool random);
+template void Matrix<int>::set_values(bool random);
 
 template<typename T>
 SparseMatrix<T>::SparseMatrix() {}
@@ -50,45 +83,51 @@ template SparseMatrix<float>::SparseMatrix();
 
 template<typename T>
 SparseMatrix<T>::SparseMatrix(int num_rows, int num_columns, int num_nnz) {
-    rows = num_rows;
-    columns = num_columns;
-    nnz = num_nnz;
-    csr_val = new T[nnz];
-    csr_row_ptr = new int[rows + 1];
-    csr_col_ind = new int[nnz];
+    set(num_rows, num_columns, num_nnz);
 }
 template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int num_nnz);
 
 template<typename T>
-SparseMatrix<T>::SparseMatrix(int num_rows, int num_columns, int num_nnz, T *values, int *row_ptr, int *col_ind) {
-    rows = num_rows;
-    columns = num_columns;
-    nnz = num_nnz;
-    csr_val = values;
-    csr_row_ptr = row_ptr;
-    csr_col_ind = col_ind;
+SparseMatrix<T>::SparseMatrix(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    nnz_ = num_nnz;
+    csr_val_ = csr_val;
+    csr_row_ptr_ = csr_row_ptr;
+    csr_col_ind_ = csr_col_ind;
 }
-template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int num_nnz, float *values, int *row_ptr, int *col_ind);
+template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind);
 
 template<typename T>
 SparseMatrix<T>::~SparseMatrix() {
-    delete csr_col_ind;
-    delete csr_row_ptr;
-    delete csr_val;
+    delete[] csr_col_ind_;
+    delete[] csr_row_ptr_;
+    delete[] csr_val_;
 }
 template SparseMatrix<float>::~SparseMatrix();
 
 template<typename T>
+void SparseMatrix<T>::set(int num_rows, int num_columns, int num_nnz) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    nnz_ = num_nnz;
+    csr_val_ = new T[nnz_];
+    csr_row_ptr_ = new int[num_rows_ + 1];
+    csr_col_ind_ = new int[nnz_];
+}
+template void SparseMatrix<float>::set(int num_rows, int num_columns, int num_nnz);
+
+template<typename T>
 void print_matrix(Matrix<T> *mat) {
     int N;
-    if (mat->rows < 10) {
-        N = mat->rows;
+    if (mat->num_rows_ < 10) {
+        N = mat->num_rows_;
     } else {
         N = 10;
     }
     int M;
-    if (mat->columns < 10) {
-        M = mat->columns;
+    if (mat->num_columns_ < 10) {
+        M = mat->num_columns_;
     } else {
         M = 10;
     }
@@ -96,10 +135,10 @@ void print_matrix(Matrix<T> *mat) {
     std::cout << "-----" << std::endl;
     for (int i = 0; i < N; i = i + 1) {
         for (int j = 0; j < M; j = j + 1) {
-            if (mat->row_major) {
-                std::cout << mat->values[i * mat->columns + j] << ",";
+            if (mat->is_row_major_) {
+                std::cout << mat->values_[i * mat->num_columns_ + j] << ",";
             } else {
-                std::cout << mat->values[j * mat->rows + i] << ",";
+                std::cout << mat->values_[j * mat->num_rows_ + i] << ",";
             }
         }
         std::cout << std::endl;
@@ -110,9 +149,9 @@ template void print_matrix<int>(Matrix<int> *mat);
 
 template<typename T>
 void print_matrix_features(Matrix<T> *mat) {
-    std::cout << "Shape: (" << mat->rows << ", " << mat->columns << ")" << std::endl;
-    std::cout << "Row major: " << mat->row_major << std::endl;
-    std::cout << "Values pointer: " << mat->values << std::endl;
+    std::cout << "Shape: (" << mat->num_rows_ << ", " << mat->num_columns_ << ")" << std::endl;
+    std::cout << "Row major: " << mat->is_row_major_ << std::endl;
+    std::cout << "Values pointer: " << mat->values_ << std::endl;
 }
 template void print_matrix_features<float>(Matrix<float> *mat);
 template void print_matrix_features<int>(Matrix<int> *mat);
@@ -131,9 +170,9 @@ long new_index(long old_idx, long rows, long cols) {
 
 template<typename T>
 void transpose(T *a_T, T *a, long rows, long cols,
-             long rows_lower, long rows_upper, long columns_lower, long columns_upper) {
+               long rows_lower, long rows_upper, long columns_lower, long columns_upper) {
     if (rows_upper - rows_lower < 1 ||
-            columns_upper - columns_lower < 1) {
+        columns_upper - columns_lower < 1) {
         throw "Wrong boundaries";
     }
     int boundary = 4096;
@@ -179,7 +218,7 @@ void transpose(T *a_T, T *a, long rows, long cols,
 }
 
 template<typename T>
-T* transpose(T *a, long rows, long cols) {
+T *transpose(T *a, long rows, long cols) {
     T *a_T = new T[rows * cols];
 
     transpose(a_T, a, rows, cols, 0, rows, 0, cols);
@@ -211,7 +250,7 @@ Matrix<T> load_npy_matrix(std::string path) {
         num_columns = arr.shape[1];
     }
     Matrix<T> mat(arr.shape[0], num_columns, true);
-    std::memcpy(mat.values, arr_data, mat.rows * mat.columns * sizeof(T));
+    std::memcpy(mat.values_, arr_data, mat.num_rows_ * mat.num_columns_ * sizeof(T));
 
     return mat;
 }
@@ -226,14 +265,14 @@ SparseMatrix<T> load_mtx_matrix(std::string path) {
     char *path_char = &*path.begin();
     SparseMatrix<T> sp_mat;
     int err = loadMMSparseMatrix<T>(path_char, 'f', true,
-                                    &sp_mat.rows, &sp_mat.columns, &sp_mat.nnz,
-                                    &sp_mat.csr_val, &sp_mat.csr_row_ptr,
-                                    &sp_mat.csr_col_ind, true);
+                                    &sp_mat.num_rows_, &sp_mat.num_columns_, &sp_mat.nnz_,
+                                    &sp_mat.csr_val_, &sp_mat.csr_row_ptr_,
+                                    &sp_mat.csr_col_ind_, true);
     if (err) {
         std::cout << "loadMMSparseMatrix failed" << std::endl;
     }
-    one_to_zero_index(sp_mat.csr_row_ptr, sp_mat.rows + 1);
-    one_to_zero_index(sp_mat.csr_col_ind, sp_mat.nnz);
+    one_to_zero_index(sp_mat.csr_row_ptr_, sp_mat.num_rows_ + 1);
+    one_to_zero_index(sp_mat.csr_col_ind_, sp_mat.nnz_);
 
     return sp_mat;
 }
@@ -243,37 +282,29 @@ template SparseMatrix<float> load_mtx_matrix<float>(std::string path);
 template<typename T>
 void save_npy_matrix(Matrix<T> *mat, std::string path) {
     to_row_major_inplace(mat);
-    std::vector<size_t> shape = {(size_t) mat->rows, (size_t) mat->columns};
-    cnpy::npy_save<T>(path, mat->values, shape);
+    std::vector<size_t> shape = {(size_t) mat->num_rows_, (size_t) mat->num_columns_};
+    cnpy::npy_save<T>(path, mat->values_, shape);
 }
 
 template void save_npy_matrix<float>(Matrix<float> *mat, std::string path);
 template void save_npy_matrix<int>(Matrix<int> *mat, std::string path);
 
 template<typename T>
-void save_npy_matrix(Matrix<T> mat, std::string path) {
-    save_npy_matrix(&mat, path);
+void save_npy_matrix_no_trans(Matrix<T> *mat, std::string path) {
+    std::vector<size_t> shape = {(size_t) mat->num_rows_, (size_t) mat->num_columns_};
+    cnpy::npy_save<T>(path, mat->values_, shape);
 }
 
-template void save_npy_matrix<float>(Matrix<float> mat, std::string path);
-template void save_npy_matrix<int>(Matrix<int> mat, std::string path);
-
-template<typename T>
-void save_npy_matrix_no_trans(Matrix<T> mat, std::string path) {
-    std::vector<size_t> shape = {(size_t) mat.rows, (size_t) mat.columns};
-    cnpy::npy_save<T>(path, mat.values, shape);
-}
-
-template void save_npy_matrix_no_trans<float>(Matrix<float> mat, std::string path);
-template void save_npy_matrix_no_trans<int>(Matrix<int> mat, std::string path);
+template void save_npy_matrix_no_trans<float>(Matrix<float> *mat, std::string path);
+template void save_npy_matrix_no_trans<int>(Matrix<int> *mat, std::string path);
 
 template<typename T>
 void to_column_major_inplace(Matrix<T> *mat) {
-    if (mat->row_major) {
-        T* values_T = transpose<T>(mat->values, mat->rows, mat->columns);
-        delete mat->values;
-        mat->values = values_T;
-        mat->row_major = false;
+    if (mat->is_row_major_) {
+        T *values_T = transpose<T>(mat->values_, mat->num_rows_, mat->num_columns_);
+        delete[] mat->values_;
+        mat->values_ = values_T;
+        mat->is_row_major_ = false;
     }
 }
 
@@ -290,11 +321,11 @@ template Matrix<int> to_column_major<int>(Matrix<int> *mat);
 
 template<typename T>
 void to_row_major_inplace(Matrix<T> *mat) {
-    if (!mat->row_major) {
-        T* values_T = transpose<T>(mat->values, mat->columns, mat->rows);
-        delete mat->values;
-        mat->values = values_T;
-        mat->row_major = true;
+    if (!mat->is_row_major_) {
+        T *values_T = transpose<T>(mat->values_, mat->num_columns_, mat->num_rows_);
+        delete[] mat->values_;
+        mat->values_ = values_T;
+        mat->is_row_major_ = true;
     }
 }
 template void to_row_major_inplace<float>(Matrix<float> *mat);
@@ -307,95 +338,93 @@ Matrix<T> to_row_major(Matrix<T> *mat) {
 template Matrix<float> to_row_major<float>(Matrix<float> *mat);
 template Matrix<int> to_row_major<int>(Matrix<int> *mat);
 
-SparseMatrix<float> get_rows(SparseMatrix<float> *mat, int start_row, int end_row) {
-    int first_index = mat->csr_row_ptr[start_row];
-    int last_index = mat->csr_row_ptr[end_row];
+void get_rows(SparseMatrix<float> *reduced_mat, SparseMatrix<float> *mat, int start_row, int end_row) {
+    int first_index = mat->csr_row_ptr_[start_row];
+    int last_index = mat->csr_row_ptr_[end_row];
 
-    SparseMatrix<float> reduced_mat(end_row - start_row, mat->columns, last_index - first_index);
+    reduced_mat->set(end_row - start_row, mat->num_columns_, last_index - first_index);
 
-    std::memcpy(reduced_mat.csr_val, &mat->csr_val[first_index], reduced_mat.nnz * sizeof(float));
-    std::memcpy(reduced_mat.csr_row_ptr, &mat->csr_row_ptr[start_row], (reduced_mat.rows + 1) * sizeof(int));
-    std::memcpy(reduced_mat.csr_col_ind, &mat->csr_col_ind[first_index], reduced_mat.nnz * sizeof(int));
-    for (int i = 0; i < reduced_mat.rows; ++i) {
-        reduced_mat.csr_row_ptr[i] = reduced_mat.csr_row_ptr[i] - first_index;
+    std::memcpy(reduced_mat->csr_val_, &mat->csr_val_[first_index], reduced_mat->nnz_ * sizeof(float));
+    std::memcpy(reduced_mat->csr_row_ptr_, &mat->csr_row_ptr_[start_row], (reduced_mat->num_rows_ + 1) * sizeof(int));
+    std::memcpy(reduced_mat->csr_col_ind_, &mat->csr_col_ind_[first_index], reduced_mat->nnz_ * sizeof(int));
+    for (int i = 0; i < reduced_mat->num_rows_; ++i) {
+        reduced_mat->csr_row_ptr_[i] = reduced_mat->csr_row_ptr_[i] - first_index;
     }
-
-    return reduced_mat;
 }
 
 void print_sparse_matrix(SparseMatrix<float> *mat) {
     std::cout << "Row pointers" << std::endl;
-    for (int i = 0; i < mat->rows + 1; ++i) {
-        std::cout << mat->csr_row_ptr[i] << ", ";
+    for (int i = 0; i < mat->num_rows_ + 1; ++i) {
+        std::cout << mat->csr_row_ptr_[i] << ", ";
     }
     std::cout << std::endl;
     std::cout << "Column indices" << std::endl;
-    for (int i = 0; i < mat->nnz; ++i) {
-        std::cout << mat->csr_col_ind[i] << ", ";
+    for (int i = 0; i < mat->nnz_; ++i) {
+        std::cout << mat->csr_col_ind_[i] << ", ";
     }
     std::cout << std::endl;
     std::cout << "Values" << std::endl;
-    for (int i = 0; i < mat->nnz; ++i) {
-        std::cout << mat->csr_val[i] << ", ";
+    for (int i = 0; i < mat->nnz_; ++i) {
+        std::cout << mat->csr_val_[i] << ", ";
     }
     std::cout << std::endl;
 }
 
-void transpose_csr_matrix(SparseMatrix<float> *mat, CudaHelper *cuda_helper){
+void transpose_csr_matrix(SparseMatrix<float> *mat, CudaHelper *cuda_helper) {
     float *d_mat_csr_val;
     int *d_mat_csr_row_ptr, *d_mat_csr_col_ind;
-    check_cuda(cudaMalloc(&d_mat_csr_val,mat->nnz * sizeof(float)));
-    check_cuda(cudaMalloc(&d_mat_csr_row_ptr,(mat->rows + 1) * sizeof(int)));
-    check_cuda(cudaMalloc(&d_mat_csr_col_ind,mat->nnz * sizeof(int)));
-    check_cuda(cudaMemcpy(d_mat_csr_val, mat->csr_val,
-                          mat->nnz * sizeof(float), cudaMemcpyHostToDevice));
-    check_cuda(cudaMemcpy(d_mat_csr_row_ptr, mat->csr_row_ptr,
-                          (mat->rows + 1) * sizeof(int), cudaMemcpyHostToDevice));
-    check_cuda(cudaMemcpy(d_mat_csr_col_ind, mat->csr_col_ind,
-                          mat->nnz * sizeof(int), cudaMemcpyHostToDevice));
+    check_cuda(cudaMalloc(&d_mat_csr_val, mat->nnz_ * sizeof(float)));
+    check_cuda(cudaMalloc(&d_mat_csr_row_ptr, (mat->num_rows_ + 1) * sizeof(int)));
+    check_cuda(cudaMalloc(&d_mat_csr_col_ind, mat->nnz_ * sizeof(int)));
+    check_cuda(cudaMemcpy(d_mat_csr_val, mat->csr_val_,
+                          mat->nnz_ * sizeof(float), cudaMemcpyHostToDevice));
+    check_cuda(cudaMemcpy(d_mat_csr_row_ptr, mat->csr_row_ptr_,
+                          (mat->num_rows_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
+    check_cuda(cudaMemcpy(d_mat_csr_col_ind, mat->csr_col_ind_,
+                          mat->nnz_ * sizeof(int), cudaMemcpyHostToDevice));
 
     float *d_mat_csc_val;
     int *d_mat_csc_col_ptr, *d_mat_csc_row_ind;
-    check_cuda(cudaMalloc(&d_mat_csc_val,mat->nnz * sizeof(float)));
-    check_cuda(cudaMalloc(&d_mat_csc_col_ptr,(mat->columns + 1) * sizeof(int)));
-    check_cuda(cudaMalloc(&d_mat_csc_row_ind,mat->nnz * sizeof(int)));
+    check_cuda(cudaMalloc(&d_mat_csc_val, mat->nnz_ * sizeof(float)));
+    check_cuda(cudaMalloc(&d_mat_csc_col_ptr, (mat->num_columns_ + 1) * sizeof(int)));
+    check_cuda(cudaMalloc(&d_mat_csc_row_ind, mat->nnz_ * sizeof(int)));
 
     size_t buffer_size;
     check_cusparse(cusparseCsr2cscEx2_bufferSize(cuda_helper->cusparse_handle,
-                                                 mat->rows, mat->columns, mat->nnz,
+                                                 mat->num_rows_, mat->num_columns_, mat->nnz_,
                                                  d_mat_csr_val, d_mat_csr_row_ptr, d_mat_csr_col_ind,
                                                  d_mat_csc_val, d_mat_csc_col_ptr, d_mat_csc_row_ind,
                                                  CUDA_R_32F,
-                                                 CUSPARSE_ACTION_SYMBOLIC, // could try CUSPARSE_ACTION_NUMERIC
+                                                 CUSPARSE_ACTION_SYMBOLIC,// could try CUSPARSE_ACTION_NUMERIC
                                                  CUSPARSE_INDEX_BASE_ZERO,
-                                                 CUSPARSE_CSR2CSC_ALG1, // could try CUSPARSE_CSR2CSC_ALG2
+                                                 CUSPARSE_CSR2CSC_ALG1,// could try CUSPARSE_CSR2CSC_ALG2
                                                  &buffer_size));
 
     void *d_buffer;
     check_cuda(cudaMalloc(&d_buffer, buffer_size));
 
     check_cusparse(cusparseCsr2cscEx2(cuda_helper->cusparse_handle,
-                                      mat->rows, mat->columns, mat->nnz,
+                                      mat->num_rows_, mat->num_columns_, mat->nnz_,
                                       d_mat_csr_val, d_mat_csr_row_ptr, d_mat_csr_col_ind,
                                       d_mat_csc_val, d_mat_csc_col_ptr, d_mat_csc_row_ind,
                                       CUDA_R_32F,
-                                      CUSPARSE_ACTION_SYMBOLIC, // could try CUSPARSE_ACTION_NUMERIC
+                                      CUSPARSE_ACTION_SYMBOLIC,// could try CUSPARSE_ACTION_NUMERIC
                                       CUSPARSE_INDEX_BASE_ZERO,
-                                      CUSPARSE_CSR2CSC_ALG1, // could try CUSPARSE_CSR2CSC_ALG2
+                                      CUSPARSE_CSR2CSC_ALG1,// could try CUSPARSE_CSR2CSC_ALG2
                                       d_buffer));
 
-    long tmp = mat->rows;
-    mat->rows = mat->columns;
-    mat->columns = tmp;
-    delete mat->csr_row_ptr;
-    delete mat->csr_col_ind;
-    mat->csr_row_ptr = new int[mat->rows + 1];
-    mat->csr_col_ind = new int[mat->nnz];
+    long tmp = mat->num_rows_;
+    mat->num_rows_ = mat->num_columns_;
+    mat->num_columns_ = tmp;
+    delete[] mat->csr_row_ptr_;
+    delete[] mat->csr_col_ind_;
+    mat->csr_row_ptr_ = new int[mat->num_rows_ + 1];
+    mat->csr_col_ind_ = new int[mat->nnz_];
 
-    check_cuda(cudaMemcpy(mat->csr_row_ptr, d_mat_csc_col_ptr,
-                          (mat->rows + 1) * sizeof(int), cudaMemcpyDeviceToHost));
-    check_cuda(cudaMemcpy(mat->csr_col_ind, d_mat_csc_row_ind,
-                          mat->nnz * sizeof(int), cudaMemcpyDeviceToHost));
+    check_cuda(cudaMemcpy(mat->csr_row_ptr_, d_mat_csc_col_ptr,
+                          (mat->num_rows_ + 1) * sizeof(int), cudaMemcpyDeviceToHost));
+    check_cuda(cudaMemcpy(mat->csr_col_ind_, d_mat_csc_row_ind,
+                          mat->nnz_ * sizeof(int), cudaMemcpyDeviceToHost));
 
     // free GPU memory
     check_cuda(cudaFree(d_buffer));
@@ -410,8 +439,8 @@ void transpose_csr_matrix(SparseMatrix<float> *mat, CudaHelper *cuda_helper){
 long count_nans(Matrix<float> *x) {
     long num_nans = 0;
 
-    for (int i = 0; i < x->rows * x->columns; ++i) {
-        if (isnan(x->values[i])) {
+    for (int i = 0; i < x->num_rows_ * x->num_columns_; ++i) {
+        if (isnan(x->values_[i])) {
             num_nans = num_nans + 1;
         }
     }
@@ -427,28 +456,4 @@ bool check_nans(Matrix<float> *x, std::string name) {
     } else {
         return false;
     }
-}
-
-Matrix<float> gen_matrix(long num_rows, long num_columns, bool random) {
-    long max = 5;
-
-    Matrix<float> mat(num_rows, num_columns, true);
-
-    for (long i = 0; i < mat.rows * mat.columns; ++i) {
-        if (random) {
-            mat.values[i] = rand();
-        } else {
-            mat.values[i] = (float) ((i % max) + 1);
-        }
-    }
-
-    return mat;
-}
-
-Matrix<float> gen_rand_matrix(long num_rows, long num_columns) {
-    return gen_matrix(num_rows, num_columns, true);
-}
-
-Matrix<float> gen_non_rand_matrix(long num_rows, long num_columns) {
-    return gen_matrix(num_rows, num_columns, false);
 }

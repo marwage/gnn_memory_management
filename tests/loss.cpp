@@ -18,20 +18,21 @@ int test_loss() {
 
     std::string path = flickr_dir_path + "/classes.npy";
     Matrix<int> classes = load_npy_matrix<int>(path);
-    Matrix<float> input = gen_rand_matrix(classes.rows, num_classes);
+    Matrix<float> input(classes.num_rows_, num_classes, true);
+    input.set_values(true);
     path = test_dir_path + "/input.npy";
-    save_npy_matrix(input, path);
+    save_npy_matrix(&input, path);
 
-    NLLLoss loss_layer(input.rows, input.columns);
+    NLLLoss loss_layer(input.num_rows_, input.num_columns_);
 
     float loss = loss_layer.forward(&input, &classes);
     Matrix<float> loss_mat;
-    loss_mat.rows = 1;
-    loss_mat.columns = 1;
-    loss_mat.values = new float[1];
-    loss_mat.values[0] = loss;
+    loss_mat.num_rows_ = 1;
+    loss_mat.num_columns_ = 1;
+    loss_mat.values_ = new float[1];
+    loss_mat.values_[0] = loss;
     path = test_dir_path + "/loss.npy";
-    save_npy_matrix(loss_mat, path);
+    save_npy_matrix(&loss_mat, path);
 
     Matrix<float> *gradients = loss_layer.backward();
     path = test_dir_path + "/gradients.npy";

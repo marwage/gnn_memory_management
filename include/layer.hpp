@@ -1,8 +1,10 @@
 // Copyright 2020 Marcel Wagenländer
 
+#include "tensors.hpp"
+
 
 class Layer {
 public:
-    matrix<float> forward(matrix<float> in);
-    matrix<float> backward(matrix<float> gradients);
+    Matrix<float> *forward(Matrix<float> *x);
+    Matrix<float> *backward(Matrix<float> *in_gradients);
 };

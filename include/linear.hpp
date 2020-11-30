@@ -6,6 +6,8 @@
 #include "cuda_helper.hpp"
 #include "tensors.hpp"
 
+#include <vector>
+
 class Linear {
 private:
     CudaHelper *cuda_helper_;
@@ -16,9 +18,9 @@ private:
     Matrix<float> bias_expanded_;
     Matrix<float> grad_weight_;
     Matrix<float> grad_bias_;
-    Matrix<float> *x_;
     Matrix<float> y_;
-    float *ones_;
+    Matrix<float> *x_;
+    std::vector<float> ones_;
     Matrix<float> gradients_input_;
 
     void init_weight_bias();
@@ -27,12 +29,13 @@ private:
 public:
     Linear();
     Linear(CudaHelper *helper, long in_features, long out_features, long num_nodes);
+    void set(CudaHelper *helper, long in_features, long out_features, long num_nodes);
     Matrix<float> **get_parameters();
     void set_parameters(Matrix<float> **parameters);
     Matrix<float> **get_gradients();
     void set_gradients(Matrix<float> **grads);
-    Matrix<float>* forward(Matrix<float> *x);
-    Matrix<float>* backward(Matrix<float> *in_gradients);
+    Matrix<float> *forward(Matrix<float> *x);
+    Matrix<float> *backward(Matrix<float> *in_gradients);
     void update_weights(Matrix<float> *gradients);
 };
 

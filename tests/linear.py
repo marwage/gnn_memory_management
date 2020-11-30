@@ -4,7 +4,7 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (check_close_equal, save_return_value,
-        to_torch, print_close_equal, count_nans, write_equal)
+                    to_torch, print_close_equal, count_nans, write_equal)
 
 
 def test_linear():
@@ -68,7 +68,7 @@ def test_linear():
     print_close_equal("Input gradients", ratio_close, ratio_equal)
     all_close = all_close * ratio_close
 
-    ratio_close, ratio_equal  = check_close_equal(weight_gradients, true_weight_gradients)
+    ratio_close, ratio_equal = check_close_equal(weight_gradients, true_weight_gradients)
     print_close_equal("Weight gradients", ratio_close, ratio_equal)
     all_close = all_close * ratio_close
 
@@ -82,4 +82,3 @@ def test_linear():
 
 if __name__ == "__main__":
     test_linear()
-

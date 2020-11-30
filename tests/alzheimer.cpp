@@ -1,15 +1,15 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "activation.hpp"
+#include "adam.hpp"
+#include "add.hpp"
 #include "cuda_helper.hpp"
 #include "dropout.hpp"
 #include "graph_convolution.hpp"
+#include "helper.hpp"
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
-#include "adam.hpp"
-#include "add.hpp"
-#include "helper.hpp"
 
 #include "catch2/catch.hpp"
 #include <iostream>
@@ -48,7 +48,7 @@ int test_alzheimer(std::string dataset, int chunk_size) {
 
     // FORWARD PASS
     CudaHelper cuda_helper;
-    long num_nodes = features.rows;
+    long num_nodes = features.num_rows_;
     float learning_rate = 0.0003;
     long num_hidden_channels = 128;
     long num_classes;
@@ -60,7 +60,7 @@ int test_alzheimer(std::string dataset, int chunk_size) {
 
     // layers
     DropoutParent *dropout_0;
-    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean", num_nodes, features.columns);
+    GraphConvolution graph_convolution_0(&cuda_helper, &adjacency, "mean", num_nodes, features.num_columns_);
     SageLinearParent *linear_0;
     ReluParent *relu_0;
     DropoutParent *dropout_1;
@@ -74,9 +74,9 @@ int test_alzheimer(std::string dataset, int chunk_size) {
     NLLLoss loss_layer(num_nodes, num_classes);
     Add add_1(&cuda_helper, num_nodes, num_hidden_channels);
     Add add_2(&cuda_helper, num_nodes, num_hidden_channels);
-    if (chunk_size == 0) { // no chunking
-        dropout_0 = new Dropout(&cuda_helper, num_nodes, features.columns);
-        linear_0 = new SageLinear(&cuda_helper, features.columns, num_hidden_channels, num_nodes);
+    if (chunk_size == 0) {// no chunking
+        dropout_0 = new Dropout(&cuda_helper, num_nodes, features.num_columns_);
+        linear_0 = new SageLinear(&cuda_helper, features.num_columns_, num_hidden_channels, num_nodes);
         relu_0 = new Relu(&cuda_helper, num_nodes, num_hidden_channels);
         dropout_1 = new Dropout(&cuda_helper, num_nodes, num_hidden_channels);
         linear_1 = new SageLinear(&cuda_helper, num_hidden_channels, num_hidden_channels, num_nodes);
@@ -85,8 +85,8 @@ int test_alzheimer(std::string dataset, int chunk_size) {
         linear_2 = new SageLinear(&cuda_helper, num_hidden_channels, num_classes, num_nodes);
         log_softmax = new LogSoftmax(&cuda_helper, num_nodes, num_classes);
     } else {
-        dropout_0 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes, features.columns);
-        linear_0 = new SageLinearChunked(&cuda_helper, features.columns, num_hidden_channels, chunk_size, num_nodes);
+        dropout_0 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes, features.num_columns_);
+        linear_0 = new SageLinearChunked(&cuda_helper, features.num_columns_, num_hidden_channels, chunk_size, num_nodes);
         relu_0 = new ReluChunked(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
         dropout_1 = new DropoutChunked(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
         linear_1 = new SageLinearChunked(&cuda_helper, num_hidden_channels, num_hidden_channels, chunk_size, num_nodes);

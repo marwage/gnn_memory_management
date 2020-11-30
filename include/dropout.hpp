@@ -10,17 +10,17 @@
 
 class DropoutParent {
 public:
-    virtual Matrix<float>* forward(Matrix<float> *x) = 0;
-    virtual Matrix<float>* backward(Matrix<float> *in_gradients) = 0;
+    virtual Matrix<float> *forward(Matrix<float> *x) = 0;
+    virtual Matrix<float> *backward(Matrix<float> *in_gradients) = 0;
 };
 
 class Dropout : public DropoutParent {
 private:
-    CudaHelper *cuda_helper_;
+    CudaHelper *cuda_helper_ = NULL;
     cudnnDropoutDescriptor_t dropout_desc_;
-    void *reserve_space_ = NULL;
+    char *reserve_space_ = NULL;
     size_t reserve_space_size_;
-    void *states_ = NULL;
+    char *states_ = NULL;
     size_t state_size_;
     Matrix<float> y_;
     Matrix<float> gradients_;
@@ -28,13 +28,14 @@ private:
 public:
     Dropout();
     Dropout(CudaHelper *helper, long num_nodes, long num_features);
-    Matrix<float>* forward(Matrix<float> *x);
-    Matrix<float>* backward(Matrix<float> *in_gradients);
+    ~Dropout();
+    Matrix<float> *forward(Matrix<float> *x);
+    Matrix<float> *backward(Matrix<float> *in_gradients);
 };
 
 class DropoutChunked : public DropoutParent {
 private:
-    CudaHelper *cuda_helper_;
+    CudaHelper *cuda_helper_ = NULL;
     int chunk_size_;
     int last_chunk_size_;
     int num_chunks_;
@@ -44,8 +45,8 @@ private:
 
 public:
     DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes, long num_features);
-    Matrix<float>* forward(Matrix<float> *x);
-    Matrix<float>* backward(Matrix<float> *in_gradients);
+    Matrix<float> *forward(Matrix<float> *x);
+    Matrix<float> *backward(Matrix<float> *in_gradients);
 };
 
 #endif

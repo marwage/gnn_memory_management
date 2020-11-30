@@ -3,17 +3,18 @@
 #ifndef ADD_H
 #define ADD_H
 
-#include "tensors.hpp"
 #include "cuda_helper.hpp"
+#include "tensors.hpp"
 
 
 class Add {
 private:
-    CudaHelper *cuda_helper_;
+    CudaHelper *cuda_helper_ = NULL;
     Matrix<float> y_;
+
 public:
     Add(CudaHelper *cuda_helper, long num_nodes, long num_features);
-    Matrix<float>* forward(Matrix<float> *a, Matrix<float> *b);
+    Matrix<float> *forward(Matrix<float> *a, Matrix<float> *b);
 };
 
 
