@@ -8,7 +8,7 @@ from helper import (write_equal, check_close_equal, print_small,
 
 
 def test_adam():
-    all_equal = True
+    all_close = True
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     home = os.getenv("HOME")
     dir_path = home + "/gpu_memory_reduction/alzheimer/data"
@@ -48,16 +48,16 @@ def test_adam():
 
     true_weight = weight_torch.detach().cpu().numpy()
     ratio_close, ratio_equal = check_close_equal(weight_updated, true_weight)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("Adam weight", ratio_close, ratio_equal)
 
     true_bias = bias_torch.detach().cpu().numpy()
     ratio_close, ratio_equal = check_close_equal(bias_updated, true_bias)
-    all_equal = all_equal * ratio_equal
+    all_close = all_close * ratio_close
     print_close_equal("Adam bias", ratio_close, ratio_equal)
 
     path = test_dir_path + "/value.npy"
-    write_equal(all_equal, path)
+    write_equal(all_close, path)
 
 
 if __name__ == "__main__":
