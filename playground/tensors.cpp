@@ -2,55 +2,55 @@
 
 #include "tensors.hpp"
 
-#include "cnpy.h"
-#include "mmio_wrapper.hpp"
-
-#include <cstring>
+#include <string>
 #include <iostream>
 #include <thread>
-
-#include "catch2/catch.hpp"// DEBUGGING
 
 
 template<typename T>
 Matrix<T>::Matrix() {}
-template Matrix<int>::Matrix();
 template Matrix<float>::Matrix();
 
-template<typename T>
-Matrix<T>::Matrix(long num_rows, long num_columns, bool is_row_major) {
-    rows = num_rows;
-    columns = num_columns;
-    size_ = rows * columns;
-    values = new T[size_];
-    row_major = is_row_major;
-
-    for (int i = 0; i < size_; ++i) {
-        values[i] = 0;
-    }
-    T *ptr = values;
-    int num = 0;
-}
-template Matrix<int>::Matrix(long num_rows, long num_columns, bool is_row_major);
-template Matrix<float>::Matrix(long num_rows, long num_columns, bool is_row_major);
 
 template<typename T>
-Matrix<T>::Matrix(long num_rows, long num_columns, T *matrix_values, bool is_row_major) {
-    rows = num_rows;
-    columns = num_columns;
-    size_ = rows * columns;
-    values = matrix_values;
-    row_major = is_row_major;
+Matrix<T>::Matrix(long num_rows, long num_columns, bool row_major) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    size_ = num_rows_ * num_columns_;
+    values_ = new T[size_]();
+    row_major_ = row_major;
 }
-template Matrix<float>::Matrix(long num_rows, long num_columns, float *matrix_values, bool is_row_major);
-template Matrix<int>::Matrix(long num_rows, long num_columns, int *matrix_values, bool is_row_major);
+template Matrix<int>::Matrix(long num_rows, long num_columns, bool row_major);
+template Matrix<float>::Matrix(long num_rows, long num_columns, bool row_major);
+
+template<typename T>
+Matrix<T>::Matrix(long num_rows, long num_columns, T *values, bool row_major) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    size_ = num_rows_ * num_columns_;
+    values_ = values;
+    row_major_ = row_major;
+}
+template Matrix<float>::Matrix(long num_rows, long num_columns, float *values, bool row_major);
+template Matrix<int>::Matrix(long num_rows, long num_columns, int *values, bool row_major);
 
 template<typename T>
 Matrix<T>::~Matrix() {
-    delete[] values;
+    std::cout << "Matrix deconstructor called" << std::endl;
+    delete[] values_;
 }
 template Matrix<float>::~Matrix();
 template Matrix<int>::~Matrix();
+
+template<typename T>
+void Matrix<T>::set(long num_rows, long num_columns, bool row_major) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    size_ = num_rows_ * num_columns_;
+    row_major_ = row_major;
+    values_ = new T[size_]();
+}
+template void Matrix<float>::set(long num_rows, long num_columns, bool row_major);
 
 template<typename T>
 SparseMatrix<T>::SparseMatrix() {}
@@ -61,9 +61,9 @@ SparseMatrix<T>::SparseMatrix(int num_rows, int num_columns, int num_nnz) {
     rows = num_rows;
     columns = num_columns;
     nnz = num_nnz;
-    csr_val = new T[nnz];
-    csr_row_ptr = new int[rows + 1];
-    csr_col_ind = new int[nnz];
+    csr_val = new T[nnz]();
+    csr_row_ptr = new int[rows + 1]();
+    csr_col_ind = new int[nnz]();
 }
 template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int num_nnz);
 

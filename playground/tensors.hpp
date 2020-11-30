@@ -9,14 +9,15 @@
 template<typename T>
 class Matrix {
 public:
-    long rows = 0;
-    long columns = 0;
+    long num_rows_ = 0;
+    long num_columns_ = 0;
     long size_ = 0;
-    T *values = NULL;
-    bool row_major = true;
+    T *values_ = NULL;
+    bool row_major_ = true;
     Matrix();
-    Matrix(long num_rows, long num_columns, bool is_row_major);
-    Matrix(long num_rows, long num_columns, T *matrix_values, bool is_row_major);
+    Matrix(long num_rows, long num_columns, bool row_major);
+    Matrix(long num_rows, long num_columns, T *values, bool row_major);
+    void set(long num_rows, long num_columns, bool row_major);
     ~Matrix();
 };
 
