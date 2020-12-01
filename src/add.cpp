@@ -5,7 +5,7 @@
 
 Add::Add(CudaHelper *cuda_helper, long num_nodes, long num_features) {
     cuda_helper_ = cuda_helper;
-    y_ = Matrix<float>(num_nodes, num_features, true);
+    y_.set(num_nodes, num_features, true);
 }
 
 Matrix<float> *Add::forward(Matrix<float> *a, Matrix<float> *b) {

@@ -121,13 +121,10 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, l
     in_gradients_chunks_ = std::vector<Matrix<float>>(num_chunks_);
     long current_chunk_size = chunk_size_;
     for (int i = 0; i < num_chunks_; ++i) {
-        features_chunks_[i].num_columns_ = num_in_features;
-        aggr_chunks_[i].num_columns_ = num_in_features;
-        in_gradients_chunks_[i].num_columns_ = num_out_features;
         if (i == (num_chunks_ - 1)) {
             current_chunk_size = last_chunk_size_;
         }
-        sage_linear_layers_[i] = SageLinear(cuda_helper_, num_in_features_, num_out_features_, current_chunk_size);
+        sage_linear_layers_[i].set(cuda_helper_, num_in_features_, num_out_features_, current_chunk_size);
         features_chunks_[i].set(current_chunk_size, num_in_features, true);
         aggr_chunks_[i].set(current_chunk_size, num_in_features, true);
         in_gradients_chunks_[i].set(current_chunk_size, num_out_features, true);

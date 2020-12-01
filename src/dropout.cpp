@@ -14,15 +14,19 @@
 Dropout::Dropout() {}
 
 Dropout::Dropout(CudaHelper *helper, long num_nodes, long num_features) {
-    cuda_helper_ = helper;
-
-    y_.set(num_nodes, num_features, true);
-    gradients_.set(num_nodes, num_features, true);
+    set(helper, num_nodes, num_features);
 }
 
 Dropout::~Dropout() {
     delete[] reserve_space_;
     delete[] states_;
+}
+
+void Dropout::set(CudaHelper *helper, long num_nodes, long num_features) {
+    cuda_helper_ = helper;
+
+    y_.set(num_nodes, num_features, true);
+    gradients_.set(num_nodes, num_features, true);
 }
 
 Matrix<float> *Dropout::forward(Matrix<float> *x) {
@@ -66,6 +70,9 @@ Matrix<float> *Dropout::forward(Matrix<float> *x) {
                                     dropout_desc_, x_descr, d_x,
                                     y_descr, d_y,
                                     d_reserve_space, reserve_space_size_));
+
+    // DEBUGGING
+    float val = y_.values_[5];
 
     check_cuda(cudaMemcpy(y_.values_, d_y, y_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
@@ -157,12 +164,12 @@ DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes
     }
 
     dropout_layers_ = std::vector<Dropout>(num_chunks_);
+    long current_chunk_size = chunk_size_;
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == num_chunks_ - 1) {
-            dropout_layers_[i] = Dropout(cuda_helper_, last_chunk_size_, num_features);
-        } else {
-            dropout_layers_[i] = Dropout(cuda_helper_, chunk_size_, num_features);
+            current_chunk_size = last_chunk_size_;
         }
+        dropout_layers_[i].set(cuda_helper_, current_chunk_size, num_features);
     }
 
     y_.set(num_nodes, num_features, true);

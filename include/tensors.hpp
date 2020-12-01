@@ -21,6 +21,7 @@ public:
     Matrix(long num_rows, long num_columns, bool is_row_major);
     Matrix(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free);
     void set(long num_rows, long num_columns, bool is_row_major);
+    void set(long num_rows, long num_columns, T *matrix_values, bool is_row_major);
     void set(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free);
     void set_values(bool random);
     ~Matrix();
@@ -61,10 +62,10 @@ template<typename T>
 void save_npy_matrix_no_trans(Matrix<T> *mat, std::string path);
 
 template<typename T>
-Matrix<T> to_column_major(Matrix<T> *mat);
+void to_column_major(Matrix<T> *mat_col, Matrix<T> *mat);
 
 template<typename T>
-Matrix<T> to_row_major(Matrix<T> *mat);
+void to_row_major(Matrix<T> *mat_row, Matrix<T> *mat);
 
 template<typename T>
 void to_column_major_inplace(Matrix<T> *mat);

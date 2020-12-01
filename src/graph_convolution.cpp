@@ -286,7 +286,7 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adja
     x_chunks_ = std::vector<Matrix<float>>(num_chunks_);
     in_gradients_chunks_ = std::vector<Matrix<float>>(num_chunks_);
     long current_chunk_size = chunk_size_;
-    long current_end_row;
+    long current_end_row = 0;
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == num_chunks_ - 1) {
             current_end_row = i * chunk_size + last_chunk_size_;

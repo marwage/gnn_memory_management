@@ -12,6 +12,10 @@
 Relu::Relu() {}
 
 Relu::Relu(CudaHelper *helper, long num_nodes, long num_features) {
+    set(helper, num_nodes, num_features);
+}
+
+void Relu::set(CudaHelper *helper, long num_nodes, long num_features) {
     cuda_helper_ = helper;
     alpha_ = 1.0;
     beta_ = 0.0;
@@ -135,6 +139,10 @@ Matrix<float> *Relu::backward(Matrix<float> *in_gradients) {
 LogSoftmax::LogSoftmax() {}
 
 LogSoftmax::LogSoftmax(CudaHelper *helper, long num_nodes, long num_features) {
+    set(helper, num_nodes, num_features);
+}
+
+void LogSoftmax::set(CudaHelper *helper, long num_nodes, long num_features) {
     cuda_helper_ = helper;
     alpha_ = 1.0;
     beta_ = 0.0;
@@ -262,14 +270,13 @@ ReluChunked::ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, lo
 
     relu_layers_ = std::vector<Relu>(num_chunks_);
     x_chunks_ = std::vector<Matrix<float>>(num_chunks_);
+    long current_chunk_size = chunk_size_;
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == num_chunks_ - 1) {
-            relu_layers_[i] = Relu(cuda_helper_, last_chunk_size_, num_features);
-            x_chunks_[i].set(last_chunk_size_, num_features, true);
-        } else {
-            relu_layers_[i] = Relu(cuda_helper_, chunk_size_, num_features);
-            x_chunks_[i].set(chunk_size, num_features, true);
+            current_chunk_size = last_chunk_size_;
         }
+        relu_layers_[i].set(cuda_helper_, current_chunk_size, num_features);
+        x_chunks_[i].set(current_chunk_size, num_features, true);
     }
 
     y_.set(num_nodes, num_features, true);
@@ -339,12 +346,12 @@ LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long n
     }
 
     log_softmax_layers_ = std::vector<LogSoftmax>(num_chunks_);
+    long current_chunk_size = chunk_size_;
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == num_chunks_ - 1) {
-            log_softmax_layers_[i] = LogSoftmax(cuda_helper_, last_chunk_size_, num_features);
-        } else {
-            log_softmax_layers_[i] = LogSoftmax(cuda_helper_, chunk_size_, num_features);
+            current_chunk_size = last_chunk_size_;
         }
+        log_softmax_layers_[i].set(cuda_helper_, current_chunk_size, num_features);
     }
 
     y_.set(num_nodes, num_features, true);

@@ -9,6 +9,7 @@
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
+#include "alzheimer.hpp"
 
 #include <iostream>
 
