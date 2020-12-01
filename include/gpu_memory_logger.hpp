@@ -4,8 +4,8 @@
 #define ALZHEIMER_GPU_MEMORY_LOGGER_H
 
 #include <future>
-#include <thread>
 #include <string>
+#include <thread>
 
 
 class GPUMemoryLogger {

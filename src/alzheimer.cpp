@@ -1,5 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
+#include "alzheimer.hpp"
 #include "activation.hpp"
 #include "adam.hpp"
 #include "add.hpp"
@@ -9,7 +10,6 @@
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
-#include "alzheimer.hpp"
 
 #include <iostream>
 

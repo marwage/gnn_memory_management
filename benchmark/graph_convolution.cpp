@@ -3,8 +3,8 @@
 #include "graph_convolution.hpp"
 #include "cuda_helper.hpp"
 #include "gpu_memory.hpp"
-#include "tensors.hpp"
 #include "gpu_memory_logger.hpp"
+#include "tensors.hpp"
 
 #include <benchmark/benchmark.h>
 

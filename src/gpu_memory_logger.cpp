@@ -11,7 +11,6 @@ GPUMemoryLogger::GPUMemoryLogger(std::string file_name) {
 
 void GPUMemoryLogger::start() {
     std::future<void> future = signal_exit_.get_future();
-//    std::thread logging_thread_(log_memory, path_, std::move(future));
     logging_thread_ = std::thread(log_memory, path_, std::move(future));
 }
 
