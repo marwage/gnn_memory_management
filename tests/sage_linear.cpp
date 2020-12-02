@@ -87,35 +87,6 @@ int test_sage_linear_non_random(int chunk_size) {
     return read_return_value(path);
 }
 
-int test_parameters() {
-    CudaHelper cuda_helper;
-    int num_in_features = 1024;
-    int num_out_features = 512;
-    int num_nodes = 2048;
-    int chunk_size = 128;
-    SageLinearChunked sage_linear_chunked(&cuda_helper, num_in_features, num_out_features, chunk_size, num_nodes);
-
-    std::vector<SageLinear> *sage_linear_layers = sage_linear_chunked.get_layers();
-    Matrix<float> **params = sage_linear_layers->at(0).get_parameters();
-
-    int equal = 1;
-    long num_parameters = 4;
-    int num_chunks = ceil((float) num_nodes / (float) chunk_size);
-    for (int i = 1; i < num_chunks; ++i) {
-        Matrix<float> **other_params = sage_linear_layers->at(0).get_parameters();
-        for (int j = 0; j < num_parameters; ++j) {
-            for (int k = 0; k < params[j]->num_rows_ * params[j]->num_columns_; ++k) {
-                if (params[j]->values_[k] != other_params[j]->values_[k]) {
-                    equal = 0;
-                }
-            }
-        }
-    }
-
-    return equal;
-}
-
-
 int compare_sage_linear(int chunk_size) {
     int works = 1;
 
@@ -272,10 +243,6 @@ TEST_CASE("SageLinear, chunked", "[sagelinear][chunked]") {
     CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 1 << 15));
     CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 1 << 12));
     CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 1 << 8));
-}
-
-TEST_CASE("SageLinear, compare parameters", "[sagelinear][chunked][compare][parameters]") {
-    CHECK(test_parameters());
 }
 
 TEST_CASE("SageLinear, compare", "[sagelinear][chunked][compare]") {

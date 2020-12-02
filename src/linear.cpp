@@ -61,11 +61,15 @@ Matrix<float> **Linear::get_parameters() {
 }
 
 void Linear::set_parameters(Matrix<float> **parameters) {
-    to_column_major_inplace(parameters[0]);
-    to_column_major_inplace(parameters[1]);
+    set_parameters(parameters[0], parameters[1]);
+}
 
-    std::memcpy(weight_.values_, parameters[0]->values_, weight_.num_rows_ * weight_.num_columns_ * sizeof(float));
-    std::memcpy(bias_.values_, parameters[1]->values_, bias_.num_rows_ * bias_.num_columns_ * sizeof(float));
+void Linear::set_parameters(Matrix<float> *weight, Matrix<float> *bias) {
+    to_column_major_inplace(weight);
+    to_column_major_inplace(bias);
+
+    std::memcpy(weight_.values_, weight->values_, weight_.num_rows_ * weight_.num_columns_ * sizeof(float));
+    std::memcpy(bias_.values_, bias->values_, bias_.num_rows_ * bias_.num_columns_ * sizeof(float));
 }
 
 Matrix<float> **Linear::get_gradients() {
@@ -93,9 +97,6 @@ void Linear::expand_bias() {
 }
 
 Matrix<float> *Linear::forward(Matrix<float> *x) {
-    if (y_.num_rows_ != x->num_rows_ || num_in_features_ != x->num_columns_) {
-        throw "Matrix shapes unequal";
-    }
     to_column_major_inplace(x);
     x_ = x;
     to_column_major_inplace(&weight_);
@@ -248,6 +249,13 @@ Matrix<float> *Linear::backward(Matrix<float> *in_gradients) {
     check_cuda(cudaFree(d_dinput));
 
     return &gradients_input_;
+}
+
+Matrix<float> *Linear::backward(Matrix<float> *in_gradients, Matrix<float> *x) {
+    x_ = x;
+
+    return backward(in_gradients);
+
 }
 
 void Linear::update_weights(Matrix<float> *gradients) {

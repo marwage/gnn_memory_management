@@ -23,6 +23,13 @@ template Matrix<int>::Matrix(long num_rows, long num_columns, bool is_row_major)
 template Matrix<float>::Matrix(long num_rows, long num_columns, bool is_row_major);
 
 template<typename T>
+Matrix<T>::Matrix(long num_rows, long num_columns, bool is_row_major, bool free) {
+    set(num_rows, num_columns, is_row_major, free);
+}
+template Matrix<int>::Matrix(long num_rows, long num_columns, bool is_row_major, bool free);
+template Matrix<float>::Matrix(long num_rows, long num_columns, bool is_row_major, bool free);
+
+template<typename T>
 Matrix<T>::Matrix(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free) {
     set(num_rows, num_columns, matrix_values, is_row_major, free);
 }
@@ -40,15 +47,25 @@ template Matrix<int>::~Matrix();
 
 template<typename T>
 void Matrix<T>::set(long num_rows, long num_columns, bool is_row_major) {
-    num_rows_ = num_rows;
-    num_columns_ = num_columns;
-    size_ = num_rows_ * num_columns;
-    values_ = new T[size_];
-    is_row_major_ = is_row_major;
-    free_ = true;
+    set(num_rows, num_columns, is_row_major, true);
 }
 template void Matrix<int>::set(long num_rows, long num_columns, bool is_row_major);
 template void Matrix<float>::set(long num_rows, long num_columns, bool is_row_major);
+
+template<typename T>
+void Matrix<T>::set(long num_rows, long num_columns, bool is_row_major, bool free) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    size_ = num_rows_ * num_columns;
+    if (values_ != NULL && free_) {
+        delete[] values_;
+    }
+    values_ = new T[size_];
+    is_row_major_ = is_row_major;
+    free_ = free;
+}
+template void Matrix<int>::set(long num_rows, long num_columns, bool is_row_major, bool free);
+template void Matrix<float>::set(long num_rows, long num_columns, bool is_row_major, bool free);
 
 template<typename T>
 void Matrix<T>::set(long num_rows, long num_columns, T *matrix_values, bool is_row_major) {
@@ -314,7 +331,9 @@ void to_column_major_inplace(Matrix<T> *mat) {
     if (mat->is_row_major_) {
         T *values_T = new T[mat->size_];
         transpose<T>(values_T, mat->values_, mat->num_rows_, mat->num_columns_);
-        delete[] mat->values_;
+        if (mat->free_) {
+            delete[] mat->values_;
+        }
         mat->values_ = values_T;
         mat->is_row_major_ = false;
     }
@@ -342,7 +361,9 @@ void to_row_major_inplace(Matrix<T> *mat) {
     if (!mat->is_row_major_) {
         T *values_T = new T[mat->size_];
         transpose<T>(values_T, mat->values_, mat->num_columns_, mat->num_rows_);
-        delete[] mat->values_;
+        if (mat->free_) {
+            delete[] mat->values_;
+        }
         mat->values_ = values_T;
         mat->is_row_major_ = true;
     }

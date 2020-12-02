@@ -276,7 +276,7 @@ Matrix<float> *GraphConvChunked::backward(Matrix<float> *in_gradients) {
     check_cuda(cudaMemcpy(gradients_.values_, d_gradients, gradients_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
-    gradients_.is_row_major_ = gradients_part.is_row_major_;
+    gradients_.is_row_major_ = true;
 
     // free GPU memory
     check_cuda(cudaFree(d_gradients));

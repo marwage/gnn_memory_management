@@ -19,8 +19,10 @@ public:
     bool free_ = true;
     Matrix();
     Matrix(long num_rows, long num_columns, bool is_row_major);
+    Matrix(long num_rows, long num_columns, bool is_row_major, bool free);
     Matrix(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free);
     void set(long num_rows, long num_columns, bool is_row_major);
+    void set(long num_rows, long num_columns, bool is_row_major, bool free);
     void set(long num_rows, long num_columns, T *matrix_values, bool is_row_major);
     void set(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free);
     void set_random_values();
