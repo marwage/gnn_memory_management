@@ -19,7 +19,7 @@ int test_loss() {
     std::string path = flickr_dir_path + "/classes.npy";
     Matrix<int> classes = load_npy_matrix<int>(path);
     Matrix<float> input(classes.num_rows_, num_classes, true);
-    input.set_values(true);
+    input.set_random_values();
     path = test_dir_path + "/input.npy";
     save_npy_matrix(&input, path);
 

@@ -12,6 +12,7 @@ find_package(CUDA 10.2 REQUIRED)
 find_package(benchmark REQUIRED)
 
 set(SOURCE_FILES
+        src/alzheimer.cpp
         src/tensors.cpp
         src/cuda_helper.cpp
         src/graph_convolution.cpp
@@ -29,7 +30,9 @@ set(SOURCE_FILES
         src/elesq.cu
         src/axdy.cu
         src/add.cpp
-        src/memory.cpp)
+        src/gpu_memory.cpp
+        src/gpu_memory_logger.cpp
+        src/sparse_computation.cpp)
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
@@ -56,16 +59,6 @@ add_executable(${EXECUTABLE_NAME}
         src/run_alzheimer.cpp)
 target_link_libraries(${EXECUTABLE_NAME}
         ${PROJECT_NAME})
-
-
-set(EXECUTABLE_NAME benchmark_old)
-add_executable(${EXECUTABLE_NAME}
-        src/benchmark.cpp
-        src/alzheimer.cpp
-        )
-target_link_libraries(${EXECUTABLE_NAME}
-        ${PROJECT_NAME}
-        benchmark::benchmark)
 
 
 include(tests/CMakeLists.txt)

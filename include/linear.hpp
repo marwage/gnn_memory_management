@@ -19,9 +19,9 @@ private:
     Matrix<float> grad_weight_;
     Matrix<float> grad_bias_;
     Matrix<float> y_;
-    Matrix<float> *x_;
     std::vector<float> ones_;
     Matrix<float> gradients_input_;
+    Matrix<float> *x_ = NULL;
 
     void init_weight_bias();
     void expand_bias();

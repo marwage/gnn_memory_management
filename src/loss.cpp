@@ -24,7 +24,9 @@ float NLLLoss::forward(Matrix<float> *x, Matrix<int> *labels) {
 }
 
 Matrix<float> *NLLLoss::backward() {
-    gradients_.values_ = {};
+    for (long i = 0; i < gradients_.size_; ++i) {
+        gradients_.values_[i] = 0.0;
+    }
 
     for (int i = 0; i < labels_->num_rows_; ++i) {
         gradients_.values_[labels_->values_[i] * labels_->num_rows_ + i] = -1.0 / input_->num_rows_;

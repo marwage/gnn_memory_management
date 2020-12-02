@@ -19,7 +19,7 @@ int test_log_softmax(int chunk_size) {
     Matrix<float> features = load_npy_matrix<float>(path);
 
     Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_values(true);
+    in_gradients.set_random_values();
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(&in_gradients, path);
 

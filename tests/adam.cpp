@@ -23,13 +23,13 @@ int test_adam() {
     long num_params = 2;
 
     Matrix<float> weight_grads(num_in_features, num_out_features, false);
-    weight_grads.set_values(true);
+    weight_grads.set_random_values();
 
     path = test_dir_path + "/weight_grads.npy";
     save_npy_matrix(&weight_grads, path);
 
     Matrix<float> bias_grads(num_out_features, 1, false);
-    bias_grads.set_values(true);
+    bias_grads.set_random_values();
     path = test_dir_path + "/bias_grads.npy";
     save_npy_matrix(&bias_grads, path);
 

@@ -2,8 +2,8 @@
 
 #include "tensors.hpp"
 
-#include <string>
 #include <iostream>
+#include <string>
 #include <thread>
 
 
@@ -14,11 +14,7 @@ template Matrix<float>::Matrix();
 
 template<typename T>
 Matrix<T>::Matrix(long num_rows, long num_columns, bool row_major) {
-    num_rows_ = num_rows;
-    num_columns_ = num_columns;
-    size_ = num_rows_ * num_columns_;
-    values_ = new T[size_]();
-    row_major_ = row_major;
+    set(num_rows, num_columns, row_major);
 }
 template Matrix<int>::Matrix(long num_rows, long num_columns, bool row_major);
 template Matrix<float>::Matrix(long num_rows, long num_columns, bool row_major);
@@ -51,6 +47,7 @@ void Matrix<T>::set(long num_rows, long num_columns, bool row_major) {
     values_ = new T[size_]();
 }
 template void Matrix<float>::set(long num_rows, long num_columns, bool row_major);
+template void Matrix<int>::set(long num_rows, long num_columns, bool row_major);
 
 template<typename T>
 SparseMatrix<T>::SparseMatrix() {}

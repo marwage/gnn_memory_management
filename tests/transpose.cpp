@@ -15,7 +15,7 @@ int test_transpose(long rows, long columns, bool to_col_major) {
     std::string path;
 
     Matrix<float> mat(rows, columns, true);
-    mat.set_values(true);
+    mat.set_random_values();
     if (!to_col_major) {// to_row_major
         mat.is_row_major_ = false;
     }

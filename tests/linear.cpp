@@ -21,12 +21,12 @@ int test_linear() {
     int num_out_features = 256;
 
     Matrix<float> input(rows, num_in_features, true);
-    input.set_values(true);
+    input.set_random_values();
     path = test_dir_path + "/input.npy";
     save_npy_matrix(&input, path);
 
     Matrix<float> in_gradients(rows, num_out_features, true);
-    in_gradients.set_values(true);
+    in_gradients.set_random_values();
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(&in_gradients, path);
 
@@ -72,9 +72,9 @@ int test_linear_set_parameters() {
     long num_params = 2;
 
     Matrix<float> weight(num_in_features, num_out_features, false);
-    weight.set_values(true);
+    weight.set_random_values();
     Matrix<float> bias(num_out_features, 1, false);
-    bias.set_values(true);
+    bias.set_random_values();
 
     CudaHelper cuda_helper;
     Linear linear(&cuda_helper, num_in_features, num_out_features, num_nodes);

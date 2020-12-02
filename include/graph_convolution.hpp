@@ -21,7 +21,6 @@ private:
     SparseMatrix<float> *adjacency_ = NULL;
     std::string reduction_;
     bool mean_;
-    Matrix<float> ones_;
     Matrix<float> sum_;
     Matrix<float> y_;
     Matrix<float> gradients_;
@@ -33,7 +32,6 @@ public:
     void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
              long num_nodes, long num_features);
     Matrix<float> *forward(Matrix<float> *x);
-    Matrix<float> *forward(SparseMatrix<float> *adj, Matrix<float> *x);
     Matrix<float> *backward(Matrix<float> *in_gradients);
 };
 
@@ -43,8 +41,10 @@ private:
     long chunk_size_;
     long last_chunk_size_;
     long num_chunks_;
-    std::vector<GraphConvolution> graph_conv_layers_;
+    bool mean_;
+    SparseMatrix<float> *adjacency_ = NULL;
     std::vector<SparseMatrix<float>> adjacencies_;
+    Matrix<float> sum_;
     Matrix<float> y_;
     Matrix<float> gradients_;
     std::vector<Matrix<float>> x_chunks_;

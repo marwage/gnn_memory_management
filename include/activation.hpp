@@ -30,6 +30,7 @@ private:
 public:
     Relu();
     Relu(CudaHelper *helper, long num_nodes, long num_features);
+    void set(CudaHelper *helper, long num_nodes, long num_features);
     Matrix<float> *forward(Matrix<float> *x);
     Matrix<float> *backward(Matrix<float> *in_gradients);
 };
@@ -68,6 +69,7 @@ private:
 public:
     LogSoftmax();
     LogSoftmax(CudaHelper *helper, long num_nodes, long num_features);
+    void set(CudaHelper *helper, long num_nodes, long num_features);
     Matrix<float> *forward(Matrix<float> *x);
     Matrix<float> *backward(Matrix<float> *in_gradients);
 };

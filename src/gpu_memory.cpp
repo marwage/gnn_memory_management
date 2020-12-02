@@ -1,6 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "memory.hpp"
+#include "gpu_memory.hpp"
 #include "cuda_helper.hpp"
 
 #include <chrono>

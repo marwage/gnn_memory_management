@@ -29,6 +29,7 @@ public:
     Dropout();
     Dropout(CudaHelper *helper, long num_nodes, long num_features);
     ~Dropout();
+    void set(CudaHelper *helper, long num_nodes, long num_features);
     Matrix<float> *forward(Matrix<float> *x);
     Matrix<float> *backward(Matrix<float> *in_gradients);
 };
