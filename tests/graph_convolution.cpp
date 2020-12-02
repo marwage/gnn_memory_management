@@ -54,7 +54,7 @@ TEST_CASE("Graph convolution", "[graphconv]") {
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_values(true);
+    in_gradients.set_random_values();
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(&in_gradients, path);
 
@@ -70,7 +70,7 @@ TEST_CASE("Graph convolution, chunked", "[graphconv][chunked]") {
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
     Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_values(true);
+    in_gradients.set_random_values();
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(&in_gradients, path);
 

@@ -124,11 +124,11 @@ int compare_sage_linear(int chunk_size) {
     int num_out_features = 1 << 8;
 
     Matrix<float> input_self(rows, columns, true);
-    input_self.set_values(true);
+    input_self.set_random_values();
     Matrix<float> input_neigh(rows, columns, true);
-    input_neigh.set_values(true);
+    input_neigh.set_random_values();
     Matrix<float> in_gradients(rows, num_out_features, true);
-    in_gradients.set_values(true);
+    in_gradients.set_random_values();
 
     CudaHelper cuda_helper;
     int num_nodes = rows;
@@ -168,13 +168,13 @@ int test_sage_linear_set_parameters() {
     long num_params = 4;
 
     Matrix<float> self_weight(num_in_features, num_out_features, false);
-    self_weight.set_values(true);
+    self_weight.set_random_values();
     Matrix<float> self_bias(num_out_features, 1, false);
-    self_bias.set_values(true);
+    self_bias.set_random_values();
     Matrix<float> neigh_weight(num_in_features, num_out_features, false);
-    neigh_weight.set_values(true);
+    neigh_weight.set_random_values();
     Matrix<float> neigh_bias(num_out_features, 1, false);
-    neigh_bias.set_values(true);
+    neigh_bias.set_random_values();
 
     CudaHelper cuda_helper;
     SageLinear sage_linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
@@ -231,41 +231,17 @@ TEST_CASE("SageLinear", "[sagelinear]") {
     int num_out_features = 1 << 8;
 
     Matrix<float> input_self(rows, columns, true);
-    input_self.set_values(true);
+    input_self.set_random_values();
     path = test_dir_path + "/input_self.npy";
     save_npy_matrix(&input_self, path);
 
     Matrix<float> input_neigh(rows, columns, true);
-    input_neigh.set_values(true);
+    input_neigh.set_random_values();
     path = test_dir_path + "/input_neigh.npy";
     save_npy_matrix(&input_neigh, path);
 
     Matrix<float> in_gradients(rows, num_out_features, true);
-    in_gradients.set_values(true);
-    path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(&in_gradients, path);
-
-    CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 0));
-}
-
-TEST_CASE("SageLinear, non-random input", "[sagelinear][nonrandom]") {
-    std::string path;
-    int rows = 1 << 15;
-    int columns = 1 << 9;
-    int num_out_features = 1 << 8;
-
-    Matrix<float> input_self(rows, columns, true);
-    input_self.set_values(false);
-    path = test_dir_path + "/input_self.npy";
-    save_npy_matrix(&input_self, path);
-
-    Matrix<float> input_neigh(rows, columns, true);
-    input_neigh.set_values(false);
-    path = test_dir_path + "/input_neigh.npy";
-    save_npy_matrix(&input_neigh, path);
-
-    Matrix<float> in_gradients(rows, num_out_features, true);
-    in_gradients.set_values(false);
+    in_gradients.set_random_values();
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(&in_gradients, path);
 
@@ -279,43 +255,17 @@ TEST_CASE("SageLinear, chunked", "[sagelinear][chunked]") {
     int num_out_features = 1 << 8;
 
     Matrix<float> input_self(rows, columns, true);
-    input_self.set_values(true);
+    input_self.set_random_values();
     path = test_dir_path + "/input_self.npy";
     save_npy_matrix(&input_self, path);
 
     Matrix<float> input_neigh(rows, columns, true);
-    input_neigh.set_values(true);
+    input_neigh.set_random_values();
     path = test_dir_path + "/input_neigh.npy";
     save_npy_matrix(&input_neigh, path);
 
     Matrix<float> in_gradients(rows, num_out_features, true);
-    in_gradients.set_values(true);
-    path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(&in_gradients, path);
-
-    CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 1 << 15));
-    CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 1 << 12));
-    CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 1 << 8));
-}
-
-TEST_CASE("SageLinear, chunked, non-random input", "[sagelinear][chunked][nonrandom]") {
-    std::string path;
-    int rows = 1 << 15;
-    int columns = 1 << 9;
-    int num_out_features = 1 << 8;
-
-    Matrix<float> input_self(rows, columns, true);
-    input_self.set_values(false);
-    path = test_dir_path + "/input_self.npy";
-    save_npy_matrix(&input_self, path);
-
-    Matrix<float> input_neigh(rows, columns, true);
-    input_neigh.set_values(false);
-    path = test_dir_path + "/input_neigh.npy";
-    save_npy_matrix(&input_neigh, path);
-
-    Matrix<float> in_gradients(rows, num_out_features, true);
-    in_gradients.set_values(false);
+    in_gradients.set_random_values();
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(&in_gradients, path);
 

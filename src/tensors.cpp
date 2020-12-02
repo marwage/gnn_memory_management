@@ -75,19 +75,22 @@ template void Matrix<float>::set(long num_rows, long num_columns, float *matrix_
 template void Matrix<int>::set(long num_rows, long num_columns, int *matrix_values, bool is_row_major, bool free);
 
 template<typename T>
-void Matrix<T>::set_values(bool random) {
-    long max = 5;
-
+void Matrix<T>::set_random_values() {
     for (long i = 0; i < num_rows_ * num_columns_; ++i) {
-        if (random) {
-            values_[i] = rand();
-        } else {
-            values_[i] = (T)((i % max) + 1);
-        }
+        values_[i] = rand();
     }
 }
-template void Matrix<float>::set_values(bool random);
-template void Matrix<int>::set_values(bool random);
+template void Matrix<float>::set_random_values();
+template void Matrix<int>::set_random_values();
+
+template<typename T>
+void Matrix<T>::set_values(T value) {
+    for (long i = 0; i < num_rows_ * num_columns_; ++i) {
+        values_[i] = value;
+    }
+}
+template void Matrix<float>::set_values(float value);
+template void Matrix<int>::set_values(int value);
 
 template<typename T>
 SparseMatrix<T>::SparseMatrix() {}

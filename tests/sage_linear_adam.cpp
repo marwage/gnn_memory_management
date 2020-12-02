@@ -65,15 +65,15 @@ TEST_CASE("SageLinear and Adam", "[sagelinear][adam]") {
     int num_out_features = 1 << 8;
 
     Matrix<float> input_self(rows, columns, true);
-    input_self.set_values(true);
+    input_self.set_random_values();
     save_npy_matrix(&input_self, test_dir_path + "/input_self.npy");
 
     Matrix<float> input_neigh(rows, columns, true);
-    input_neigh.set_values(true);
+    input_neigh.set_random_values();
     save_npy_matrix(&input_neigh, test_dir_path + "/input_neigh.npy");
 
     Matrix<float> in_gradients(rows, num_out_features, true);
-    in_gradients.set_values(true);
+    in_gradients.set_random_values();
     save_npy_matrix(&in_gradients, test_dir_path + "/in_gradients.npy");
 
     CHECK(test_sage_linear_adam(&input_self, &input_neigh, &in_gradients, 0));
@@ -85,15 +85,15 @@ TEST_CASE("SageLinear and Adam chunked", "[sagelinear][adam][chunked]") {
     int num_out_features = 1 << 8;
 
     Matrix<float> input_self(rows, columns, true);
-    input_self.set_values(true);
+    input_self.set_random_values();
     save_npy_matrix(&input_self, test_dir_path + "/input_self.npy");
 
     Matrix<float> input_neigh(rows, columns, true);
-    input_neigh.set_values(true);
+    input_neigh.set_random_values();
     save_npy_matrix(&input_neigh, test_dir_path + "/input_neigh.npy");
 
     Matrix<float> in_gradients(rows, num_out_features, true);
-    in_gradients.set_values(true);
+    in_gradients.set_random_values();
     save_npy_matrix(&in_gradients, test_dir_path + "/in_gradients.npy");
 
     CHECK(test_sage_linear_adam(&input_self, &input_neigh, &in_gradients, 1 << 15));
