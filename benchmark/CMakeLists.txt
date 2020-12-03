@@ -3,8 +3,12 @@ find_package(Python3 REQUIRED
         COMPONENTS Interpreter Development)
 
 set(BENCHMARK_FILES
+        benchmark/alzheimer.cpp
+        benchmark/dropout.cpp
         benchmark/graph_convolution.cpp
-        benchmark/alzheimer.cpp)
+        benchmark/log_softmax.cpp
+        benchmark/relu.cpp
+        benchmark/sage_linear.cpp)
 
 set(EXECUTABLE_NAME benchmark)
 add_executable(${EXECUTABLE_NAME}

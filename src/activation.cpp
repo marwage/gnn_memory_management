@@ -276,7 +276,7 @@ ReluChunked::ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, lo
             current_chunk_size = last_chunk_size_;
         }
         relu_layers_[i].set(cuda_helper_, current_chunk_size, num_features);
-        x_chunks_[i].set(current_chunk_size, num_features, true);
+        x_chunks_[i].set(current_chunk_size, num_features, true, false);
     }
 
     y_.set(num_nodes, num_features, true);

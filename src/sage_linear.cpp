@@ -135,7 +135,8 @@ Matrix<float> *SageLinearChunked::forward(Matrix<float> *features, Matrix<float>
         to_column_major(&aggr_chunks_[i], &aggr_chunk_row);
     }
 
-    Matrix<float> y_chunk;
+    Matrix<float> y_chunk(chunk_size_, num_out_features_,
+                             false, false);
     Matrix<float> *self_y;
     Matrix<float> *neigh_y;
     for (int i = 0; i < num_chunks_; ++i) {
@@ -144,17 +145,14 @@ Matrix<float> *SageLinearChunked::forward(Matrix<float> *features, Matrix<float>
 
         if (i == num_chunks_ - 1) {
             y_chunk.set(last_chunk_size_, num_out_features_,
-                        &y_.values_[i * chunk_size_ * y_.num_columns_],
-                        true, false);
-        } else {
-            y_chunk.set(chunk_size_, num_out_features_,
-                        &y_.values_[i * chunk_size_ * y_.num_columns_],
-                        true, false);
+                        false, false);
         }
 
         mat_mat_add(cuda_helper_, self_y, neigh_y, &y_chunk);
 
         to_row_major_inplace(&y_chunk);
+        std::copy(y_chunk.values_, y_chunk.values_ + y_chunk.size_,
+                  &y_.values_[i * chunk_size_ * y_.num_columns_]);
     }
 
     y_.is_row_major_ = true;
@@ -193,12 +191,22 @@ SageLinearGradients *SageLinearChunked::backward(Matrix<float> *in_gradients) {
         to_row_major_inplace(self_gradients);
         to_row_major_inplace(neigh_gradients);
 
-        std::memcpy(&input_gradients_.self_grads->values_[i * chunk_size_ * num_out_features_],
-                    self_gradients->values_,
-                    self_gradients->size_ * sizeof(float));
-        std::memcpy(&input_gradients_.neigh_grads->values_[i * chunk_size_ * num_out_features_],
-                    neigh_gradients->values_,
-                    neigh_gradients->size_ * sizeof(float));
+        // TODO is there a nicer way?
+        if (i == num_chunks_ - 1) {
+            std::memcpy(&self_gradients_.values_[i * chunk_size_ * num_in_features_],
+                        self_gradients->values_,
+                        last_chunk_size_ * num_in_features_ * sizeof(float));
+            std::memcpy(&neighbourhood_gradients_.values_[i * chunk_size_ * num_in_features_],
+                        neigh_gradients->values_,
+                        last_chunk_size_ * num_in_features_ * sizeof(float));
+        } else {
+            std::memcpy(&self_gradients_.values_[i * chunk_size_ * num_in_features_],
+                        self_gradients->values_,
+                        self_gradients->size_ * sizeof(float));
+            std::memcpy(&neighbourhood_gradients_.values_[i * chunk_size_ * num_in_features_],
+                        neigh_gradients->values_,
+                        neigh_gradients->size_ * sizeof(float));
+        }
 
         Matrix<float> **self_parameter_gradients = linear_self_.get_gradients();
         Matrix<float> **neigh_parameter_gradients = linear_neigh_.get_gradients();
@@ -209,10 +217,10 @@ SageLinearGradients *SageLinearChunked::backward(Matrix<float> *in_gradients) {
         mat_mat_add(cuda_helper_, neigh_parameter_gradients[1], &neigh_bias_sum, &neigh_bias_sum);
     }
 
-    linear_self_.set_parameters(&self_weight_sum, &self_bias_sum);
-    linear_neigh_.set_parameters(&neigh_weight_sum, &neigh_bias_sum);
+    linear_self_.set_gradients(&self_weight_sum, &self_bias_sum);
+    linear_neigh_.set_gradients(&neigh_weight_sum, &neigh_bias_sum);
 
-    input_gradients_.neigh_grads->is_row_major_ = true;
+    input_gradients_.self_grads->is_row_major_ = true;
     input_gradients_.neigh_grads->is_row_major_ = true;
 
     return &input_gradients_;

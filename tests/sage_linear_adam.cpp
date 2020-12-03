@@ -9,8 +9,6 @@
 #include "catch2/catch.hpp"
 #include <string>
 
-#include <iostream>// DEBUGGING
-
 
 const std::string home = std::getenv("HOME");
 const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";

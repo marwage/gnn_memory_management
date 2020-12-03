@@ -81,11 +81,15 @@ Matrix<float> **Linear::get_gradients() {
 }
 
 void Linear::set_gradients(Matrix<float> **grads) {
-    to_column_major_inplace(grads[0]);
-    to_column_major_inplace(grads[1]);
+    set_gradients(grads[0], grads[1]);
+}
 
-    std::memcpy(grad_weight_.values_, grads[0]->values_, grad_weight_.num_rows_ * grad_weight_.num_columns_ * sizeof(float));
-    std::memcpy(grad_bias_.values_, grads[1]->values_, grad_bias_.num_rows_ * grad_bias_.num_columns_ * sizeof(float));
+void Linear::set_gradients(Matrix<float> *weight, Matrix<float> *bias) {
+    to_column_major_inplace(weight);
+    to_column_major_inplace(bias);
+
+    std::memcpy(grad_weight_.values_, weight->values_, grad_weight_.size_ * sizeof(float));
+    std::memcpy(grad_bias_.values_, bias->values_, grad_bias_.size_ * sizeof(float));
 }
 
 void Linear::expand_bias() {

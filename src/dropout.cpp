@@ -71,9 +71,6 @@ Matrix<float> *Dropout::forward(Matrix<float> *x) {
                                     y_descr, d_y,
                                     d_reserve_space, reserve_space_size_));
 
-    // DEBUGGING
-    float val = y_.values_[5];
-
     check_cuda(cudaMemcpy(y_.values_, d_y, y_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
