@@ -7,44 +7,28 @@
 #include <string>
 
 
-Matrix<float> **SageLinearParent::get_parameters() {
-    Matrix<float> **self_params = linear_self_.get_parameters();
-    Matrix<float> **neigh_params = linear_neigh_.get_parameters();
-    Matrix<float> **params = new Matrix<float> *[4];
-    params[0] = self_params[0];
-    params[1] = self_params[1];
-    params[2] = neigh_params[0];
-    params[3] = neigh_params[1];
+std::vector<Matrix<float> *> SageLinearParent::get_parameters() {
+    std::vector<Matrix<float> *> self_params = linear_self_.get_parameters();
+    std::vector<Matrix<float> *> neigh_params = linear_neigh_.get_parameters();
+    std::vector<Matrix<float> *> parameters(4);
+    parameters[0] = self_params[0];
+    parameters[1] = self_params[1];
+    parameters[2] = neigh_params[0];
+    parameters[3] = neigh_params[1];
 
-    return params;
+    return parameters;
 }
 
-// assume number of parameters is 4
-void SageLinearParent::set_parameters(Matrix<float> **parameters) {
-    linear_self_.set_parameters(parameters);
-    linear_neigh_.set_parameters(&parameters[2]);
-}
+std::vector<Matrix<float> *> SageLinearParent::get_gradients() {
+    std::vector<Matrix<float> *> self_grads = linear_self_.get_gradients();
+    std::vector<Matrix<float> *> neigh_grads = linear_neigh_.get_gradients();
+    std::vector<Matrix<float> *> gradients(4);
+    gradients[0] = self_grads[0];
+    gradients[1] = self_grads[1];
+    gradients[2] = neigh_grads[0];
+    gradients[3] = neigh_grads[1];
 
-Matrix<float> **SageLinearParent::get_gradients() {
-    Matrix<float> **self_grads = linear_self_.get_gradients();
-    Matrix<float> **neigh_grads = linear_neigh_.get_gradients();
-    Matrix<float> **grads = new Matrix<float> *[4];
-    grads[0] = self_grads[0];
-    grads[1] = self_grads[1];
-    grads[2] = neigh_grads[0];
-    grads[3] = neigh_grads[1];
-
-    return grads;
-}
-
-void SageLinearParent::set_gradients(Matrix<float> **grads) {
-    linear_self_.set_gradients(grads);
-    linear_neigh_.set_gradients(&grads[2]);
-}
-
-void SageLinearParent::update_weights(Matrix<float> *gradients) {
-    linear_self_.update_weights(gradients);
-    linear_neigh_.update_weights(&gradients[2]);
+    return gradients;
 }
 
 SageLinear::SageLinear() {}
@@ -171,16 +155,20 @@ SageLinearGradients *SageLinearChunked::backward(Matrix<float> *in_gradients) {
         to_column_major(&in_gradients_chunks_[i], &in_gradients_row);
     }
 
-    Matrix<float> **self_parameter_gradients = linear_self_.get_gradients();
-    Matrix<float> **neigh_parameter_gradients = linear_neigh_.get_gradients();
+    std::vector<Matrix<float> *> self_parameter_gradients = linear_self_.get_gradients();
+    std::vector<Matrix<float> *> neigh_parameter_gradients = linear_neigh_.get_gradients();
     Matrix<float> self_weight_sum(self_parameter_gradients[0]->num_rows_, self_parameter_gradients[0]->num_columns_,
                                   self_parameter_gradients[0]->is_row_major_);
+    self_weight_sum.set_values(0.0);
     Matrix<float> self_bias_sum(self_parameter_gradients[1]->num_rows_, self_parameter_gradients[1]->num_columns_,
                                 self_parameter_gradients[1]->is_row_major_);
+    self_bias_sum.set_values(0.0);
     Matrix<float> neigh_weight_sum(neigh_parameter_gradients[0]->num_rows_, neigh_parameter_gradients[0]->num_columns_,
                                    neigh_parameter_gradients[0]->is_row_major_);
+    neigh_weight_sum.set_values(0.0);
     Matrix<float> neigh_bias_sum(neigh_parameter_gradients[1]->num_rows_, neigh_parameter_gradients[1]->num_columns_,
                                  neigh_parameter_gradients[1]->is_row_major_);
+    neigh_bias_sum.set_values(0.0);
 
     Matrix<float> *self_gradients;
     Matrix<float> *neigh_gradients;
@@ -191,7 +179,7 @@ SageLinearGradients *SageLinearChunked::backward(Matrix<float> *in_gradients) {
         to_row_major_inplace(self_gradients);
         to_row_major_inplace(neigh_gradients);
 
-        // TODO is there a nicer way?
+        // TODO can we get ride of memcpy?
         if (i == num_chunks_ - 1) {
             std::memcpy(&self_gradients_.values_[i * chunk_size_ * num_in_features_],
                         self_gradients->values_,
@@ -208,8 +196,8 @@ SageLinearGradients *SageLinearChunked::backward(Matrix<float> *in_gradients) {
                         neigh_gradients->size_ * sizeof(float));
         }
 
-        Matrix<float> **self_parameter_gradients = linear_self_.get_gradients();
-        Matrix<float> **neigh_parameter_gradients = linear_neigh_.get_gradients();
+        std::vector<Matrix<float> *> self_parameter_gradients = linear_self_.get_gradients();
+        std::vector<Matrix<float> *> neigh_parameter_gradients = linear_neigh_.get_gradients();
 
         mat_mat_add(cuda_helper_, self_parameter_gradients[0], &self_weight_sum, &self_weight_sum);
         mat_mat_add(cuda_helper_, self_parameter_gradients[1], &self_bias_sum, &self_bias_sum);

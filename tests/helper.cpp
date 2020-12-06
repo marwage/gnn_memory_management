@@ -12,7 +12,7 @@ std::string home = std::getenv("HOME");
 std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
 std::string test_dir_path = dir_path + "/tests";
 
-void save_params(Matrix<float> **parameters) {
+void save_params(std::vector<Matrix<float> *> parameters) {
     std::string path;
 
     path = test_dir_path + "/self_weight.npy";
@@ -25,7 +25,7 @@ void save_params(Matrix<float> **parameters) {
     save_npy_matrix(parameters[3], path);
 }
 
-void save_grads(SageLinearGradients *gradients, Matrix<float> **weight_gradients) {
+void save_grads(SageLinearGradients *gradients, std::vector<Matrix<float> *> weight_gradients) {
     std::string path;
 
     path = test_dir_path + "/self_grads.npy";

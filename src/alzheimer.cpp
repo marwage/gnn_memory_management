@@ -49,7 +49,7 @@ void alzheimer(std::string dataset, int chunk_size) {
     CudaHelper cuda_helper;
     long num_nodes = features.num_rows_;
     float learning_rate = 0.0003;
-    long num_hidden_channels = 128;
+    long num_hidden_channels = 256;
     long num_classes;
     if (dataset == "flickr") {
         num_classes = 7;
@@ -104,9 +104,28 @@ void alzheimer(std::string dataset, int chunk_size) {
     }
 
     // optimizer
-    Adam adam_0(&cuda_helper, learning_rate, linear_0->get_parameters(), 4);
-    Adam adam_1(&cuda_helper, learning_rate, linear_1->get_parameters(), 4);
-    Adam adam_2(&cuda_helper, learning_rate, linear_2->get_parameters(), 4);
+    long num_parameters = 6;
+    std::vector<Matrix<float> *> parameters(num_parameters);
+    std::vector<Matrix<float> *> params = linear_0->get_parameters();
+    parameters[0] = params[0];
+    parameters[1] = params[1];
+    params = linear_1->get_parameters();
+    parameters[2] = params[0];
+    parameters[3] = params[1];
+    params = linear_2->get_parameters();
+    parameters[4] = params[0];
+    parameters[5] = params[1];
+    std::vector<Matrix<float> *> parameter_gradients(num_parameters);
+    std::vector<Matrix<float> *> grads = linear_0->get_gradients();
+    parameter_gradients[0] = grads[0];
+    parameter_gradients[1] = grads[1];
+    grads = linear_1->get_gradients();
+    parameter_gradients[2] = grads[0];
+    parameter_gradients[3] = grads[1];
+    grads = linear_2->get_gradients();
+    parameter_gradients[4] = grads[0];
+    parameter_gradients[5] = grads[1];
+    Adam adam(&cuda_helper, learning_rate, parameters, parameter_gradients);
 
     Matrix<float> *signals;
     Matrix<float> *signals_dropout;
@@ -203,9 +222,7 @@ void alzheimer(std::string dataset, int chunk_size) {
         // no need for graph conv 0 and dropout 0
 
         // optimiser
-        linear_0->update_weights(adam_0.step(linear_0->get_gradients()));
-        linear_1->update_weights(adam_1.step(linear_1->get_gradients()));
-        linear_2->update_weights(adam_2.step(linear_2->get_gradients()));
+        adam.step();
     }// end training loop
 
     // CLEAN-UP

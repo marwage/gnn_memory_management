@@ -14,7 +14,7 @@ const std::string flickr_dir_path = dir_path + "/flickr";
 const std::string reddit_dir_path = dir_path + "/reddit";
 const std::string products_dir_path = dir_path + "/products";
 
-const long num_out_features = 512;
+const long num_out_features = 256;
 
 
 static void BM_Layer_Sagelinear_Flickr_Forward(benchmark::State &state) {

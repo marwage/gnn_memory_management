@@ -31,11 +31,8 @@ protected:
 public:
     virtual Matrix<float> *forward(Matrix<float> *features, Matrix<float> *aggr) = 0;
     virtual SageLinearGradients *backward(Matrix<float> *in_gradients) = 0;
-    Matrix<float> **get_parameters();
-    void set_parameters(Matrix<float> **parameters);
-    Matrix<float> **get_gradients();
-    void set_gradients(Matrix<float> **grads);
-    void update_weights(Matrix<float> *gradients);
+    std::vector<Matrix<float> *> get_parameters();
+    std::vector<Matrix<float> *> get_gradients();
 };
 
 class SageLinear : public SageLinearParent {

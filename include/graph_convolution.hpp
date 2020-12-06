@@ -9,13 +9,7 @@
 #include "tensors.hpp"
 
 
-class GraphConvolutionParent {
-public:
-    virtual Matrix<float> *forward(Matrix<float> *x) = 0;
-    virtual Matrix<float> *backward(Matrix<float> *in_gradients) = 0;
-};
-
-class GraphConvolution : public GraphConvolutionParent {
+class GraphConvolution {
 private:
     CudaHelper *cuda_helper_ = NULL;
     SparseMatrix<float> *adjacency_ = NULL;
@@ -35,7 +29,7 @@ public:
     Matrix<float> *backward(Matrix<float> *in_gradients);
 };
 
-class GraphConvChunked : public GraphConvolutionParent {
+class GraphConvChunked {
 private:
     CudaHelper *cuda_helper_ = NULL;
     long chunk_size_;
@@ -47,14 +41,12 @@ private:
     Matrix<float> sum_;
     Matrix<float> y_;
     Matrix<float> gradients_;
-    std::vector<Matrix<float>> x_chunks_;
-    std::vector<Matrix<float>> in_gradients_chunks_;
 
 public:
     GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                      long num_features, long chunk_size, long num_nodes);
-    Matrix<float> *forward(Matrix<float> *x);
-    Matrix<float> *backward(Matrix<float> *in_gradients);
+    Matrix<float> *forward(std::vector<Matrix<float>> *x);
+    Matrix<float> *backward(Matrix<float> *incoming_gradients);
 };
 
 #endif

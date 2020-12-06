@@ -87,113 +87,32 @@ int test_sage_linear_non_random(int chunk_size) {
     return read_return_value(path);
 }
 
-int compare_sage_linear(int chunk_size) {
-    int works = 1;
-
-    int rows = 1 << 15;
-    int columns = 1 << 9;
-    int num_out_features = 1 << 8;
-
-    Matrix<float> input_self(rows, columns, true);
-    input_self.set_random_values();
-    Matrix<float> input_neigh(rows, columns, true);
-    input_neigh.set_random_values();
-    Matrix<float> in_gradients(rows, num_out_features, true);
-    in_gradients.set_random_values();
-
-    CudaHelper cuda_helper;
-    int num_nodes = rows;
-    SageLinear sage_linear(&cuda_helper, columns, num_out_features, rows);
-    SageLinearChunked sage_linear_chunked(&cuda_helper, columns, num_out_features, chunk_size, num_nodes);
-    sage_linear_chunked.set_parameters(sage_linear.get_parameters());
-
-    Matrix<float> *activations = sage_linear.forward(&input_self, &input_neigh);
-    Matrix<float> *activations_chunked = sage_linear_chunked.forward(&input_self, &input_neigh);
-    works = works * compare_mat(activations, activations_chunked, "Activations");
-
-    SageLinearGradients *gradients = sage_linear_chunked.backward(&in_gradients);
-    SageLinearGradients *gradients_chunked = sage_linear_chunked.backward(&in_gradients);
-    works = works * compare_mat(gradients->self_grads, gradients_chunked->self_grads, "Gradients self");
-    works = works * compare_mat(gradients->neigh_grads, gradients_chunked->neigh_grads, "Gradients neighbourhood");
-
-    Matrix<float> **weight_gradients = sage_linear.get_gradients();
-    Matrix<float> **weight_gradients_chunked = sage_linear_chunked.get_gradients();
-    works = works * compare_mat(weight_gradients[0], weight_gradients_chunked[0], "Gradients self weights");
-    works = works * compare_mat(weight_gradients[1], weight_gradients_chunked[1], "Gradients self bias");
-    works = works * compare_mat(weight_gradients[2], weight_gradients_chunked[2], "Gradients neighbourhood weights");
-    works = works * compare_mat(weight_gradients[3], weight_gradients_chunked[3], "Gradients neighbourhood bias");
-
-    return works;
-}
-
-int test_sage_linear_set_parameters() {
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-    std::string flickr_dir_path = dir_path + "/flickr";
-    std::string test_dir_path = dir_path + "/tests";
+int test_sage_linear_nans(Matrix<float> *input_self, Matrix<float> *input_neigh, Matrix<float> *in_gradients, int chunk_size) {
     std::string path;
 
-    long num_nodes = 2048;
-    long num_in_features = 1024;
-    long num_out_features = 512;
-    long num_params = 4;
-
-    Matrix<float> self_weight(num_in_features, num_out_features, false);
-    self_weight.set_random_values();
-    Matrix<float> self_bias(num_out_features, 1, false);
-    self_bias.set_random_values();
-    Matrix<float> neigh_weight(num_in_features, num_out_features, false);
-    neigh_weight.set_random_values();
-    Matrix<float> neigh_bias(num_out_features, 1, false);
-    neigh_bias.set_random_values();
-
     CudaHelper cuda_helper;
-    SageLinear sage_linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
+    SageLinearParent *sage_linear_layer;
+    if (chunk_size == 0) {// no chunking
+        sage_linear_layer = new SageLinear(&cuda_helper, input_self->num_columns_, in_gradients->num_columns_, input_self->num_rows_);
+    } else {
+        sage_linear_layer = new SageLinearChunked(&cuda_helper, input_self->num_columns_, in_gradients->num_columns_, chunk_size, input_self->num_rows_);
+    }
 
-    Matrix<float> **parameters = new Matrix<float> *[num_params];
-    parameters[0] = &self_weight;
-    parameters[1] = &self_bias;
-    parameters[2] = &neigh_weight;
-    parameters[3] = &neigh_bias;
+    Matrix<float> *result = sage_linear_layer->forward(input_self, input_neigh);
 
-    sage_linear.set_parameters(parameters);
-    Matrix<float> **get_parameters = sage_linear.get_parameters();
+    bool first_check = check_nans(result, "SageLinear forward");
 
-    compare_mat(parameters[0], get_parameters[0], "self weights");
-    compare_mat(parameters[1], get_parameters[1], "self bias");
-    compare_mat(parameters[2], get_parameters[2], "neigh weights");
-    compare_mat(parameters[3], get_parameters[3], "neigh bias");
+    SageLinearGradients *gradients = sage_linear_layer->backward(in_gradients);
 
-    return 1;// TODO
+    bool second_check = check_nans(gradients->self_grads, "SageLinear backward self");
+    bool third_check = check_nans(gradients->neigh_grads, "SageLinear backward neigh");
+
+    if (first_check || second_check || third_check) {
+        return 0;
+    } else {
+        return 1;
+    }
 }
-
-int test_sage_linear_get_set_parameters() {
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-    std::string flickr_dir_path = dir_path + "/flickr";
-    std::string test_dir_path = dir_path + "/tests";
-    std::string path;
-
-    long num_nodes = 2048;
-    long num_in_features = 1024;
-    long num_out_features = 512;
-    long num_params = 4;
-
-    CudaHelper cuda_helper;
-    SageLinear sage_linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
-
-    Matrix<float> **get_parameters_before = sage_linear.get_parameters();
-    sage_linear.set_parameters(get_parameters_before);
-    Matrix<float> **get_parameters_after = sage_linear.get_parameters();
-
-    compare_mat(get_parameters_before[0], get_parameters_after[0], "self weights");
-    compare_mat(get_parameters_before[1], get_parameters_after[1], "self bias");
-    compare_mat(get_parameters_before[2], get_parameters_after[2], "neigh weights");
-    compare_mat(get_parameters_before[3], get_parameters_after[3], "neigh bias");
-
-    return 1;// TODO
-}
-
 
 TEST_CASE("SageLinear", "[sagelinear]") {
     std::string path;
@@ -240,21 +159,27 @@ TEST_CASE("SageLinear, chunked", "[sagelinear][chunked]") {
     path = test_dir_path + "/in_gradients.npy";
     save_npy_matrix(&in_gradients, path);
 
-    CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 1 << 15));
+    CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 1 << 16));
     CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 1 << 12));
     CHECK(test_sage_linear(&input_self, &input_neigh, &in_gradients, 1 << 8));
 }
 
-TEST_CASE("SageLinear, compare", "[sagelinear][chunked][compare]") {
-    CHECK(compare_sage_linear(1024));
-    CHECK(compare_sage_linear(512));
-    CHECK(compare_sage_linear(128));
-}
+TEST_CASE("SageLinear, chunked, NaNs", "[sagelinear][chunked][nans]") {
+    std::string path;
+    int rows = 2449029; // products
+    int columns = 100; // products
+    int num_out_features = 1 << 8;
 
-TEST_CASE("SageLinear, set parameters", "[sagelinear][setparameters]") {
-    CHECK(test_sage_linear_set_parameters());
-}
+    Matrix<float> input_self(rows, columns, true);
+    input_self.set_random_values();
 
-TEST_CASE("SageLinear, get and set parameters", "[sagelinear][getsetparameters]") {
-    CHECK(test_sage_linear_set_parameters());
+    Matrix<float> input_neigh(rows, columns, true);
+    input_neigh.set_random_values();
+
+    Matrix<float> in_gradients(rows, num_out_features, true);
+    in_gradients.set_random_values();
+
+    CHECK(test_sage_linear_nans(&input_self, &input_neigh, &in_gradients, 1 << 16));
+    CHECK(test_sage_linear_nans(&input_self, &input_neigh, &in_gradients, 1 << 12));
+    CHECK(test_sage_linear_nans(&input_self, &input_neigh, &in_gradients, 1 << 8));
 }

@@ -52,44 +52,28 @@ void Linear::init_weight_bias() {
     }
 }
 
-Matrix<float> **Linear::get_parameters() {
-    Matrix<float> **parameters = new Matrix<float> *[2];
+std::vector<Matrix<float> *> Linear::get_parameters() {
+    std::vector<Matrix<float> *> parameters(2);
     parameters[0] = &weight_;
     parameters[1] = &bias_;
 
     return parameters;
 }
 
-void Linear::set_parameters(Matrix<float> **parameters) {
-    set_parameters(parameters[0], parameters[1]);
+std::vector<Matrix<float> *> Linear::get_gradients() {
+    std::vector<Matrix<float> *> gradients(2);
+    gradients[0] = &grad_weight_;
+    gradients[1] = &grad_bias_;
+
+    return gradients;
 }
 
-void Linear::set_parameters(Matrix<float> *weight, Matrix<float> *bias) {
-    to_column_major_inplace(weight);
-    to_column_major_inplace(bias);
+void Linear::set_gradients(Matrix<float> *weight_grads, Matrix<float> *bias_grads) {
+    to_column_major_inplace(weight_grads);
+    to_column_major_inplace(bias_grads);
 
-    std::memcpy(weight_.values_, weight->values_, weight_.num_rows_ * weight_.num_columns_ * sizeof(float));
-    std::memcpy(bias_.values_, bias->values_, bias_.num_rows_ * bias_.num_columns_ * sizeof(float));
-}
-
-Matrix<float> **Linear::get_gradients() {
-    Matrix<float> **grads = new Matrix<float> *[2];
-    grads[0] = &grad_weight_;
-    grads[1] = &grad_bias_;
-
-    return grads;
-}
-
-void Linear::set_gradients(Matrix<float> **grads) {
-    set_gradients(grads[0], grads[1]);
-}
-
-void Linear::set_gradients(Matrix<float> *weight, Matrix<float> *bias) {
-    to_column_major_inplace(weight);
-    to_column_major_inplace(bias);
-
-    std::memcpy(grad_weight_.values_, weight->values_, grad_weight_.size_ * sizeof(float));
-    std::memcpy(grad_bias_.values_, bias->values_, grad_bias_.size_ * sizeof(float));
+    std::memcpy(grad_weight_.values_, weight_grads->values_, grad_weight_.size_ * sizeof(float));
+    std::memcpy(grad_bias_.values_, bias_grads->values_, grad_bias_.size_ * sizeof(float));
 }
 
 void Linear::expand_bias() {
@@ -260,65 +244,4 @@ Matrix<float> *Linear::backward(Matrix<float> *in_gradients, Matrix<float> *x) {
 
     return backward(in_gradients);
 
-}
-
-void Linear::update_weights(Matrix<float> *gradients) {
-    Matrix<float> *in_gradients_weight = &gradients[0];
-    Matrix<float> *in_gradients_bias = &gradients[1];
-    to_column_major_inplace(in_gradients_weight);
-    to_column_major_inplace(in_gradients_bias);
-
-    float *d_grads;
-    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_grads),
-                          in_gradients_weight->num_rows_ * in_gradients_weight->num_columns_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_grads, in_gradients_weight->values_,
-                          in_gradients_weight->num_rows_ * in_gradients_weight->num_columns_ * sizeof(float),
-                          cudaMemcpyHostToDevice));
-
-    float *d_weight;
-    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_weight),
-                          weight_.num_rows_ * weight_.num_columns_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_weight, weight_.values_,
-                          weight_.num_rows_ * weight_.num_columns_ * sizeof(float),
-                          cudaMemcpyHostToDevice));
-
-    float alpha = -1.0;
-    check_cublas(cublasSaxpy(cuda_helper_->cublas_handle,
-                             weight_.num_rows_ * weight_.num_columns_,
-                             &alpha, d_grads, 1,
-                             d_weight, 1));
-
-    check_cuda(cudaMemcpy(weight_.values_, d_weight,
-                          weight_.num_rows_ * weight_.num_columns_ * sizeof(float),
-                          cudaMemcpyDeviceToHost));
-
-    // clean-up
-    check_cuda(cudaFree(d_grads));
-    check_cuda(cudaFree(d_weight));
-
-    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_grads),
-                          in_gradients_bias->num_rows_ * in_gradients_bias->num_columns_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_grads, in_gradients_bias->values_,
-                          in_gradients_bias->num_rows_ * in_gradients_bias->num_columns_ * sizeof(float),
-                          cudaMemcpyHostToDevice));
-
-    float *d_bias;
-    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_bias),
-                          bias_.num_rows_ * bias_.num_columns_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_bias, bias_.values_,
-                          bias_.num_rows_ * bias_.num_columns_ * sizeof(float),
-                          cudaMemcpyHostToDevice));
-
-    check_cublas(cublasSaxpy(cuda_helper_->cublas_handle,
-                             bias_.num_rows_ * bias_.num_columns_,
-                             &alpha, d_grads, 1,
-                             d_bias, 1));
-
-    check_cuda(cudaMemcpy(bias_.values_, d_bias,
-                          bias_.num_rows_ * bias_.num_columns_ * sizeof(float),
-                          cudaMemcpyDeviceToHost));
-
-    // clean-up
-    check_cuda(cudaFree(d_grads));
-    check_cuda(cudaFree(d_bias));
 }

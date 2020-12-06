@@ -55,7 +55,7 @@ int integration_test(int chunk_size) {
     NLLLoss loss_layer(features.num_rows_, num_hidden_channels);
 
     // optimiser
-    Adam adam(&cuda_helper, learning_rate, sage_linear_layer->get_parameters(), 4);
+    Adam adam(&cuda_helper, learning_rate, sage_linear_layer->get_parameters(), sage_linear_layer->get_gradients());
 
     // graph convolution
     Matrix<float> *graph_convolution_result = graph_convolution_layer.forward(&features);
@@ -66,7 +66,7 @@ int integration_test(int chunk_size) {
     Matrix<float> *linear_result = sage_linear_layer->forward(&features, graph_convolution_result);
     path = test_dir_path + "/linear_result.npy";
     save_npy_matrix(linear_result, path);
-    Matrix<float> **parameters = sage_linear_layer->get_parameters();
+    std::vector<Matrix<float> *> parameters = sage_linear_layer->get_parameters();
     path = test_dir_path + "/self_weight.npy";
     save_npy_matrix(parameters[0], path);
     path = test_dir_path + "/self_bias.npy";
@@ -117,7 +117,7 @@ int integration_test(int chunk_size) {
     save_npy_matrix(linear_grads->self_grads, path);
     path = test_dir_path + "/neigh_grads.npy";
     save_npy_matrix(linear_grads->neigh_grads, path);
-    Matrix<float> **gradients = sage_linear_layer->get_gradients();
+    std::vector<Matrix<float> *> gradients = sage_linear_layer->get_gradients();
     path = test_dir_path + "/self_weight_grads.npy";
     save_npy_matrix(gradients[0], path);
     path = test_dir_path + "/self_bias_grads.npy";

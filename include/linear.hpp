@@ -30,16 +30,12 @@ public:
     Linear();
     Linear(CudaHelper *helper, long in_features, long out_features, long num_nodes);
     void set(CudaHelper *helper, long in_features, long out_features, long num_nodes);
-    Matrix<float> **get_parameters();
-    void set_parameters(Matrix<float> **parameters);
-    void set_parameters(Matrix<float> *weight, Matrix<float> *bias);
-    Matrix<float> **get_gradients();
-    void set_gradients(Matrix<float> **grads);
-    void set_gradients(Matrix<float> *weight, Matrix<float> *bias);
+    std::vector<Matrix<float> *> get_parameters();
+    std::vector<Matrix<float> *> get_gradients();
+    void set_gradients(Matrix<float> *weight_grads, Matrix<float> *bias_grads);
     Matrix<float> *forward(Matrix<float> *x);
     Matrix<float> *backward(Matrix<float> *in_gradients);
     Matrix<float> *backward(Matrix<float> *in_gradients, Matrix<float> *x);
-    void update_weights(Matrix<float> *gradients);
 };
 
 #endif

@@ -35,28 +35,20 @@ int test_adam() {
 
     CudaHelper cuda_helper;
     Linear linear(&cuda_helper, num_in_features, num_out_features, num_nodes);
-    Matrix<float> **parameters = linear.get_parameters();
-    Adam adam(&cuda_helper, learning_rate, parameters, num_params);
+    std::vector<Matrix<float> *> parameters = linear.get_parameters();
+    Adam adam(&cuda_helper, learning_rate, parameters, linear.get_gradients());
 
     path = test_dir_path + "/weight.npy";
     save_npy_matrix(parameters[0], path);
     path = test_dir_path + "/bias.npy";
     save_npy_matrix(parameters[1], path);
 
-    Matrix<float> **grads = new Matrix<float> *[num_params];
-    grads[0] = &weight_grads;
-    grads[1] = &bias_grads;
-
-    Matrix<float> *adam_gradients = adam.step(grads);
-
-    linear.update_weights(adam_gradients);
-
-    Matrix<float> **params_updated = linear.get_parameters();
+    adam.step();
 
     path = test_dir_path + "/weight_updated.npy";
-    save_npy_matrix(params_updated[0], path);
+    save_npy_matrix(parameters[0], path);
     path = test_dir_path + "/bias_updated.npy";
-    save_npy_matrix(params_updated[1], path);
+    save_npy_matrix(parameters[0], path);
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/adam.py";
     system(command);
