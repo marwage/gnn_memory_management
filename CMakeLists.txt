@@ -34,7 +34,7 @@ set(SOURCE_FILES
         src/gpu_memory_logger.cpp
         src/sparse_computation.cpp
         src/dense_computation.cpp
-        src/chunk.cpp)
+        src/chunking.cpp)
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})

@@ -1,9 +1,9 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "dropout.hpp"
+#include "chunking.hpp"
 #include "helper.hpp"
 #include "tensors.hpp"
-#include "chunk.hpp"
 
 #include "catch2/catch.hpp"
 #include <string>
@@ -58,13 +58,6 @@ int test_dropout_chunked(int chunk_size) {
 
 
     long num_chunks = ceil((float) num_nodes / (float) chunk_size);
-    long last_chunk_size = 0;
-    if (num_chunks * chunk_size > num_nodes) {
-        last_chunk_size = num_nodes - (num_chunks - 1) * chunk_size;
-    } else {
-        last_chunk_size = chunk_size;
-    }
-
     std::vector<Matrix<float>> x(num_chunks);
     std::vector<Matrix<float>> dy(num_chunks);
     chunk_up(&features, &x, chunk_size);

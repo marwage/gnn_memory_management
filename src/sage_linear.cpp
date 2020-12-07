@@ -58,8 +58,8 @@ Matrix<float> *SageLinear::forward(Matrix<float> *features, Matrix<float> *aggr)
 }
 
 SageLinearGradients *SageLinear::backward(Matrix<float> *in_gradients) {
-    input_gradients_.self_grads = linear_self_.backward(in_gradients);
-    input_gradients_.neigh_grads = linear_neigh_.backward(in_gradients);
+    input_gradients_.self_gradients = linear_self_.backward(in_gradients);
+    input_gradients_.neighbourhood_gradients = linear_neigh_.backward(in_gradients);
 
     return &input_gradients_;
 }
@@ -80,136 +80,89 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, l
         last_chunk_size_ = chunk_size_;
     }
 
-    features_chunks_ = std::vector<Matrix<float>>(num_chunks_);
-    aggr_chunks_ = std::vector<Matrix<float>>(num_chunks_);
-    in_gradients_chunks_ = std::vector<Matrix<float>>(num_chunks_);
+    y_ = std::vector<Matrix<float>>(num_chunks_);
+    self_gradients_ = std::vector<Matrix<float>>(num_chunks_);
+    neighbourhood_gradients_ = std::vector<Matrix<float>>(num_chunks_);
     long current_chunk_size = chunk_size_;
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == (num_chunks_ - 1)) {
             current_chunk_size = last_chunk_size_;
         }
-        features_chunks_[i].set(current_chunk_size, num_in_features, true);
-        aggr_chunks_[i].set(current_chunk_size, num_in_features, true);
-        in_gradients_chunks_[i].set(current_chunk_size, num_out_features, true);
+        y_.at(i).set(current_chunk_size, num_out_features, false);
+        self_gradients_.at(i).set(current_chunk_size, num_in_features, false);
+        neighbourhood_gradients_.at(i).set(current_chunk_size, num_in_features, false);
     }
 
-    y_.set(num_nodes, num_out_features, true);
+    input_gradients_.self_gradients = &self_gradients_;
+    input_gradients_.neighbourhood_gradients = &neighbourhood_gradients_;
 
-    self_gradients_.set(num_nodes, num_in_features, true);
-    neighbourhood_gradients_.set(num_nodes, num_in_features, true);
-    input_gradients_.self_grads = &self_gradients_;
-    input_gradients_.neigh_grads = &neighbourhood_gradients_;
+    std::vector<Matrix<float> *> self_parameter_gradients = linear_self_.get_gradients();
+    std::vector<Matrix<float> *> neigh_parameter_gradients = linear_neigh_.get_gradients();
+    self_weight_sum_.set(self_parameter_gradients[0]->num_rows_, self_parameter_gradients[0]->num_columns_,
+                                   self_parameter_gradients[0]->is_row_major_);
+    self_bias_sum_.set(self_parameter_gradients[1]->num_rows_, self_parameter_gradients[1]->num_columns_,
+                                 self_parameter_gradients[1]->is_row_major_);
+    neigh_weight_sum_.set(neigh_parameter_gradients[0]->num_rows_, neigh_parameter_gradients[0]->num_columns_,
+                                    neigh_parameter_gradients[0]->is_row_major_);
+    neigh_bias_sum_.set(neigh_parameter_gradients[1]->num_rows_, neigh_parameter_gradients[1]->num_columns_,
+                                  neigh_parameter_gradients[1]->is_row_major_);
 }
 
-Matrix<float> *SageLinearChunked::forward(Matrix<float> *features, Matrix<float> *aggr) {
-    to_row_major_inplace(features);
-    to_row_major_inplace(aggr);
-
-    Matrix<float> features_chunk_row;
-    Matrix<float> aggr_chunk_row;
-    for (int i = 0; i < num_chunks_; ++i) {
-        features_chunk_row.set(features_chunks_[i].num_rows_, features_chunks_[i].num_columns_,
-                        &features->values_[i * chunk_size_ * features->num_columns_],
-                               features_chunks_[i].is_row_major_, false);
-        to_column_major(&features_chunks_[i], &features_chunk_row);
-
-        aggr_chunk_row.set(aggr_chunks_[i].num_rows_, aggr_chunks_[i].num_columns_,
-                               &aggr->values_[i * chunk_size_ * aggr->num_columns_],
-                           aggr_chunks_[i].is_row_major_, false);
-        to_column_major(&aggr_chunks_[i], &aggr_chunk_row);
+std::vector<Matrix<float>> *SageLinearChunked::forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr) {
+    if (features->size() != aggr->size()) {
+        throw "Features and aggregated features have a different number of chunks";
+    }
+    for (int i = 0; i < features->size(); ++i) {
+        to_column_major_inplace(&features->at(i));
+        to_column_major_inplace(&aggr->at(i));
     }
 
-    Matrix<float> y_chunk(chunk_size_, num_out_features_,
-                             false, false);
+    Matrix<float> y_chunk;
     Matrix<float> *self_y;
     Matrix<float> *neigh_y;
     for (int i = 0; i < num_chunks_; ++i) {
-        self_y = linear_self_.forward(&features_chunks_[i]);
-        neigh_y = linear_neigh_.forward(&aggr_chunks_[i]);
+        self_y = linear_self_.forward(&features->at(i));
+        neigh_y = linear_neigh_.forward(&aggr->at(i));
 
-        if (i == num_chunks_ - 1) {
-            y_chunk.set(last_chunk_size_, num_out_features_,
-                        false, false);
-        }
-
-        mat_mat_add(cuda_helper_, self_y, neigh_y, &y_chunk);
-
-        to_row_major_inplace(&y_chunk);
-        std::copy(y_chunk.values_, y_chunk.values_ + y_chunk.size_,
-                  &y_.values_[i * chunk_size_ * y_.num_columns_]);
+        mat_mat_add(cuda_helper_, self_y, neigh_y, &y_.at(i));
     }
 
-    y_.is_row_major_ = true;
+    features_ = features;
+    aggregated_features_ = aggr;
 
     return &y_;
 }
 
-SageLinearGradients *SageLinearChunked::backward(Matrix<float> *in_gradients) {
-    to_row_major_inplace(in_gradients);
-
-    Matrix<float> in_gradients_row;
-    for (int i = 0; i < num_chunks_; ++i) {
-        in_gradients_row.set(in_gradients_chunks_[i].num_rows_, in_gradients_chunks_[i].num_columns_,
-                               &in_gradients->values_[i * chunk_size_ * in_gradients->num_columns_],
-                             in_gradients_chunks_[i].is_row_major_, false);
-        to_column_major(&in_gradients_chunks_[i], &in_gradients_row);
+SageLinearGradientsChunked *SageLinearChunked::backward(std::vector<Matrix<float>> *incoming_gradients) {
+    if (y_.size() != incoming_gradients->size()) {
+        throw "Output and incoming gradients have a different number of chunks";
+    }
+    for (int i = 0; i < incoming_gradients->size(); ++i) {
+        to_column_major_inplace(&incoming_gradients->at(i));
     }
 
-    std::vector<Matrix<float> *> self_parameter_gradients = linear_self_.get_gradients();
-    std::vector<Matrix<float> *> neigh_parameter_gradients = linear_neigh_.get_gradients();
-    Matrix<float> self_weight_sum(self_parameter_gradients[0]->num_rows_, self_parameter_gradients[0]->num_columns_,
-                                  self_parameter_gradients[0]->is_row_major_);
-    self_weight_sum.set_values(0.0);
-    Matrix<float> self_bias_sum(self_parameter_gradients[1]->num_rows_, self_parameter_gradients[1]->num_columns_,
-                                self_parameter_gradients[1]->is_row_major_);
-    self_bias_sum.set_values(0.0);
-    Matrix<float> neigh_weight_sum(neigh_parameter_gradients[0]->num_rows_, neigh_parameter_gradients[0]->num_columns_,
-                                   neigh_parameter_gradients[0]->is_row_major_);
-    neigh_weight_sum.set_values(0.0);
-    Matrix<float> neigh_bias_sum(neigh_parameter_gradients[1]->num_rows_, neigh_parameter_gradients[1]->num_columns_,
-                                 neigh_parameter_gradients[1]->is_row_major_);
-    neigh_bias_sum.set_values(0.0);
+    neigh_weight_sum_.set_values(0.0);
+    self_bias_sum_.set_values(0.0);
+    self_weight_sum_.set_values(0.0);
+    neigh_bias_sum_.set_values(0.0);
 
     Matrix<float> *self_gradients;
     Matrix<float> *neigh_gradients;
     for (int i = 0; i < num_chunks_; ++i) {
-        self_gradients = linear_self_.backward(&in_gradients_chunks_[i]), &features_chunks_[i];
-        neigh_gradients = linear_neigh_.backward(&in_gradients_chunks_[i], &aggr_chunks_[i]);
-
-        to_row_major_inplace(self_gradients);
-        to_row_major_inplace(neigh_gradients);
-
-        // TODO can we get ride of memcpy?
-        if (i == num_chunks_ - 1) {
-            std::memcpy(&self_gradients_.values_[i * chunk_size_ * num_in_features_],
-                        self_gradients->values_,
-                        last_chunk_size_ * num_in_features_ * sizeof(float));
-            std::memcpy(&neighbourhood_gradients_.values_[i * chunk_size_ * num_in_features_],
-                        neigh_gradients->values_,
-                        last_chunk_size_ * num_in_features_ * sizeof(float));
-        } else {
-            std::memcpy(&self_gradients_.values_[i * chunk_size_ * num_in_features_],
-                        self_gradients->values_,
-                        self_gradients->size_ * sizeof(float));
-            std::memcpy(&neighbourhood_gradients_.values_[i * chunk_size_ * num_in_features_],
-                        neigh_gradients->values_,
-                        neigh_gradients->size_ * sizeof(float));
-        }
+        linear_self_.backward(&incoming_gradients->at(i), &features_->at(i), &self_gradients_.at(i));
+        linear_neigh_.backward(&incoming_gradients->at(i), &aggregated_features_->at(i), &neighbourhood_gradients_.at(i));
 
         std::vector<Matrix<float> *> self_parameter_gradients = linear_self_.get_gradients();
         std::vector<Matrix<float> *> neigh_parameter_gradients = linear_neigh_.get_gradients();
 
-        mat_mat_add(cuda_helper_, self_parameter_gradients[0], &self_weight_sum, &self_weight_sum);
-        mat_mat_add(cuda_helper_, self_parameter_gradients[1], &self_bias_sum, &self_bias_sum);
-        mat_mat_add(cuda_helper_, neigh_parameter_gradients[0], &neigh_weight_sum, &neigh_weight_sum);
-        mat_mat_add(cuda_helper_, neigh_parameter_gradients[1], &neigh_bias_sum, &neigh_bias_sum);
+        mat_mat_add(cuda_helper_, self_parameter_gradients[0], &self_weight_sum_, &self_weight_sum_);
+        mat_mat_add(cuda_helper_, self_parameter_gradients[1], &self_bias_sum_, &self_bias_sum_);
+        mat_mat_add(cuda_helper_, neigh_parameter_gradients[0], &neigh_weight_sum_, &neigh_weight_sum_);
+        mat_mat_add(cuda_helper_, neigh_parameter_gradients[1], &neigh_bias_sum_, &neigh_bias_sum_);
     }
 
-    linear_self_.set_gradients(&self_weight_sum, &self_bias_sum);
-    linear_neigh_.set_gradients(&neigh_weight_sum, &neigh_bias_sum);
-
-    input_gradients_.self_grads->is_row_major_ = true;
-    input_gradients_.neigh_grads->is_row_major_ = true;
+    linear_self_.set_gradients(&self_weight_sum_, &self_bias_sum_);
+    linear_neigh_.set_gradients(&neigh_weight_sum_, &neigh_bias_sum_);
 
     return &input_gradients_;
 }

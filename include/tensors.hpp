@@ -4,6 +4,7 @@
 #define TENSORS_H
 
 #include <string>
+#include <vector>
 
 #include "cuda_helper.hpp"
 
@@ -85,5 +86,7 @@ void transpose_csr_matrix(SparseMatrix<float> *mat, CudaHelper *cuda_helper);
 long count_nans(Matrix<float> *x);
 
 bool check_nans(Matrix<float> *x, std::string name);
+
+bool check_nans(std::vector<Matrix<float>> *x, std::string name);
 
 #endif

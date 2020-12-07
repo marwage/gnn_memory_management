@@ -11,6 +11,8 @@ void save_params(std::vector<Matrix<float> *> parameters);
 
 void save_grads(SageLinearGradients *gradients, std::vector<Matrix<float> *> weight_gradients);
 
+void save_grads(SageLinearGradientsChunked *gradients, std::vector<Matrix<float> *> weight_gradients, long num_nodes);
+
 int run_python(std::string module_name, std::string function_name);
 
 int read_return_value(std::string path);

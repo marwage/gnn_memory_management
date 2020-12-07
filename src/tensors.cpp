@@ -503,3 +503,16 @@ bool check_nans(Matrix<float> *x, std::string name) {
         return false;
     }
 }
+
+bool check_nans(std::vector<Matrix<float>> *x, std::string name) {
+    long num_nans = 0;
+    for (long i = 0; i < x->size(); ++i) {
+        num_nans = count_nans(&x->at(i));
+        if (num_nans > 0) {
+            std::cout << name << " has " << num_nans << " NaNs at " << std::to_string(i) << std::endl;
+            return true;
+        } else {
+            return false;
+        }
+    }
+}

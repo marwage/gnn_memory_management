@@ -1,6 +1,7 @@
 // Copyright Marcel Wagenländer 2020
 
 #include "helper.hpp"
+#include "chunking.hpp"
 
 #include <Python.h>
 #include <cmath>
@@ -29,9 +30,9 @@ void save_grads(SageLinearGradients *gradients, std::vector<Matrix<float> *> wei
     std::string path;
 
     path = test_dir_path + "/self_grads.npy";
-    save_npy_matrix(gradients->self_grads, path);
+    save_npy_matrix(gradients->self_gradients, path);
     path = test_dir_path + "/neigh_grads.npy";
-    save_npy_matrix(gradients->neigh_grads, path);
+    save_npy_matrix(gradients->neighbourhood_gradients, path);
 
     path = test_dir_path + "/self_weight_grads.npy";
     save_npy_matrix(weight_gradients[0], path);
@@ -41,6 +42,19 @@ void save_grads(SageLinearGradients *gradients, std::vector<Matrix<float> *> wei
     save_npy_matrix(weight_gradients[2], path);
     path = test_dir_path + "/neigh_bias_grads.npy";
     save_npy_matrix(weight_gradients[3], path);
+}
+
+void save_grads(SageLinearGradientsChunked *gradients, std::vector<Matrix<float> *> weight_gradients, long num_nodes) {
+    Matrix<float> self_gradients_one(num_nodes, gradients->self_gradients->at(0).num_columns_, true);
+    stitch(gradients->self_gradients, &self_gradients_one);
+
+    Matrix<float> neighbourhood_gradients_one(num_nodes, gradients->neighbourhood_gradients->at(0).num_columns_, true);
+    stitch(gradients->neighbourhood_gradients, &neighbourhood_gradients_one);
+
+    SageLinearGradients gradients_stitched;
+    gradients_stitched.self_gradients = &self_gradients_one;
+    gradients_stitched.neighbourhood_gradients = &neighbourhood_gradients_one;
+    save_grads(&gradients_stitched, weight_gradients);
 }
 
 int run_python(std::string module_name, std::string function_name) {

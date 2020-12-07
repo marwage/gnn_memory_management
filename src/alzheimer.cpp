@@ -190,10 +190,10 @@ void alzheimer(std::string dataset, int chunk_size) {
         sage_linear_gradients = linear_2->backward(gradients);
 
         // graph convolution 2
-        gradients = graph_convolution_2->backward(sage_linear_gradients->neigh_grads);
+        gradients = graph_convolution_2->backward(sage_linear_gradients->neighbourhood_gradients);
 
         // add sage_linear_gradients.self_grads + gradients
-        gradients = add_2.forward(sage_linear_gradients->self_grads, gradients);
+        gradients = add_2.forward(sage_linear_gradients->self_gradients, gradients);
 
         // dropout 2
         gradients = dropout_2->backward(gradients);
@@ -208,7 +208,7 @@ void alzheimer(std::string dataset, int chunk_size) {
         gradients = graph_convolution_1->backward(gradients);
 
         // add sage_linear_gradients.self_grads + gradients
-        gradients = add_1.forward(sage_linear_gradients->self_grads, gradients);
+        gradients = add_1.forward(sage_linear_gradients->self_gradients, gradients);
 
         // dropout 1
         gradients = dropout_1->backward(gradients);

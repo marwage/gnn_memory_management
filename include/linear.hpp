@@ -35,7 +35,7 @@ public:
     void set_gradients(Matrix<float> *weight_grads, Matrix<float> *bias_grads);
     Matrix<float> *forward(Matrix<float> *x);
     Matrix<float> *backward(Matrix<float> *in_gradients);
-    Matrix<float> *backward(Matrix<float> *in_gradients, Matrix<float> *x);
+    void backward(Matrix<float> *incoming_gradients, Matrix<float> *x, Matrix<float> *gradients);
 };
 
 #endif

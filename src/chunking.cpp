@@ -1,6 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "chunk.hpp"
+#include "chunking.hpp"
 
 
 void chunk_up(Matrix<float> *x, std::vector<Matrix<float>> *x_chunked, long chunk_size) {
@@ -32,8 +32,10 @@ void stitch(std::vector<Matrix<float>> *x_chunked, Matrix<float> *x) {
     long chunk_size = x_chunked->at(0).num_rows_;
     long num_features = x_chunked->at(0).num_columns_;
     for (int i = 0; i < x_chunked->size(); ++i) {
+        to_row_major_inplace(&x_chunked->at(i));
         std::copy(x_chunked->at(i).values_,
                   x_chunked->at(i).values_ + x_chunked->at(i).size_,
                   x->values_ + (i * chunk_size * num_features));
     }
+    x->is_row_major_ = true;
 }

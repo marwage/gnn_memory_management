@@ -37,119 +37,120 @@ int integration_test(int chunk_size) {
     int num_hidden_channels = 128;
     int num_classes = 7;
 
+    // TODO
     // layers
-    GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
-    SageLinearParent *sage_linear_layer;
-    ReluParent *relu_layer;
-    LogSoftmaxParent *log_softmax_layer;
-    Add add(&cuda_helper, features.num_rows_, features.num_columns_);
-    if (chunk_size == 0) {// no chunking
-        sage_linear_layer = new SageLinear(&cuda_helper, features.num_columns_, num_hidden_channels, features.num_rows_);
-        relu_layer = new Relu(&cuda_helper, features.num_rows_, num_hidden_channels);
-        log_softmax_layer = new LogSoftmax(&cuda_helper, features.num_rows_, num_hidden_channels);
-    } else {
-        sage_linear_layer = new SageLinearChunked(&cuda_helper, features.num_columns_, num_hidden_channels, chunk_size, features.num_rows_);
-        relu_layer = new ReluChunked(&cuda_helper, chunk_size, features.num_rows_, num_hidden_channels);
-        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.num_rows_, num_hidden_channels);
-    }
-    NLLLoss loss_layer(features.num_rows_, num_hidden_channels);
-
-    // optimiser
-    Adam adam(&cuda_helper, learning_rate, sage_linear_layer->get_parameters(), sage_linear_layer->get_gradients());
-
-    // graph convolution
-    Matrix<float> *graph_convolution_result = graph_convolution_layer.forward(&features);
-    path = test_dir_path + "/graph_convolution_result.npy";
-    save_npy_matrix(graph_convolution_result, path);
-
-    // linear layer
-    Matrix<float> *linear_result = sage_linear_layer->forward(&features, graph_convolution_result);
-    path = test_dir_path + "/linear_result.npy";
-    save_npy_matrix(linear_result, path);
-    std::vector<Matrix<float> *> parameters = sage_linear_layer->get_parameters();
-    path = test_dir_path + "/self_weight.npy";
-    save_npy_matrix(parameters[0], path);
-    path = test_dir_path + "/self_bias.npy";
-    save_npy_matrix(parameters[1], path);
-    path = test_dir_path + "/neigh_weight.npy";
-    save_npy_matrix(parameters[2], path);
-    path = test_dir_path + "/neigh_bias.npy";
-    save_npy_matrix(parameters[3], path);
-
-    // ReLU
-    Matrix<float> *relu_result = relu_layer->forward(linear_result);
-    path = test_dir_path + "/relu_result.npy";
-    save_npy_matrix(relu_result, path);
-
-    // log-softmax
-    Matrix<float> *log_softmax_result = log_softmax_layer->forward(relu_result);
-    path = test_dir_path + "/log_softmax_result.npy";
-    save_npy_matrix(log_softmax_result, path);
-
-    // loss
-    float loss = loss_layer.forward(log_softmax_result, &classes);
-    Matrix<float> loss_mat;
-    loss_mat.num_rows_ = 1;
-    loss_mat.num_columns_ = 1;
-    loss_mat.values_ = &loss;
-    path = test_dir_path + "/loss_result.npy";
-    save_npy_matrix(&loss_mat, path);
-
-    // BACKPROPAGATION
-    //loss
-    Matrix<float> *loss_grads = loss_layer.backward();
-    path = test_dir_path + "/loss_grads.npy";
-    save_npy_matrix(loss_grads, path);
-
-    // log-softmax
-    Matrix<float> *log_softmax_grads = log_softmax_layer->backward(loss_grads);
-    path = test_dir_path + "/log_softmax_grads.npy";
-    save_npy_matrix(log_softmax_grads, path);
-
-    // ReLU
-    Matrix<float> *relu_grads = relu_layer->backward(log_softmax_grads);
-    path = test_dir_path + "/relu_grads.npy";
-    save_npy_matrix(relu_grads, path);
-
-    // linear layer
-    SageLinearGradients *linear_grads = sage_linear_layer->backward(relu_grads);
-    path = test_dir_path + "/self_grads.npy";
-    save_npy_matrix(linear_grads->self_grads, path);
-    path = test_dir_path + "/neigh_grads.npy";
-    save_npy_matrix(linear_grads->neigh_grads, path);
-    std::vector<Matrix<float> *> gradients = sage_linear_layer->get_gradients();
-    path = test_dir_path + "/self_weight_grads.npy";
-    save_npy_matrix(gradients[0], path);
-    path = test_dir_path + "/self_bias_grads.npy";
-    save_npy_matrix(gradients[1], path);
-    path = test_dir_path + "/neigh_weight_grads.npy";
-    save_npy_matrix(gradients[2], path);
-    path = test_dir_path + "/neigh_bias_grads.npy";
-    save_npy_matrix(gradients[3], path);
-
-    // graph convolution
-    Matrix<float> *graph_convolution_grads = graph_convolution_layer.backward(linear_grads->neigh_grads);
-    path = test_dir_path + "/graph_convolution_grads.npy";
-    save_npy_matrix(graph_convolution_grads, path);
-
-    // add sage_linear_gradients.self_grads + gradients
-    Matrix<float> *add_grads = add.forward(linear_grads->self_grads, graph_convolution_grads);
-    path = test_dir_path + "/add_grads.npy";
-    save_npy_matrix(add_grads, path);
-
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/integration.py";
-    system(command);
-
-    // CLEAN-UP
-    // destroy cuda handles
-    cuda_helper.destroy_handles();
-
-    // free memory
-    free(features.values_);
-    free(classes.values_);
-
-    path = test_dir_path + "/value.npy";
-    return read_return_value(path);
+//    GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
+//    SageLinearParent *sage_linear_layer;
+//    ReluParent *relu_layer;
+//    LogSoftmaxParent *log_softmax_layer;
+//    Add add(&cuda_helper, features.num_rows_, features.num_columns_);
+//    if (chunk_size == 0) {// no chunking
+//        sage_linear_layer = new SageLinear(&cuda_helper, features.num_columns_, num_hidden_channels, features.num_rows_);
+//        relu_layer = new Relu(&cuda_helper, features.num_rows_, num_hidden_channels);
+//        log_softmax_layer = new LogSoftmax(&cuda_helper, features.num_rows_, num_hidden_channels);
+//    } else {
+//        sage_linear_layer = new SageLinearChunked(&cuda_helper, features.num_columns_, num_hidden_channels, chunk_size, features.num_rows_);
+//        relu_layer = new ReluChunked(&cuda_helper, chunk_size, features.num_rows_, num_hidden_channels);
+//        log_softmax_layer = new LogSoftmaxChunked(&cuda_helper, chunk_size, features.num_rows_, num_hidden_channels);
+//    }
+//    NLLLoss loss_layer(features.num_rows_, num_hidden_channels);
+//
+//    // optimiser
+//    Adam adam(&cuda_helper, learning_rate, sage_linear_layer->get_parameters(), sage_linear_layer->get_gradients());
+//
+//    // graph convolution
+//    Matrix<float> *graph_convolution_result = graph_convolution_layer.forward(&features);
+//    path = test_dir_path + "/graph_convolution_result.npy";
+//    save_npy_matrix(graph_convolution_result, path);
+//
+//    // linear layer
+//    Matrix<float> *linear_result = sage_linear_layer->forward(&features, graph_convolution_result);
+//    path = test_dir_path + "/linear_result.npy";
+//    save_npy_matrix(linear_result, path);
+//    std::vector<Matrix<float> *> parameters = sage_linear_layer->get_parameters();
+//    path = test_dir_path + "/self_weight.npy";
+//    save_npy_matrix(parameters[0], path);
+//    path = test_dir_path + "/self_bias.npy";
+//    save_npy_matrix(parameters[1], path);
+//    path = test_dir_path + "/neigh_weight.npy";
+//    save_npy_matrix(parameters[2], path);
+//    path = test_dir_path + "/neigh_bias.npy";
+//    save_npy_matrix(parameters[3], path);
+//
+//    // ReLU
+//    Matrix<float> *relu_result = relu_layer->forward(linear_result);
+//    path = test_dir_path + "/relu_result.npy";
+//    save_npy_matrix(relu_result, path);
+//
+//    // log-softmax
+//    Matrix<float> *log_softmax_result = log_softmax_layer->forward(relu_result);
+//    path = test_dir_path + "/log_softmax_result.npy";
+//    save_npy_matrix(log_softmax_result, path);
+//
+//    // loss
+//    float loss = loss_layer.forward(log_softmax_result, &classes);
+//    Matrix<float> loss_mat;
+//    loss_mat.num_rows_ = 1;
+//    loss_mat.num_columns_ = 1;
+//    loss_mat.values_ = &loss;
+//    path = test_dir_path + "/loss_result.npy";
+//    save_npy_matrix(&loss_mat, path);
+//
+//    // BACKPROPAGATION
+//    //loss
+//    Matrix<float> *loss_grads = loss_layer.backward();
+//    path = test_dir_path + "/loss_grads.npy";
+//    save_npy_matrix(loss_grads, path);
+//
+//    // log-softmax
+//    Matrix<float> *log_softmax_grads = log_softmax_layer->backward(loss_grads);
+//    path = test_dir_path + "/log_softmax_grads.npy";
+//    save_npy_matrix(log_softmax_grads, path);
+//
+//    // ReLU
+//    Matrix<float> *relu_grads = relu_layer->backward(log_softmax_grads);
+//    path = test_dir_path + "/relu_grads.npy";
+//    save_npy_matrix(relu_grads, path);
+//
+//    // linear layer
+//    SageLinearGradients *linear_grads = sage_linear_layer->backward(relu_grads);
+//    path = test_dir_path + "/self_grads.npy";
+//    save_npy_matrix(linear_grads->self_gradients, path);
+//    path = test_dir_path + "/neigh_grads.npy";
+//    save_npy_matrix(linear_grads->neighbourhood_gradients, path);
+//    std::vector<Matrix<float> *> gradients = sage_linear_layer->get_gradients();
+//    path = test_dir_path + "/self_weight_grads.npy";
+//    save_npy_matrix(gradients[0], path);
+//    path = test_dir_path + "/self_bias_grads.npy";
+//    save_npy_matrix(gradients[1], path);
+//    path = test_dir_path + "/neigh_weight_grads.npy";
+//    save_npy_matrix(gradients[2], path);
+//    path = test_dir_path + "/neigh_bias_grads.npy";
+//    save_npy_matrix(gradients[3], path);
+//
+//    // graph convolution
+//    Matrix<float> *graph_convolution_grads = graph_convolution_layer.backward(linear_grads->neighbourhood_gradients);
+//    path = test_dir_path + "/graph_convolution_grads.npy";
+//    save_npy_matrix(graph_convolution_grads, path);
+//
+//    // add sage_linear_gradients.self_grads + gradients
+//    Matrix<float> *add_grads = add.forward(linear_grads->self_gradients, graph_convolution_grads);
+//    path = test_dir_path + "/add_grads.npy";
+//    save_npy_matrix(add_grads, path);
+//
+//    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/integration.py";
+//    system(command);
+//
+//    // CLEAN-UP
+//    // destroy cuda handles
+//    cuda_helper.destroy_handles();
+//
+//    // free memory
+//    free(features.values_);
+//    free(classes.values_);
+//
+//    path = test_dir_path + "/value.npy";
+//    return read_return_value(path);
 }
 
 
