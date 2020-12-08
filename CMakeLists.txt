@@ -55,14 +55,6 @@ install(TARGETS ${PROJECT_NAME} DESTINATION lib)
 install(FILES ${HEADER_FILES} DESTINATION include)
 
 
-set(EXECUTABLE_NAME run_${PROJECT_NAME})
-add_executable(${EXECUTABLE_NAME}
-        src/alzheimer.cpp
-        )
-target_link_libraries(${EXECUTABLE_NAME}
-        ${PROJECT_NAME})
-
-
 include(tests/CMakeLists.txt)
 
 
