@@ -13,7 +13,7 @@ def test_dropout():
 
     path = flickr_dir_path + "/features.npy"
     features = np.load(path)
-    path = test_dir_path + "/dropout_result.npy"
+    path = test_dir_path + "/output.npy"
     dropout_result = np.load(path)
 
     probability = 0.2
@@ -32,9 +32,9 @@ def test_dropout():
     if (num_nans > 0):
         print("Dropout has {} NaNs".format(num_nans))
 
-    path = test_dir_path + "/dropout_gradients.npy"
+    path = test_dir_path + "/gradients.npy"
     dropout_grads = np.load(path)
-    path = test_dir_path + "/in_gradients.npy"
+    path = test_dir_path + "/incoming_gradients.npy"
     in_gradients = np.load(path)
 
     in_gradients_torch = torch.from_numpy(in_gradients)
@@ -54,3 +54,4 @@ def test_dropout():
 
 if __name__ == "__main__":
     test_dropout()
+
