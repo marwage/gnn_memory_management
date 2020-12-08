@@ -129,9 +129,6 @@ int integration_test() {
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/integration.py";
     system(command);
 
-    // destroy cuda handles
-    cuda_helper.destroy_handles();
-
     path = test_dir_path + "/value.npy";
     return read_return_value(path);
 }
@@ -282,9 +279,6 @@ int integration_test_chunked(long chunk_size) {
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/integration.py";
     system(command);
-
-    // destroy cuda handles
-    cuda_helper.destroy_handles();
 
     path = test_dir_path + "/value.npy";
     return read_return_value(path);

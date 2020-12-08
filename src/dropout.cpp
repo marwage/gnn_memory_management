@@ -156,6 +156,7 @@ void Dropout::backward(Matrix<float> *incoming_gradients, Matrix<float> *y, Matr
                           cudaMemcpyDeviceToHost));
 
     //clean-up
+    check_cuda(cudaFree(d_states));
     check_cuda(cudaFree(d_dy));
     check_cuda(cudaFree(d_dx));
     check_cuda(cudaFree(d_reserve_space));

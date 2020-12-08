@@ -12,7 +12,7 @@ CudaHelper::CudaHelper() {
     check_cusparse(cusparse_status);
 }
 
-void CudaHelper::destroy_handles() {
+CudaHelper::~CudaHelper() {
     cublas_status = cublasDestroy(cublas_handle);
     check_cublas(cublas_status);
     cudnn_status = cudnnDestroy(cudnn_handle);

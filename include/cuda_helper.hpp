@@ -20,7 +20,7 @@ public:
     cusparseHandle_t cusparse_handle;
 
     CudaHelper();
-    void destroy_handles();
+    ~CudaHelper();
 };
 
 

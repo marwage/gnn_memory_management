@@ -195,10 +195,6 @@ void alzheimer(std::string dataset) {
         // optimiser
         adam.step();
     }// end training loop
-
-    // CLEAN-UP
-    // destroy cuda handles
-    cuda_helper.destroy_handles();
 }
 
 void alzheimer_chunked(std::string dataset, long chunk_size) {
@@ -390,8 +386,4 @@ void alzheimer_chunked(std::string dataset, long chunk_size) {
         // optimiser
         adam.step();
     }// end training loop
-
-    // CLEAN-UP
-    // destroy cuda handles
-    cuda_helper.destroy_handles();
 }
