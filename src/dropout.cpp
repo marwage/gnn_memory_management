@@ -161,7 +161,13 @@ void Dropout::backward(Matrix<float> *incoming_gradients, Matrix<float> *y, Matr
     check_cuda(cudaFree(d_reserve_space));
 }
 
+DropoutChunked::DropoutChunked() {}
+
 DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes, long num_features) {
+    set(helper, chunk_size, num_nodes, num_features);
+}
+
+void DropoutChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
     num_chunks_ = ceil((float) num_nodes / (float) chunk_size_);

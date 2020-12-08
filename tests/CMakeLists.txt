@@ -20,7 +20,8 @@ set(TEST_FILES
         tests/sum_rows.cpp
         tests/transpose.cpp
         tests/alzheimer.cpp
-        tests/sparse.cpp)
+        tests/sparse.cpp
+        tests/layer.cpp)
 
 set(HELPER_FILES
         tests/helper.cpp)

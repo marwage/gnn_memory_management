@@ -4,6 +4,7 @@
 #include "cuda_helper.hpp"
 #include "gpu_memory_logger.hpp"
 #include "tensors.hpp"
+#include "chunking.hpp"
 
 #include <benchmark/benchmark.h>
 
@@ -40,15 +41,20 @@ static void BM_Layer_Logsoftmax_Chunked_Flickr_Forward(benchmark::State &state) 
     path = flickr_dir_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
 
-    CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, state.range(0), features.num_rows_, features.num_columns_);
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
 
-    GPUMemoryLogger memory_logger("logsoftmax_flickr_forward_" + std::to_string(state.range(0)));
+    CudaHelper cuda_helper;
+    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
+
+    GPUMemoryLogger memory_logger("logsoftmax_flickr_forward_" + std::to_string(chunk_size));
     memory_logger.start();
 
-    Matrix<float> *activations;
+    std::vector<Matrix<float>> *activations;
     for (auto _ : state) {
-        activations = logsoftmax.forward(&features);
+        activations = logsoftmax.forward(&features_chunked);
     }
 
     memory_logger.stop();
@@ -86,17 +92,24 @@ static void BM_Layer_Logsoftmax_Flickr_Chunked_Backward(benchmark::State &state)
     Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
     in_gradients.set_random_values();
 
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
+    std::vector<Matrix<float>> in_gradients_chunked(num_chunks);
+    chunk_up(&in_gradients, &in_gradients_chunked, chunk_size);
+
     CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, state.range(0), features.num_rows_, features.num_columns_);
+    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
 
-    Matrix<float> *activations = logsoftmax.forward(&features);
+    std::vector<Matrix<float>> *activations = logsoftmax.forward(&features_chunked);
 
-    GPUMemoryLogger memory_logger("logsoftmax_flickr_backward_" + std::to_string(state.range(0)));
+    GPUMemoryLogger memory_logger("logsoftmax_flickr_backward_" + std::to_string(chunk_size));
     memory_logger.start();
 
-    Matrix<float> *gradients;
+    std::vector<Matrix<float>> *gradients;
     for (auto _ : state) {
-        gradients = logsoftmax.backward(&in_gradients);
+        gradients = logsoftmax.backward(&in_gradients_chunked);
     }
 
     memory_logger.stop();
@@ -128,15 +141,20 @@ static void BM_Layer_Logsoftmax_Reddit_Chunked_Forward(benchmark::State &state) 
     path = reddit_dir_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
 
-    CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, state.range(0), features.num_rows_, features.num_columns_);
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
 
-    GPUMemoryLogger memory_logger("logsoftmax_reddit_forward_" + std::to_string(state.range(0)));
+    CudaHelper cuda_helper;
+    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
+
+    GPUMemoryLogger memory_logger("logsoftmax_reddit_forward_" + std::to_string(chunk_size));
     memory_logger.start();
 
-    Matrix<float> *activations;
+    std::vector<Matrix<float>> *activations;
     for (auto _ : state) {
-        activations = logsoftmax.forward(&features);
+        activations = logsoftmax.forward(&features_chunked);
     }
 
     memory_logger.stop();
@@ -174,17 +192,24 @@ static void BM_Layer_Logsoftmax_Reddit_Chunked_Backward(benchmark::State &state)
     Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
     in_gradients.set_random_values();
 
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
+    std::vector<Matrix<float>> in_gradients_chunked(num_chunks);
+    chunk_up(&in_gradients, &in_gradients_chunked, chunk_size);
+
     CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, state.range(0), features.num_rows_, features.num_columns_);
+    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
 
-    Matrix<float> *activations = logsoftmax.forward(&features);
+    std::vector<Matrix<float>> *activations = logsoftmax.forward(&features_chunked);
 
-    GPUMemoryLogger memory_logger("logsoftmax_reddit_backward_" + std::to_string(state.range(0)));
+    GPUMemoryLogger memory_logger("logsoftmax_reddit_backward_" + std::to_string(chunk_size));
     memory_logger.start();
 
-    Matrix<float> *gradients;
+    std::vector<Matrix<float>> *gradients;
     for (auto _ : state) {
-        gradients = logsoftmax.backward(&in_gradients);
+        gradients = logsoftmax.backward(&in_gradients_chunked);
     }
 
     memory_logger.stop();
@@ -216,15 +241,20 @@ static void BM_Layer_Logsoftmax_Products_Chunked_Forward(benchmark::State &state
     path = products_dir_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
 
-    CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, state.range(0), features.num_rows_, features.num_columns_);
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
 
-    GPUMemoryLogger memory_logger("logsoftmax_products_forward_" + std::to_string(state.range(0)));
+    CudaHelper cuda_helper;
+    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
+
+    GPUMemoryLogger memory_logger("logsoftmax_products_forward_" + std::to_string(chunk_size));
     memory_logger.start();
 
-    Matrix<float> *activations;
+    std::vector<Matrix<float>> *activations;
     for (auto _ : state) {
-        activations = logsoftmax.forward(&features);
+        activations = logsoftmax.forward(&features_chunked);
     }
 
     memory_logger.stop();
@@ -262,17 +292,24 @@ static void BM_Layer_Logsoftmax_Products_Chunked_Backward(benchmark::State &stat
     Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
     in_gradients.set_random_values();
 
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
+    std::vector<Matrix<float>> in_gradients_chunked(num_chunks);
+    chunk_up(&in_gradients, &in_gradients_chunked, chunk_size);
+
     CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, state.range(0), features.num_rows_, features.num_columns_);
+    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
 
-    Matrix<float> *activations = logsoftmax.forward(&features);
+    std::vector<Matrix<float>> *activations = logsoftmax.forward(&features_chunked);
 
-    GPUMemoryLogger memory_logger("logsoftmax_products_backward_" + std::to_string(state.range(0)));
+    GPUMemoryLogger memory_logger("logsoftmax_products_backward_" + std::to_string(chunk_size));
     memory_logger.start();
 
-    Matrix<float> *gradients;
+    std::vector<Matrix<float>> *gradients;
     for (auto _ : state) {
-        gradients = logsoftmax.backward(&in_gradients);
+        gradients = logsoftmax.backward(&in_gradients_chunked);
     }
 
     memory_logger.stop();

@@ -15,7 +15,7 @@ static void BM_Alzheimer_Flickr(benchmark::State &state) {
     memory_logger.start();
 
     for (auto _ : state)
-        alzheimer(dataset, 0);
+        alzheimer(dataset);
 
     memory_logger.stop();
 }
@@ -28,7 +28,7 @@ static void BM_Alzheimer_Flickr_Chunked(benchmark::State &state) {
     memory_logger.start();
 
     for (auto _ : state)
-        alzheimer(dataset, state.range(0));
+        alzheimer_chunked(dataset, state.range(0));
 
     memory_logger.stop();
 }
@@ -43,7 +43,7 @@ static void BM_Alzheimer_Reddit(benchmark::State &state) {
     memory_logger.start();
 
     for (auto _ : state)
-        alzheimer(dataset, 0);
+        alzheimer(dataset);
 
     memory_logger.stop();
 }
@@ -56,7 +56,7 @@ static void BM_Alzheimer_Chunked_Reddit(benchmark::State &state) {
     memory_logger.start();
 
     for (auto _ : state)
-        alzheimer(dataset, state.range(0));
+        alzheimer_chunked(dataset, state.range(0));
 
     memory_logger.stop();
 }
@@ -70,7 +70,7 @@ static void BM_Alzheimer_Products(benchmark::State &state) {
     memory_logger.start();
 
     for (auto _ : state)
-        alzheimer(dataset, 0);
+        alzheimer(dataset);
 
     memory_logger.stop();
 }
@@ -83,7 +83,7 @@ static void BM_Alzheimer_Chunked_Products(benchmark::State &state) {
     memory_logger.start();
 
     for (auto _ : state)
-        alzheimer(dataset, state.range(0));
+        alzheimer_chunked(dataset, state.range(0));
 
     memory_logger.stop();
 }

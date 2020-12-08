@@ -35,18 +35,21 @@ private:
     long chunk_size_;
     long last_chunk_size_;
     long num_chunks_;
+    long num_nodes_;
     bool mean_;
     SparseMatrix<float> *adjacency_ = NULL;
     std::vector<SparseMatrix<float>> adjacencies_;
     Matrix<float> sum_;
-    Matrix<float> y_;
-    Matrix<float> gradients_;
+    std::vector<Matrix<float>> y_;
+    std::vector<Matrix<float>> gradients_;
 
 public:
     GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                      long num_features, long chunk_size, long num_nodes);
-    Matrix<float> *forward(std::vector<Matrix<float>> *x);
-    Matrix<float> *backward(Matrix<float> *incoming_gradients);
+    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
+    std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
+    void forward(std::vector<Matrix<float>> *x, Matrix<float> *y);
+    void backward(Matrix<float> *incoming_gradients, Matrix<float> *gradients);
 };
 
 #endif

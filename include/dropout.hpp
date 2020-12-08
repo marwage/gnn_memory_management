@@ -5,10 +5,12 @@
 
 #include "cuda_helper.hpp"
 #include "tensors.hpp"
+#include "layer.hpp"
+
 #include <vector>
 
 
-class Dropout {
+class Dropout : public Layer {
 private:
     CudaHelper *cuda_helper_ = NULL;
     float probability_ = 0.2f;
@@ -31,7 +33,7 @@ public:
     void backward(Matrix<float> *incoming_gradients, Matrix<float> *y, Matrix<float> *gradients);
 };
 
-class DropoutChunked {
+class DropoutChunked : public LayerChunked {
 private:
     CudaHelper *cuda_helper_ = NULL;
     int chunk_size_;
@@ -42,9 +44,11 @@ private:
     std::vector<Matrix<float>> gradients_;
 
 public:
+    DropoutChunked();
     DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes, long num_features);
-    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
-    std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
+    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) override;
+    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
+    std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };
 
 #endif

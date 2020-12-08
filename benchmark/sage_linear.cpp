@@ -4,6 +4,7 @@
 #include "cuda_helper.hpp"
 #include "gpu_memory_logger.hpp"
 #include "tensors.hpp"
+#include "chunking.hpp"
 
 #include <benchmark/benchmark.h>
 
@@ -47,15 +48,22 @@ static void BM_Layer_Sagelinear_Chunked_Flickr_Forward(benchmark::State &state) 
     Matrix<float> aggregates(features.num_rows_, features.num_columns_, true);
     aggregates.set_random_values();
 
-    CudaHelper cuda_helper;
-    SageLinearChunked sagelinear(&cuda_helper, features.num_columns_, num_out_features, state.range(0), features.num_rows_);
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
+    std::vector<Matrix<float>> aggregates_chunked(num_chunks);
+    chunk_up(&aggregates, &aggregates_chunked, chunk_size);
 
-    GPUMemoryLogger memory_logger("sagelinear_flickr_forward_" + std::to_string(state.range(0)));
+    CudaHelper cuda_helper;
+    SageLinearChunked sagelinear(&cuda_helper, features.num_columns_, num_out_features, chunk_size, features.num_rows_);
+
+    GPUMemoryLogger memory_logger("sagelinear_flickr_forward_" + std::to_string(chunk_size));
     memory_logger.start();
 
-    Matrix<float> *activations;
+    std::vector<Matrix<float>> *activations;
     for (auto _ : state) {
-        activations = sagelinear.forward(&features, &aggregates);
+        activations = sagelinear.forward(&features_chunked, &aggregates_chunked);
     }
 
     memory_logger.stop();
@@ -98,17 +106,26 @@ static void BM_Layer_Sagelinear_Flickr_Chunked_Backward(benchmark::State &state)
     Matrix<float> in_gradients(features.num_rows_, num_out_features, true);
     in_gradients.set_random_values();
 
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
+    std::vector<Matrix<float>> aggregates_chunked(num_chunks);
+    chunk_up(&aggregates, &aggregates_chunked, chunk_size);
+    std::vector<Matrix<float>> in_gradients_chunked(num_chunks);
+    chunk_up(&in_gradients, &in_gradients_chunked, chunk_size);
+
     CudaHelper cuda_helper;
     SageLinearChunked sagelinear(&cuda_helper, features.num_columns_, num_out_features, state.range(0), features.num_rows_);
 
-    Matrix<float> *activations = sagelinear.forward(&features, &aggregates);
+    std::vector<Matrix<float>> *activations = sagelinear.forward(&features_chunked, &aggregates_chunked);
 
     GPUMemoryLogger memory_logger("sagelinear_flickr_backward_" + std::to_string(state.range(0)));
     memory_logger.start();
 
-    SageLinearGradients *gradients;
+    SageLinearGradientsChunked *gradients;
     for (auto _ : state) {
-        gradients = sagelinear.backward(&in_gradients);
+        gradients = sagelinear.backward(&in_gradients_chunked);
     }
 
     memory_logger.stop();
@@ -145,15 +162,22 @@ static void BM_Layer_Sagelinear_Reddit_Chunked_Forward(benchmark::State &state) 
     Matrix<float> aggregates(features.num_rows_, features.num_columns_, true);
     aggregates.set_random_values();
 
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
+    std::vector<Matrix<float>> aggregates_chunked(num_chunks);
+    chunk_up(&aggregates, &aggregates_chunked, chunk_size);
+
     CudaHelper cuda_helper;
     SageLinearChunked sagelinear(&cuda_helper, features.num_columns_, num_out_features, state.range(0), features.num_rows_);
 
     GPUMemoryLogger memory_logger("sagelinear_reddit_forward_" + std::to_string(state.range(0)));
     memory_logger.start();
 
-    Matrix<float> *activations;
+    std::vector<Matrix<float>> *activations;
     for (auto _ : state) {
-        activations = sagelinear.forward(&features, &aggregates);
+        activations = sagelinear.forward(&features_chunked, &aggregates_chunked);
     }
 
     memory_logger.stop();
@@ -196,17 +220,26 @@ static void BM_Layer_Sagelinear_Reddit_Chunked_Backward(benchmark::State &state)
     Matrix<float> in_gradients(features.num_rows_, num_out_features, true);
     in_gradients.set_random_values();
 
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
+    std::vector<Matrix<float>> aggregates_chunked(num_chunks);
+    chunk_up(&aggregates, &aggregates_chunked, chunk_size);
+    std::vector<Matrix<float>> in_gradients_chunked(num_chunks);
+    chunk_up(&in_gradients, &in_gradients_chunked, chunk_size);
+
     CudaHelper cuda_helper;
     SageLinearChunked sagelinear(&cuda_helper, features.num_columns_, num_out_features, state.range(0), features.num_rows_);
 
-    Matrix<float> *activations = sagelinear.forward(&features, &aggregates);
+    std::vector<Matrix<float>> *activations = sagelinear.forward(&features_chunked, &aggregates_chunked);
 
     GPUMemoryLogger memory_logger("sagelinear_reddit_backward_" + std::to_string(state.range(0)));
     memory_logger.start();
 
-    SageLinearGradients *gradients;
+    SageLinearGradientsChunked *gradients;
     for (auto _ : state) {
-        gradients = sagelinear.backward(&in_gradients);
+        gradients = sagelinear.backward(&in_gradients_chunked);
     }
 
     memory_logger.stop();
@@ -243,15 +276,22 @@ static void BM_Layer_Sagelinear_Products_Chunked_Forward(benchmark::State &state
     Matrix<float> aggregates(features.num_rows_, features.num_columns_, true);
     aggregates.set_random_values();
 
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
+    std::vector<Matrix<float>> aggregates_chunked(num_chunks);
+    chunk_up(&aggregates, &aggregates_chunked, chunk_size);
+
     CudaHelper cuda_helper;
     SageLinearChunked sagelinear(&cuda_helper, features.num_columns_, num_out_features, state.range(0), features.num_rows_);
 
     GPUMemoryLogger memory_logger("sagelinear_products_forward_" + std::to_string(state.range(0)));
     memory_logger.start();
 
-    Matrix<float> *activations;
+    std::vector<Matrix<float>> *activations;
     for (auto _ : state) {
-        activations = sagelinear.forward(&features, &aggregates);
+        activations = sagelinear.forward(&features_chunked, &aggregates_chunked);
     }
 
     memory_logger.stop();
@@ -294,17 +334,26 @@ static void BM_Layer_Sagelinear_Products_Chunked_Backward(benchmark::State &stat
     Matrix<float> in_gradients(features.num_rows_, num_out_features, true);
     in_gradients.set_random_values();
 
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
+    std::vector<Matrix<float>> aggregates_chunked(num_chunks);
+    chunk_up(&aggregates, &aggregates_chunked, chunk_size);
+    std::vector<Matrix<float>> in_gradients_chunked(num_chunks);
+    chunk_up(&in_gradients, &in_gradients_chunked, chunk_size);
+
     CudaHelper cuda_helper;
     SageLinearChunked sagelinear(&cuda_helper, features.num_columns_, num_out_features, state.range(0), features.num_rows_);
 
-    Matrix<float> *activations = sagelinear.forward(&features, &aggregates);
+    std::vector<Matrix<float>> *activations = sagelinear.forward(&features_chunked, &aggregates_chunked);
 
     GPUMemoryLogger memory_logger("sagelinear_products_backward_" + std::to_string(state.range(0)));
     memory_logger.start();
 
-    SageLinearGradients *gradients;
+    SageLinearGradientsChunked *gradients;
     for (auto _ : state) {
-        gradients = sagelinear.backward(&in_gradients);
+        gradients = sagelinear.backward(&in_gradients_chunked);
     }
 
     memory_logger.stop();

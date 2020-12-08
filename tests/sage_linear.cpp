@@ -127,7 +127,7 @@ int test_sage_linear_nans(Matrix<float> *input_self, Matrix<float> *input_neigh,
 
     Matrix<float> *result = sage_linear_layer.forward(input_self, input_neigh);
 
-    bool first_check = check_nans(result, "SageLinear forward");
+    bool first_check = check_nans(result, "SageLinear op");
 
     SageLinearGradients *gradients = sage_linear_layer.backward(in_gradients);
 
@@ -160,7 +160,7 @@ int test_sage_linear_nans_chunked(Matrix<float> *input_self, Matrix<float> *inpu
 
     std::vector<Matrix<float>> *result = sage_linear_layer.forward(&input_self_chunked, &input_neigh_chunked);
 
-    bool first_check = check_nans(result, "SageLinear forward");
+    bool first_check = check_nans(result, "SageLinear op");
 
     SageLinearGradientsChunked *gradients = sage_linear_layer.backward(&incoming_gradients_chunked);
 

@@ -14,8 +14,17 @@ private:
 
 public:
     Add(CudaHelper *cuda_helper, long num_nodes, long num_features);
-    Matrix<float> *forward(Matrix<float> *a, Matrix<float> *b);
+    Matrix<float> *op(Matrix<float> *a, Matrix<float> *b);
 };
 
+class AddChunked {
+private:
+    CudaHelper *cuda_helper_ = NULL;
+    std::vector<Matrix<float>> y_;
+
+public:
+    AddChunked(CudaHelper *cuda_helper, long num_nodes, long num_features, long chunk_size);
+    std::vector<Matrix<float>> *op(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b);
+};
 
 #endif//ADD_H

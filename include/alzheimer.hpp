@@ -6,6 +6,8 @@
 #include <string>
 
 
-void alzheimer(std::string dataset, int chunk_size);
+void alzheimer(std::string dataset);
+
+void alzheimer_chunked(std::string dataset, long chunk_size);
 
 #endif//ALZHEIMER_ALZHEIMER_H

@@ -3,56 +3,23 @@
 #include "activation.hpp"
 #include "helper.hpp"
 #include "tensors.hpp"
+#include "chunking.hpp"
 
 #include "catch2/catch.hpp"
 #include <string>
 
-
-int test_relu(int chunk_size) {
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-    std::string flickr_dir_path = dir_path + "/flickr";
-    std::string test_dir_path = dir_path + "/tests";
-    std::string path;
-
-    path = flickr_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-
-    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_random_values();
-    path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(&in_gradients, path);
-
-    CudaHelper cuda_helper;
-    ReluParent *relu_layer;
-    if (chunk_size == 0) {
-        relu_layer = new Relu(&cuda_helper, features.num_rows_, features.num_columns_);
-    } else {
-        relu_layer = new ReluChunked(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
-    }
-
-    Matrix<float> *activations = relu_layer->forward(&features);
-    path = test_dir_path + "/activations.npy";
-    save_npy_matrix(activations, path);
-
-    Matrix<float> *gradients = relu_layer->backward(&in_gradients);
-    path = test_dir_path + "/gradients.npy";
-    save_npy_matrix(gradients, path);
-
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/relu.py";
-    system(command);
-
-    path = test_dir_path + "/value.npy";
-    return read_return_value(path);
-}
+int test_layer(Layer *layer, std::string py_name);
+int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size);
 
 
 TEST_CASE("ReLU", "[relu]") {
-    CHECK(test_relu(0));
+    Relu relu;
+    CHECK(test_layer(&relu, "relu"));
 }
 
 TEST_CASE("ReLU, chunked", "[relu][chunked]") {
-    CHECK(test_relu(1 << 15));
-    CHECK(test_relu(1 << 12));
-    CHECK(test_relu(1 << 8));
+    ReluChunked relu;
+    CHECK(test_layer_chunked(&relu, "relu", 1 << 15));
+    CHECK(test_layer_chunked(&relu, "relu", 1 << 12));
+    CHECK(test_layer_chunked(&relu, "relu", 1 << 8));
 }

@@ -12,7 +12,7 @@ find_package(CUDA 10.2 REQUIRED)
 find_package(benchmark REQUIRED)
 
 set(SOURCE_FILES
-#        src/alzheimer.cpp # TEMPORARY
+        src/alzheimer.cpp
         src/tensors.cpp
         src/cuda_helper.cpp
         src/graph_convolution.cpp
