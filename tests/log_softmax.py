@@ -15,9 +15,9 @@ def test_log_softmax():
 
     path = flickr_dir_path + "/features.npy"
     features = np.load(path)
-    path = test_dir_path + "/activations.npy"
+    path = test_dir_path + "/output.npy"
     activations = np.load(path)
-    path = test_dir_path + "/in_gradients.npy"
+    path = test_dir_path + "/incoming_gradients.npy"
     in_gradients = np.load(path)
     path = test_dir_path + "/gradients.npy"
     gradients = np.load(path)

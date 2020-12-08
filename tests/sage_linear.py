@@ -4,7 +4,7 @@ import scipy.io
 import scipy.sparse as sp
 import torch
 from helper import (check_equal, check_isclose, save_return_value,
-                    write_equal, count_nans)
+                    write_equal, check_nans, print_small, print_close_equal)
 
 
 def test_sage_linear():
@@ -22,6 +22,10 @@ def test_sage_linear():
     input_neigh = np.load(path)
     path = test_dir_path + "/in_gradients.npy"
     in_gradients = np.load(path)
+
+    check_nans(input_self, "Input for self")
+    check_nans(input_neigh, "Input for neighbourhood")
+    check_nans(in_gradients, "Incoming gradients")
 
     input_self_torch = torch.from_numpy(input_self)
     input_self_torch = input_self_torch.to(device)
@@ -44,6 +48,12 @@ def test_sage_linear():
     neigh_bias = np.load(path)
     path = test_dir_path + "/result.npy"
     sage_linear_result = np.load(path)
+
+    check_nans(self_weight, "Self weight")
+    check_nans(self_bias, "Self bias")
+    check_nans(neigh_weight, "Neighbourhood weight")
+    check_nans(neigh_bias, "Neighbourhood bias")
+    check_nans(sage_linear_result, "SageLinear forward")
 
     self_weight_torch = torch.from_numpy(self_weight)
     self_weight_torch = self_weight_torch.to(device)
@@ -71,15 +81,8 @@ def test_sage_linear():
 
     ratio_close = check_isclose(sage_linear_result, true_sage_linear_result)
     ratio_equal = check_equal(sage_linear_result, true_sage_linear_result)
-    print("SageLinear: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
+    print_close_equal("SageLinear forward", ratio_close, ratio_equal)
     all_close = all_close * ratio_close
-
-    num_nans = count_nans(sage_linear_result)
-    if num_nans > 0:
-        print("SageLinear: Number of NaNs: {}".format(num_nans))
-
-    ratio_close = check_isclose(sage_linear_result, true_sage_linear_result, True)
-    print("SageLinear: Loose close: {}".format(ratio_close))
 
     # BACKPROPAGATION
     true_sage_linear_result_torch.backward(in_gradients_torch)
@@ -110,9 +113,6 @@ def test_sage_linear():
     print("Linear self input: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     all_close = all_close * ratio_close
 
-    ratio_close = check_isclose(self_grads, true_self_grads, True)
-    print("Linear self input: Loose close: {}".format(ratio_close))
-
     ratio_close = check_isclose(neigh_grads, true_neigh_grads)
     ratio_equal = check_equal(neigh_grads, true_neigh_grads)
     print("Linear neigh input: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
@@ -123,20 +123,32 @@ def test_sage_linear():
     print("Linear self weight: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     all_close = all_close * ratio_close
 
+    ratio_close = check_isclose(self_weight_grads, true_self_weight_grads, True)
+    print("Linear self weight: Loose: {}".format(ratio_close))
+
     ratio_close = check_isclose(self_bias_grads, true_self_bias_grads)
     ratio_equal = check_equal(self_bias_grads, true_self_bias_grads)
     print("Linear self bias: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     all_close = all_close * ratio_close
+
+    ratio_close = check_isclose(self_bias_grads, true_self_bias_grads, True)
+    print("Linear self bias: Loose {}".format(ratio_close))
 
     ratio_close = check_isclose(neigh_weight_grads, true_neigh_weight_grads)
     ratio_equal = check_equal(neigh_weight_grads, true_neigh_weight_grads)
     print("Linear neigh weight: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     all_close = all_close * ratio_close
 
+    ratio_close = check_isclose(neigh_weight_grads, true_neigh_weight_grads, True)
+    print("Linear neigh weight: Loose: {}".format(ratio_close))
+
     ratio_close = check_isclose(neigh_bias_grads, true_neigh_bias_grads)
     ratio_equal = check_equal(neigh_bias_grads, true_neigh_bias_grads)
     print("Linear neigh bias: Close: {}, Equal: {}".format(ratio_close, ratio_equal))
     all_close = all_close * ratio_close
+
+    ratio_close = check_isclose(neigh_bias_grads, true_neigh_bias_grads, True)
+    print("Linear neigh bias: Loose: {}".format(ratio_close))
 
     path = test_dir_path + "/value.npy"
     write_equal(all_close, path)

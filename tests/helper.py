@@ -52,6 +52,10 @@ def count_nans(A):
                 count = count + 1
     return count
 
+def check_nans(a, name):
+    num_nans = count_nans(a)
+    if num_nans > 0:
+        print("{} has {} NaNs".format(name, num_nans))
 
 def num_close_rows(A, B):
     is_close = np.isclose(A, B)
