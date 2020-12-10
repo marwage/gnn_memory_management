@@ -4,13 +4,13 @@
 #include "activation.hpp"
 #include "adam.hpp"
 #include "add.hpp"
+#include "chunking.hpp"
 #include "cuda_helper.hpp"
 #include "dropout.hpp"
 #include "graph_convolution.hpp"
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
-#include "chunking.hpp"
 
 #include <iostream>
 

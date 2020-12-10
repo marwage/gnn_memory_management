@@ -1,10 +1,10 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "dropout.hpp"
+#include "chunking.hpp"
 #include "cuda_helper.hpp"
 #include "gpu_memory_logger.hpp"
 #include "tensors.hpp"
-#include "chunking.hpp"
 
 #include <benchmark/benchmark.h>
 

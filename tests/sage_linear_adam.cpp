@@ -224,7 +224,7 @@ TEST_CASE("SageLinear and Adam chunked", "[sagelinear][adam][chunked]") {
 }
 
 TEST_CASE("SageLinear and Adam, NaNs", "[sagelinear][adam][nan]") {
-    int rows = 2449029; // products
+    int rows = 2449029;// products
     int columns = 100; // products
     int num_out_features = 1 << 8;
 
@@ -241,7 +241,7 @@ TEST_CASE("SageLinear and Adam, NaNs", "[sagelinear][adam][nan]") {
 }
 
 TEST_CASE("SageLinear and Adam, chunked, NaNs", "[sagelinear][adam][chunked][nan]") {
-    int rows = 2449029; // products
+    int rows = 2449029;// products
     int columns = 100; // products
     int num_out_features = 1 << 8;
 

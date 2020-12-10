@@ -1,10 +1,10 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "sage_linear.hpp"
+#include "chunking.hpp"
 #include "cuda_helper.hpp"
 #include "helper.hpp"
 #include "tensors.hpp"
-#include "chunking.hpp"
 
 #include "catch2/catch.hpp"
 #include <iostream>
@@ -226,7 +226,7 @@ TEST_CASE("SageLinear, chunked", "[sagelinear][chunked]") {
 
 TEST_CASE("SageLinear, chunked, NaNs", "[sagelinear][chunked][nans]") {
     std::string path;
-    int rows = 2449029; // products
+    int rows = 2449029;// products
     int columns = 100; // products
     int num_out_features = 1 << 8;
 

@@ -1,13 +1,13 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "loss.hpp"
+#include "chunking.hpp"
 #include "helper.hpp"
 #include "tensors.hpp"
-#include "chunking.hpp"
 
 #include "catch2/catch.hpp"
-#include <string>
 #include <iostream>
+#include <string>
 
 const std::string home = std::getenv("HOME");
 const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";

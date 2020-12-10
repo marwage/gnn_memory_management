@@ -99,13 +99,13 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, l
     std::vector<Matrix<float> *> self_parameter_gradients = linear_self_.get_gradients();
     std::vector<Matrix<float> *> neigh_parameter_gradients = linear_neigh_.get_gradients();
     self_weight_sum_.set(self_parameter_gradients[0]->num_rows_, self_parameter_gradients[0]->num_columns_,
-                                   self_parameter_gradients[0]->is_row_major_);
+                         self_parameter_gradients[0]->is_row_major_);
     self_bias_sum_.set(self_parameter_gradients[1]->num_rows_, self_parameter_gradients[1]->num_columns_,
-                                 self_parameter_gradients[1]->is_row_major_);
+                       self_parameter_gradients[1]->is_row_major_);
     neigh_weight_sum_.set(neigh_parameter_gradients[0]->num_rows_, neigh_parameter_gradients[0]->num_columns_,
-                                    neigh_parameter_gradients[0]->is_row_major_);
+                          neigh_parameter_gradients[0]->is_row_major_);
     neigh_bias_sum_.set(neigh_parameter_gradients[1]->num_rows_, neigh_parameter_gradients[1]->num_columns_,
-                                  neigh_parameter_gradients[1]->is_row_major_);
+                        neigh_parameter_gradients[1]->is_row_major_);
 }
 
 std::vector<Matrix<float>> *SageLinearChunked::forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr) {

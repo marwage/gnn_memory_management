@@ -121,20 +121,23 @@ template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int nu
 
 template<typename T>
 SparseMatrix<T>::SparseMatrix(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind) {
-    num_rows_ = num_rows;
-    num_columns_ = num_columns;
-    nnz_ = num_nnz;
-    csr_val_ = csr_val;
-    csr_row_ptr_ = csr_row_ptr;
-    csr_col_ind_ = csr_col_ind;
+    set(num_rows, num_columns, num_nnz, csr_val, csr_row_ptr, csr_col_ind, true);
 }
 template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind);
 
 template<typename T>
+SparseMatrix<T>::SparseMatrix(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free) {
+    set(num_rows, num_columns, num_nnz, csr_val, csr_row_ptr, csr_col_ind, free);
+}
+template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free);
+
+template<typename T>
 SparseMatrix<T>::~SparseMatrix() {
-    delete[] csr_col_ind_;
-    delete[] csr_row_ptr_;
-    delete[] csr_val_;
+    if (free_) {
+        delete[] csr_col_ind_;
+        delete[] csr_row_ptr_;
+        delete[] csr_val_;
+    }
 }
 template SparseMatrix<float>::~SparseMatrix();
 
@@ -146,23 +149,36 @@ void SparseMatrix<T>::set(int num_rows, int num_columns, int num_nnz) {
     csr_val_ = new T[nnz_];
     csr_row_ptr_ = new int[num_rows_ + 1];
     csr_col_ind_ = new int[nnz_];
+    free_ = true;
 }
 template void SparseMatrix<float>::set(int num_rows, int num_columns, int num_nnz);
 
 template<typename T>
+void SparseMatrix<T>::set(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    nnz_ = num_nnz;
+    csr_val_ = csr_val;
+    csr_row_ptr_ = csr_row_ptr;
+    csr_col_ind_ = csr_col_ind;
+    free_ = free;
+}
+template void SparseMatrix<float>::set(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free);
+
+template<typename T>
 void print_matrix(Matrix<T> *mat) {
-    int N;
-    if (mat->num_rows_ < 10) {
-        N = mat->num_rows_;
-    } else {
-        N = 10;
-    }
-    int M;
-    if (mat->num_columns_ < 10) {
-        M = mat->num_columns_;
-    } else {
-        M = 10;
-    }
+    int N = mat->num_rows_;
+    int M = mat->num_columns_;
+    //    if (mat->num_rows_ < 10) {
+    //        N = mat->num_rows_;
+    //    } else {
+    //        N = 10;
+    //    }
+    //    if (mat->num_columns_ < 10) {
+    //        M = mat->num_columns_;
+    //    } else {
+    //        M = 10;
+    //    }
 
     std::cout << "-----" << std::endl;
     for (int i = 0; i < N; i = i + 1) {
@@ -417,6 +433,10 @@ void print_sparse_matrix(SparseMatrix<float> *mat) {
 }
 
 void transpose_csr_matrix(SparseMatrix<float> *mat, CudaHelper *cuda_helper) {
+    if (mat->nnz_ == 0) {
+        return;
+    }
+
     float *d_mat_csr_val;
     int *d_mat_csr_row_ptr, *d_mat_csr_col_ind;
     check_cuda(cudaMalloc(&d_mat_csr_val, mat->nnz_ * sizeof(float)));

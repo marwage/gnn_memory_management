@@ -14,6 +14,4 @@ void print_allocated_memory(std::string name);
 
 void log_allocated_memory(std::string name);
 
-void log_memory(std::string path, std::future<void> future);
-
 #endif//ALZHEIMER_MEMORY_H
