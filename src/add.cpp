@@ -29,7 +29,6 @@ std::vector<Matrix<float>> *AddChunked::op(std::vector<Matrix<float>> *a, std::v
         }
         y_.at(i).set(a->at(i).num_rows_, a->at(i).num_columns_, a->at(i).is_row_major_);
         mat_mat_add(cuda_helper_, &a->at(i), &b->at(i), &y_.at(i));
-
     }
 
     return &y_;

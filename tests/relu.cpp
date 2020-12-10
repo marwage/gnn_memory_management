@@ -1,9 +1,9 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "activation.hpp"
+#include "chunking.hpp"
 #include "helper.hpp"
 #include "tensors.hpp"
-#include "chunking.hpp"
 
 #include "catch2/catch.hpp"
 #include <string>

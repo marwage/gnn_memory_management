@@ -21,7 +21,8 @@ set(TEST_FILES
         tests/transpose.cpp
         tests/alzheimer.cpp
         tests/sparse.cpp
-        tests/layer.cpp)
+        tests/layer.cpp
+        tests/sp_mat_mat_mult.cpp)
 
 set(HELPER_FILES
         tests/helper.cpp)

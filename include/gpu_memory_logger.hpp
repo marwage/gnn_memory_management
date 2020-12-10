@@ -3,10 +3,10 @@
 #ifndef ALZHEIMER_GPU_MEMORY_LOGGER_H
 #define ALZHEIMER_GPU_MEMORY_LOGGER_H
 
+#include <fstream>
 #include <future>
 #include <string>
 #include <thread>
-#include <fstream>
 
 
 class GPUMemoryLogger {

@@ -6,7 +6,7 @@
 #define MiB (1 << 20)
 
 
-void log_memory(std::future<void> future, std::ofstream* log_file, long interval) {
+void log_memory(std::future<void> future, std::ofstream *log_file, long interval) {
     std::chrono::high_resolution_clock::time_point tp_start = std::chrono::high_resolution_clock::now();
     std::chrono::high_resolution_clock::time_point tp_now;
     while (future.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout) {

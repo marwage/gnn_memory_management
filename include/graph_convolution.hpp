@@ -48,8 +48,6 @@ public:
                      long num_features, long chunk_size, long num_nodes);
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
-    void forward(std::vector<Matrix<float>> *x, Matrix<float> *y);
-    void backward(Matrix<float> *incoming_gradients, Matrix<float> *gradients);
 };
 
 #endif

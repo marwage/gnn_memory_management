@@ -40,10 +40,13 @@ public:
     T *csr_val_ = NULL;
     int *csr_row_ptr_ = NULL;
     int *csr_col_ind_ = NULL;
+    bool free_;
     SparseMatrix();
     SparseMatrix(int num_rows, int num_columns, int num_nnz);
     SparseMatrix(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind);
+    SparseMatrix(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free);
     void set(int num_rows, int num_columns, int num_nnz);
+    void set(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free);
     ~SparseMatrix();
 };
 

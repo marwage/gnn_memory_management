@@ -4,8 +4,8 @@
 #define DROPOUT_H
 
 #include "cuda_helper.hpp"
-#include "tensors.hpp"
 #include "layer.hpp"
+#include "tensors.hpp"
 
 #include <vector>
 

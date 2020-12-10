@@ -232,7 +232,6 @@ void Linear::backward(Matrix<float> *incoming_gradients, Matrix<float> *x, Matri
     check_cuda(cudaFree(d_g));
     check_cuda(cudaFree(d_dweight));
     check_cuda(cudaFree(d_input));
-
 }
 
 Matrix<float> *Linear::backward(Matrix<float> *in_gradients) {

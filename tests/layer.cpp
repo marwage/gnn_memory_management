@@ -1,9 +1,9 @@
 // Copyright 2020 Marcel Wagenländer
 
+#include "layer.hpp"
+#include "chunking.hpp"
 #include "helper.hpp"
 #include "tensors.hpp"
-#include "chunking.hpp"
-#include "layer.hpp"
 
 #include <string>
 
@@ -80,7 +80,7 @@ int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size
     save_npy_matrix(&output_one, path);
 
     // backward
-    std::vector<Matrix<float>> * gradients = layer->backward(&incoming_gradients_chunked);
+    std::vector<Matrix<float>> *gradients = layer->backward(&incoming_gradients_chunked);
 
     Matrix<float> gradients_one(num_nodes, num_features, false);
     stitch(gradients, &gradients_one);

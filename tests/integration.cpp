@@ -3,13 +3,13 @@
 #include "activation.hpp"
 #include "adam.hpp"
 #include "add.hpp"
+#include "chunking.hpp"
 #include "cuda_helper.hpp"
 #include "graph_convolution.hpp"
 #include "helper.hpp"
 #include "loss.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
-#include "chunking.hpp"
 
 #include "catch2/catch.hpp"
 

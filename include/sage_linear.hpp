@@ -39,6 +39,7 @@ class SageLinear : public SageLinearParent {
 private:
     Matrix<float> y_;
     SageLinearGradients input_gradients_;
+
 public:
     SageLinear();
     SageLinear(CudaHelper *helper, long in_features, long out_features, long num_nodes);

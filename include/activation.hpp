@@ -4,8 +4,8 @@
 #define ACTIVATION_H
 
 #include "cuda_helper.hpp"
-#include "tensors.hpp"
 #include "layer.hpp"
+#include "tensors.hpp"
 
 #include <vector>
 
@@ -70,7 +70,7 @@ public:
     void backward(Matrix<float> *incoming_gradients, Matrix<float> *y, Matrix<float> *gradients);
 };
 
-class LogSoftmaxChunked  : public LayerChunked {
+class LogSoftmaxChunked : public LayerChunked {
 private:
     LogSoftmax log_softmax_layer_;
     CudaHelper *cuda_helper_ = NULL;
