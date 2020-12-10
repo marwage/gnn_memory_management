@@ -5,7 +5,7 @@
 #include <vector>
 
 
-void malloc_memcpy_sp_mat(SparseMatrix<float> *d_sp_mat, SparseMatrix<float> *sp_mat) {
+void malloc_memcpy_sp_mat(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_mat) {
     float *d_A_csr_val;
     int *d_A_csr_row_offsets, *d_A_col_ind;
     check_cuda(cudaMalloc(&d_A_csr_val,
@@ -22,12 +22,11 @@ void malloc_memcpy_sp_mat(SparseMatrix<float> *d_sp_mat, SparseMatrix<float> *sp
                           sp_mat->nnz_ * sizeof(int), cudaMemcpyHostToDevice));
 
     d_sp_mat->set(sp_mat->num_rows_, sp_mat->num_columns_, sp_mat->nnz_,
-                  d_A_csr_val, d_A_csr_row_offsets, d_A_col_ind, false);
+                  d_A_csr_val, d_A_csr_row_offsets, d_A_col_ind);
 }
 
-
 void sp_mat_mat_multi(CudaHelper *cuda_helper, SparseMatrix<float> *sp_mat, Matrix<float> *mat, Matrix<float> *result, bool add_to_result) {
-    SparseMatrix<float> d_sp_mat;
+    SparseMatrixCuda<float> d_sp_mat;
     malloc_memcpy_sp_mat(&d_sp_mat, sp_mat);
 
     to_column_major_inplace(mat);
@@ -51,14 +50,11 @@ void sp_mat_mat_multi(CudaHelper *cuda_helper, SparseMatrix<float> *sp_mat, Matr
     result->is_row_major_ = false;
 
     // free memory
-    check_cuda(cudaFree(d_sp_mat.csr_val_));
-    check_cuda(cudaFree(d_sp_mat.csr_row_ptr_));
-    check_cuda(cudaFree(d_sp_mat.csr_col_ind_));
     check_cuda(cudaFree(d_mat));
     check_cuda(cudaFree(d_result));
 }
 
-void sp_mat_mat_multi_cuda(CudaHelper *cuda_helper, SparseMatrix<float> *d_sp_mat, float *d_mat, float *d_result, long mat_columns, bool add_to_result) {
+void sp_mat_mat_multi_cuda(CudaHelper *cuda_helper, SparseMatrixCuda<float> *d_sp_mat, float *d_mat, float *d_result, long mat_columns, bool add_to_result) {
     if (d_sp_mat->nnz_ == 0) {
         //        check_cuda(cudaMemset(d_result, 0, d_sp_mat->num_rows_ * mat_columns * sizeof(float)));
         return;

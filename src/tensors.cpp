@@ -23,73 +23,39 @@ template Matrix<int>::Matrix(long num_rows, long num_columns, bool is_row_major)
 template Matrix<float>::Matrix(long num_rows, long num_columns, bool is_row_major);
 
 template<typename T>
-Matrix<T>::Matrix(long num_rows, long num_columns, bool is_row_major, bool free) {
-    set(num_rows, num_columns, is_row_major, free);
-}
-template Matrix<int>::Matrix(long num_rows, long num_columns, bool is_row_major, bool free);
-template Matrix<float>::Matrix(long num_rows, long num_columns, bool is_row_major, bool free);
-
-template<typename T>
-Matrix<T>::Matrix(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free) {
-    set(num_rows, num_columns, matrix_values, is_row_major, free);
-}
-template Matrix<float>::Matrix(long num_rows, long num_columns, float *matrix_values, bool is_row_major, bool free);
-template Matrix<int>::Matrix(long num_rows, long num_columns, int *matrix_values, bool is_row_major, bool free);
-
-template<typename T>
 Matrix<T>::~Matrix() {
-    if (free_) {
-        delete[] values_;
-    }
+    delete[] values_;
 }
 template Matrix<float>::~Matrix();
 template Matrix<int>::~Matrix();
 
 template<typename T>
 void Matrix<T>::set(long num_rows, long num_columns, bool is_row_major) {
-    set(num_rows, num_columns, is_row_major, true);
-}
-template void Matrix<int>::set(long num_rows, long num_columns, bool is_row_major);
-template void Matrix<float>::set(long num_rows, long num_columns, bool is_row_major);
-
-template<typename T>
-void Matrix<T>::set(long num_rows, long num_columns, bool is_row_major, bool free) {
     num_rows_ = num_rows;
     num_columns_ = num_columns;
     size_ = num_rows_ * num_columns;
-    if (values_ != NULL && free_) {
+    if (values_ != NULL) {
         delete[] values_;
     }
     values_ = new T[size_];
     is_row_major_ = is_row_major;
-    free_ = free;
 }
-template void Matrix<int>::set(long num_rows, long num_columns, bool is_row_major, bool free);
-template void Matrix<float>::set(long num_rows, long num_columns, bool is_row_major, bool free);
+template void Matrix<int>::set(long num_rows, long num_columns, bool is_row_major);
+template void Matrix<float>::set(long num_rows, long num_columns, bool is_row_major);
 
 template<typename T>
 void Matrix<T>::set(long num_rows, long num_columns, T *matrix_values, bool is_row_major) {
     num_rows_ = num_rows;
     num_columns_ = num_columns;
     size_ = num_rows_ * num_columns;
+    if (values_ != NULL) {
+        delete[] values_;
+    }
     values_ = matrix_values;
     is_row_major_ = is_row_major;
-    free_ = true;
 }
 template void Matrix<float>::set(long num_rows, long num_columns, float *matrix_values, bool is_row_major);
 template void Matrix<int>::set(long num_rows, long num_columns, int *matrix_values, bool is_row_major);
-
-template<typename T>
-void Matrix<T>::set(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free) {
-    num_rows_ = num_rows;
-    num_columns_ = num_columns;
-    size_ = num_rows_ * num_columns;
-    values_ = matrix_values;
-    is_row_major_ = is_row_major;
-    free_ = free;
-}
-template void Matrix<float>::set(long num_rows, long num_columns, float *matrix_values, bool is_row_major, bool free);
-template void Matrix<int>::set(long num_rows, long num_columns, int *matrix_values, bool is_row_major, bool free);
 
 template<typename T>
 void Matrix<T>::set_random_values() {
@@ -114,30 +80,27 @@ SparseMatrix<T>::SparseMatrix() {}
 template SparseMatrix<float>::SparseMatrix();
 
 template<typename T>
+SparseMatrix<T>::SparseMatrix(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    nnz_ = num_nnz;
+    csr_val_ = csr_val;
+    csr_row_ptr_ = csr_row_ptr;
+    csr_col_ind_ = csr_col_ind;
+}
+template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind);
+
+template<typename T>
 SparseMatrix<T>::SparseMatrix(int num_rows, int num_columns, int num_nnz) {
     set(num_rows, num_columns, num_nnz);
 }
 template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int num_nnz);
 
 template<typename T>
-SparseMatrix<T>::SparseMatrix(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind) {
-    set(num_rows, num_columns, num_nnz, csr_val, csr_row_ptr, csr_col_ind, true);
-}
-template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind);
-
-template<typename T>
-SparseMatrix<T>::SparseMatrix(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free) {
-    set(num_rows, num_columns, num_nnz, csr_val, csr_row_ptr, csr_col_ind, free);
-}
-template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free);
-
-template<typename T>
 SparseMatrix<T>::~SparseMatrix() {
-    if (free_) {
-        delete[] csr_col_ind_;
-        delete[] csr_row_ptr_;
-        delete[] csr_val_;
-    }
+    delete[] csr_col_ind_;
+    delete[] csr_row_ptr_;
+    delete[] csr_val_;
 }
 template SparseMatrix<float>::~SparseMatrix();
 
@@ -146,43 +109,64 @@ void SparseMatrix<T>::set(int num_rows, int num_columns, int num_nnz) {
     num_rows_ = num_rows;
     num_columns_ = num_columns;
     nnz_ = num_nnz;
+
+    if (csr_val_ != NULL)
+        delete[] csr_val_;
+    if (csr_row_ptr_ != NULL)
+        delete[] csr_row_ptr_;
+    if (csr_col_ind_ != NULL)
+        delete[] csr_col_ind_;
+
     csr_val_ = new T[nnz_];
     csr_row_ptr_ = new int[num_rows_ + 1];
     csr_col_ind_ = new int[nnz_];
-    free_ = true;
 }
 template void SparseMatrix<float>::set(int num_rows, int num_columns, int num_nnz);
 
 template<typename T>
-void SparseMatrix<T>::set(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free) {
+SparseMatrixCuda<T>::SparseMatrixCuda() {}
+template SparseMatrixCuda<float>::SparseMatrixCuda();
+
+template<typename T>
+SparseMatrixCuda<T>::SparseMatrixCuda(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind) {
+}
+template SparseMatrixCuda<float>::SparseMatrixCuda(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind);
+
+template<typename T>
+SparseMatrixCuda<T>::~SparseMatrixCuda() {
+    check_cuda(cudaFree(csr_val_));
+    check_cuda(cudaFree(csr_row_ptr_));
+    check_cuda(cudaFree(csr_col_ind_));
+}
+template SparseMatrixCuda<float>::~SparseMatrixCuda();
+
+template<typename T>
+void SparseMatrixCuda<T>::set(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind) {
     num_rows_ = num_rows;
     num_columns_ = num_columns;
     nnz_ = num_nnz;
+
+    if (csr_val_ != NULL)
+        check_cuda(cudaFree(csr_val_));
+    if (csr_row_ptr_ != NULL)
+        check_cuda(cudaFree(csr_row_ptr_));
+    if (csr_col_ind_ != NULL)
+        check_cuda(cudaFree(csr_col_ind_));
+
     csr_val_ = csr_val;
     csr_row_ptr_ = csr_row_ptr;
     csr_col_ind_ = csr_col_ind;
-    free_ = free;
 }
-template void SparseMatrix<float>::set(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free);
+template void SparseMatrixCuda<float>::set(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind);
 
 template<typename T>
 void print_matrix(Matrix<T> *mat) {
     int N = mat->num_rows_;
     int M = mat->num_columns_;
-    //    if (mat->num_rows_ < 10) {
-    //        N = mat->num_rows_;
-    //    } else {
-    //        N = 10;
-    //    }
-    //    if (mat->num_columns_ < 10) {
-    //        M = mat->num_columns_;
-    //    } else {
-    //        M = 10;
-    //    }
 
     std::cout << "-----" << std::endl;
-    for (int i = 0; i < N; i = i + 1) {
-        for (int j = 0; j < M; j = j + 1) {
+    for (int i = 0; i < mat->num_rows_; i = i + 1) {
+        for (int j = 0; j < mat->num_columns_; j = j + 1) {
             if (mat->is_row_major_) {
                 std::cout << mat->values_[i * mat->num_columns_ + j] << ",";
             } else {
@@ -347,9 +331,8 @@ void to_column_major_inplace(Matrix<T> *mat) {
     if (mat->is_row_major_) {
         T *values_T = new T[mat->size_];
         transpose<T>(values_T, mat->values_, mat->num_rows_, mat->num_columns_);
-        if (mat->free_) {
-            delete[] mat->values_;
-        }
+
+        delete[] mat->values_;
         mat->values_ = values_T;
         mat->is_row_major_ = false;
     }
@@ -377,9 +360,8 @@ void to_row_major_inplace(Matrix<T> *mat) {
     if (!mat->is_row_major_) {
         T *values_T = new T[mat->size_];
         transpose<T>(values_T, mat->values_, mat->num_columns_, mat->num_rows_);
-        if (mat->free_) {
-            delete[] mat->values_;
-        }
+
+        delete[] mat->values_;
         mat->values_ = values_T;
         mat->is_row_major_ = true;
     }

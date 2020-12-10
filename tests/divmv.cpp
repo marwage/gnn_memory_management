@@ -2,7 +2,6 @@
 
 #include "divmv.h"
 #include "cuda_helper.hpp"
-#include "tensors.hpp"
 
 #include "catch2/catch.hpp"
 #include <cuda_runtime.h>

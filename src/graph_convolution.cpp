@@ -190,7 +190,7 @@ std::vector<Matrix<float>> *GraphConvChunked::forward(std::vector<Matrix<float>>
         check_cuda(cudaMemset(d_y, 0, y_.at(i).size_ * sizeof(float)));
 
         for (int j = 0; j < num_chunks_; ++j) {
-            SparseMatrix<float> d_adj_i;
+            SparseMatrixCuda<float> d_adj_i;
             malloc_memcpy_sp_mat(&d_adj_i, &adjacencies_[i * num_chunks_ + j]);
 
             check_cuda(cudaMemcpy(d_x, x->at(j).values_, x->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
@@ -241,7 +241,7 @@ std::vector<Matrix<float>> *GraphConvChunked::backward(std::vector<Matrix<float>
         check_cuda(cudaMemset(d_gradients, 0, gradients_.at(i).size_ * sizeof(float)));
 
         for (int j = 0; j < num_chunks_; ++j) {
-            SparseMatrix<float> d_adj_i;
+            SparseMatrixCuda<float> d_adj_i;
             malloc_memcpy_sp_mat(&d_adj_i, &adjacencies_[i * num_chunks_ + j]);
 
             check_cuda(cudaMemcpy(d_incoming_gradients, incoming_gradients->at(j).values_, incoming_gradients->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));

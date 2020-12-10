@@ -318,8 +318,8 @@ void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long 
         if (i == num_chunks_ - 1) {
             current_chunk_size = last_chunk_size_;
         }
-        y_[i].set(current_chunk_size, num_features, true, false);
-        gradients_[i].set(current_chunk_size, num_features, true, false);
+        y_[i].set(current_chunk_size, num_features, true);
+        gradients_[i].set(current_chunk_size, num_features, true);
     }
 }
 

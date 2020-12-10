@@ -29,7 +29,7 @@ void sp_mat_mat_mult_chunked(CudaHelper *cuda_helper, std::vector<SparseMatrix<f
         check_cuda(cudaMemset(d_y, 0, y->at(i).size_ * sizeof(float)));
 
         for (int j = 0; j < num_chunks; ++j) {
-            SparseMatrix<float> d_adj_i;
+            SparseMatrixCuda<float> d_adj_i;
             malloc_memcpy_sp_mat(&d_adj_i, &sp->at(i * num_chunks + j));
 
             check_cuda(cudaMemcpy(d_x, x->at(j).values_, x->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
@@ -49,12 +49,13 @@ TEST_CASE("Sparse-matrix matrix multiplication, chunked", "[spmatmatmult][chunke
     CudaHelper cuda_helper;
     long chunk_size = 3;
     long num_nodes = 9;
+    long nnz = 8;
 
-    float values[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
-    int col_ind[] = {0, 1, 2, 3, 4, 5, 6, 7};
-    int row_ptr[] = {0, 2, 2, 2, 5, 5, 6, 8, 8, 8};
+    float *values = new float[nnz]{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+    int *col_ind = new int[nnz]{0, 1, 2, 3, 4, 5, 6, 7};
+    int *row_ptr = new int[num_nodes + 1]{0, 2, 2, 2, 5, 5, 6, 8, 8, 8};
 
-    SparseMatrix<float> sp_mat(num_nodes, num_nodes, 8, values, row_ptr, col_ind, false);
+    SparseMatrix<float> sp_mat(num_nodes, num_nodes, nnz, values, row_ptr, col_ind);
 
     Matrix<float> x(num_nodes, 3, true);
     for (int i = 0; i < x.size_; ++i) {

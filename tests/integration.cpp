@@ -80,7 +80,8 @@ int integration_test() {
 
     // loss
     float loss = loss_layer.forward(log_softmax_result, &classes);
-    Matrix<float> loss_mat(1, 1, &loss, true, false);
+    Matrix<float> loss_mat(1, 1, true);
+    loss_mat.values_[0] = loss;
     path = test_dir_path + "/loss_result.npy";
     save_npy_matrix(&loss_mat, path);
 
@@ -211,7 +212,8 @@ int integration_test_chunked(long chunk_size) {
     // loss
     float loss = loss_layer.forward(log_softmax_result, &classes);
 
-    Matrix<float> loss_mat(1, 1, &loss, true, false);
+    Matrix<float> loss_mat(1, 1, true);
+    loss_mat.values_[0] = loss;
     path = test_dir_path + "/loss_result.npy";
     save_npy_matrix(&loss_mat, path);
 

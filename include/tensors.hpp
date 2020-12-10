@@ -17,15 +17,10 @@ public:
     long size_ = 0;
     T *values_ = NULL;
     bool is_row_major_ = true;
-    bool free_ = true;
     Matrix();
     Matrix(long num_rows, long num_columns, bool is_row_major);
-    Matrix(long num_rows, long num_columns, bool is_row_major, bool free);
-    Matrix(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free);
     void set(long num_rows, long num_columns, bool is_row_major);
-    void set(long num_rows, long num_columns, bool is_row_major, bool free);
     void set(long num_rows, long num_columns, T *matrix_values, bool is_row_major);
-    void set(long num_rows, long num_columns, T *matrix_values, bool is_row_major, bool free);
     void set_random_values();
     void set_values(T value);
     ~Matrix();
@@ -40,14 +35,28 @@ public:
     T *csr_val_ = NULL;
     int *csr_row_ptr_ = NULL;
     int *csr_col_ind_ = NULL;
-    bool free_;
+
     SparseMatrix();
-    SparseMatrix(int num_rows, int num_columns, int num_nnz);
     SparseMatrix(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind);
-    SparseMatrix(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free);
+    SparseMatrix(int num_rows, int num_columns, int num_nnz);
     void set(int num_rows, int num_columns, int num_nnz);
-    void set(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind, bool free);
     ~SparseMatrix();
+};
+
+template<typename T>
+class SparseMatrixCuda {
+public:
+    int num_rows_ = 0;
+    int num_columns_ = 0;
+    int nnz_ = 0;
+    T *csr_val_ = NULL;
+    int *csr_row_ptr_ = NULL;
+    int *csr_col_ind_ = NULL;
+
+    SparseMatrixCuda();
+    SparseMatrixCuda(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind);
+    void set(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind);
+    ~SparseMatrixCuda();
 };
 
 template<typename T>
