@@ -93,8 +93,6 @@ void get_rows(SparseMatrix<float> *reduced_mat, SparseMatrix<float> *mat, int st
 
 void print_sparse_matrix(SparseMatrix<float> *mat);
 
-void transpose_csr_matrix(SparseMatrix<float> *mat, CudaHelper *cuda_helper);
-
 long count_nans(Matrix<float> *x);
 
 bool check_nans(Matrix<float> *x, std::string name);

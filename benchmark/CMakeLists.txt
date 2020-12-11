@@ -8,7 +8,8 @@ set(BENCHMARK_FILES
         benchmark/graph_convolution.cpp
         benchmark/log_softmax.cpp
         benchmark/relu.cpp
-        benchmark/sage_linear.cpp)
+        benchmark/sage_linear.cpp
+        benchmark/sparse_computation.cpp)
 
 set(EXECUTABLE_NAME benchmark)
 add_executable(${EXECUTABLE_NAME}

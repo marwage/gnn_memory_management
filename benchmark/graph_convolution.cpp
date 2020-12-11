@@ -8,13 +8,31 @@
 
 #include <benchmark/benchmark.h>
 
-
 const std::string home = std::getenv("HOME");
 const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
 const std::string flickr_dir_path = dir_path + "/flickr";
 const std::string reddit_dir_path = dir_path + "/reddit";
 const std::string products_dir_path = dir_path + "/products";
 
+
+static void BM_Layer_Graph_Convolution_Chunked_Reddit_Constructor(benchmark::State &state) {
+    std::string path;
+    path = reddit_dir_path + "/adjacency.mtx";
+    SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
+    long num_nodes = adjacency.num_rows_;
+    long num_features = 602;// reddit dataset
+    CudaHelper cuda_helper;
+
+    GPUMemoryLogger memory_logger("graphconv_reddit_constructor_" + std::to_string(state.range(0)));
+    memory_logger.start();
+
+    for (auto _ : state) {
+        GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", num_features, state.range(0), num_nodes);
+    }
+
+    memory_logger.stop();
+}
+BENCHMARK(BM_Layer_Graph_Convolution_Chunked_Reddit_Constructor)->Range(1 << 12, 1 << 17);
 
 static void BM_Layer_Graph_Convolution_Flickr_Forward(benchmark::State &state) {
     std::string path;

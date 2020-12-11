@@ -1,8 +1,8 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "cuda_helper.hpp"
-#include "helper.hpp"
 #include "tensors.hpp"
+#include "sparse_computation.hpp"
 
 #include "catch2/catch.hpp"
 #include <string>

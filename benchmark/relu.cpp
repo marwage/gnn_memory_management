@@ -16,6 +16,24 @@ const std::string reddit_dir_path = dir_path + "/reddit";
 const std::string products_dir_path = dir_path + "/products";
 
 
+static void BM_Layer_Relu_Chunked_Reddit_Constructor(benchmark::State &state) {
+    // reddit dataset
+    long num_nodes = 232965;
+    long num_features = 602;
+    CudaHelper cuda_helper;
+    long chunk_size = state.range(0);
+
+    GPUMemoryLogger memory_logger("relu_reddit_constructor_" + std::to_string(chunk_size));
+    memory_logger.start();
+
+    for (auto _ : state) {
+        ReluChunked relu(&cuda_helper, chunk_size, num_nodes, num_features);
+    }
+
+    memory_logger.stop();
+}
+BENCHMARK(BM_Layer_Relu_Chunked_Reddit_Constructor)->Range(1 << 12, 1 << 17);
+
 static void BM_Layer_Relu_Flickr_Forward(benchmark::State &state) {
     std::string path;
     path = flickr_dir_path + "/features.npy";

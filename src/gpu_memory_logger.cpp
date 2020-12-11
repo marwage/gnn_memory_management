@@ -33,7 +33,7 @@ GPUMemoryLogger::GPUMemoryLogger(std::string file_name, long interval) {
 
 void GPUMemoryLogger::start() {
     std::future<void> future = signal_exit_.get_future();
-    log_file_.open(path_, std::ios::app);
+    log_file_.open(path_, std::ios::trunc);
     logging_thread_ = std::thread(log_memory, std::move(future), &log_file_, interval_);
 }
 

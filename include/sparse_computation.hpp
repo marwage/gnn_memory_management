@@ -17,4 +17,6 @@ void sp_mat_sum_rows(CudaHelper *cuda_helper, SparseMatrix<float> *sp_mat, Matri
 
 void sp_mat_sum_rows(SparseMatrix<float> *sp_mat, Matrix<float> *sum);
 
+void transpose_csr_matrix(SparseMatrix<float> *mat, CudaHelper *cuda_helper);
+
 #endif//ALZHEIMER_SPARSE_COMPUTATION_H
