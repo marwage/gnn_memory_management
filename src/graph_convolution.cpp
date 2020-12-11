@@ -35,6 +35,7 @@ void GraphConvolution::set(CudaHelper *helper, SparseMatrix<float> *adjacency, s
 
     if (mean_) {
         sum_.set(num_nodes, 1, false);
+        sp_mat_sum_rows(cuda_helper_, adjacency_, &sum_);
     }
 }
 
@@ -45,8 +46,6 @@ Matrix<float> *GraphConvolution::forward(Matrix<float> *x) {
 
     // apply mean
     if (mean_) {
-        sp_mat_sum_rows(cuda_helper_, adjacency_, &sum_);
-
         float *d_y;
         check_cuda(cudaMalloc((void **) &d_y, y_.size_ * sizeof(float)));
         check_cuda(cudaMemcpy(d_y, y_.values_, y_.size_ * sizeof(float),
@@ -164,7 +163,7 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adja
 
     sum_.set(num_nodes, 1, true);
     if (mean_) {
-        sp_mat_sum_rows(cuda_helper_, adjacency_, &sum_);
+        sp_mat_sum_rows(adjacency_, &sum_);
     }
 }
 

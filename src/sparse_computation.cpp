@@ -181,3 +181,19 @@ void sp_mat_sum_rows(CudaHelper *cuda_helper, SparseMatrix<float> *sp_mat, Matri
     check_cuda(cudaFree(d_A_col_ind));
     check_cuda(cudaFree(d_buffer));
 }
+
+void sp_mat_sum_rows(SparseMatrix<float> *sp_mat, Matrix<float> *sum) {
+    sum->set_values(0.0);
+
+    long first_index;
+    long last_index;
+    for (long i = 0; i < sp_mat->num_rows_; ++i) {
+        first_index = sp_mat->csr_row_ptr_[i];
+        last_index = sp_mat->csr_row_ptr_[i + 1];
+        if (first_index != last_index) {
+            for (long j = first_index; j < last_index; ++j) {
+                sum->values_[i] = sum->values_[i] + sp_mat->csr_val_[j];
+            }
+        }
+    }
+}
