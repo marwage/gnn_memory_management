@@ -291,7 +291,7 @@ static void BM_Layer_Relu_Products_Backward(benchmark::State &state) {
 
     Matrix<float> *activations = relu.forward(&features);
 
-    GPUMemoryLogger memory_logger("relu_products_backward");
+    GPUMemoryLogger memory_logger("relu_products_backward", 50);
     memory_logger.start();
 
     Matrix<float> *gradients;
@@ -302,6 +302,31 @@ static void BM_Layer_Relu_Products_Backward(benchmark::State &state) {
     memory_logger.stop();
 }
 BENCHMARK(BM_Layer_Relu_Products_Backward);
+
+static void BM_Layer_Relu_Products_Backward_Hidden(benchmark::State &state) {
+    long num_nodes = 2449029;
+    long num_features = 256;
+    Matrix<float> input(num_nodes, num_features, true);
+    input.set_random_values();
+    Matrix<float> incoming_gradients(num_nodes, num_features, true);
+    incoming_gradients.set_random_values();
+
+    CudaHelper cuda_helper;
+    Relu relu(&cuda_helper, num_nodes, num_features);
+
+    Matrix<float> *activations = relu.forward(&input);
+
+    GPUMemoryLogger memory_logger("relu_products_backward_hidden", 50);
+    memory_logger.start();
+
+    Matrix<float> *gradients;
+    for (auto _ : state) {
+        gradients = relu.backward(&incoming_gradients);
+    }
+
+    memory_logger.stop();
+}
+BENCHMARK(BM_Layer_Relu_Products_Backward_Hidden);
 
 static void BM_Layer_Relu_Products_Chunked_Backward(benchmark::State &state) {
     std::string path;
@@ -333,3 +358,35 @@ static void BM_Layer_Relu_Products_Chunked_Backward(benchmark::State &state) {
     memory_logger.stop();
 }
 BENCHMARK(BM_Layer_Relu_Products_Chunked_Backward)->Range(1 << 16, 1 << 21);
+
+static void BM_Layer_Relu_Products_Chunked_Backward_Hidden(benchmark::State &state) {
+    long num_nodes = 2449029;
+    long num_features = 256;
+    Matrix<float> input(num_nodes, num_features, true);
+    input.set_random_values();
+    Matrix<float> incoming_gradients(num_nodes, num_features, true);
+    incoming_gradients.set_random_values();
+
+    long chunk_size = state.range(0);
+    long num_chunks = ceil((float) num_nodes / (float) chunk_size);
+    std::vector<Matrix<float>> input_chunked(num_chunks);
+    chunk_up(&input, &input_chunked, chunk_size);
+    std::vector<Matrix<float>> incoming_gradients_chunked(num_chunks);
+    chunk_up(&incoming_gradients, &incoming_gradients_chunked, chunk_size);
+
+    CudaHelper cuda_helper;
+    ReluChunked relu(&cuda_helper, chunk_size, num_nodes, num_features);
+
+    std::vector<Matrix<float>> *activations = relu.forward(&input_chunked);
+
+    GPUMemoryLogger memory_logger("relu_products_backward_hidden_" + std::to_string(chunk_size));
+    memory_logger.start();
+
+    std::vector<Matrix<float>> *gradients;
+    for (auto _ : state) {
+        gradients = relu.backward(&incoming_gradients_chunked);
+    }
+
+    memory_logger.stop();
+}
+BENCHMARK(BM_Layer_Relu_Products_Chunked_Backward_Hidden)->Range(1 << 16, 1 << 21);

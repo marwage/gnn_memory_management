@@ -51,12 +51,14 @@ BENCHMARK(BM_Alzheimer_Reddit);
 
 static void BM_Alzheimer_Chunked_Reddit(benchmark::State &state) {
     std::string dataset = "reddit";
+    long chunk_size = state.range(0);
+    long interval = 50;
 
-    GPUMemoryLogger memory_logger("alzheimer_" + dataset + "_" + std::to_string(state.range(0)));
+    GPUMemoryLogger memory_logger("alzheimer_" + dataset + "_" + std::to_string(chunk_size), interval);
     memory_logger.start();
 
     for (auto _ : state)
-        alzheimer_chunked(dataset, state.range(0));
+        alzheimer_chunked(dataset, chunk_size);
 
     memory_logger.stop();
 }

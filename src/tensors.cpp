@@ -384,14 +384,14 @@ template void to_row_major<int>(Matrix<int> *mat_row, Matrix<int> *mat);
 
 void get_rows(SparseMatrix<float> *reduced_mat, SparseMatrix<float> *mat, int start_row, int end_row) {
     int first_index = mat->csr_row_ptr_[start_row];
-    int last_index = mat->csr_row_ptr_[end_row];
+    int last_index = mat->csr_row_ptr_[end_row + 1];
 
-    reduced_mat->set(end_row - start_row, mat->num_columns_, last_index - first_index);
+    reduced_mat->set(end_row + 1 - start_row, mat->num_columns_, last_index - first_index);
 
     std::memcpy(reduced_mat->csr_val_, &mat->csr_val_[first_index], reduced_mat->nnz_ * sizeof(float));
     std::memcpy(reduced_mat->csr_row_ptr_, &mat->csr_row_ptr_[start_row], (reduced_mat->num_rows_ + 1) * sizeof(int));
     std::memcpy(reduced_mat->csr_col_ind_, &mat->csr_col_ind_[first_index], reduced_mat->nnz_ * sizeof(int));
-    for (int i = 0; i < reduced_mat->num_rows_; ++i) {
+    for (int i = 0; i < reduced_mat->num_rows_ + 1; ++i) {
         reduced_mat->csr_row_ptr_[i] = reduced_mat->csr_row_ptr_[i] - first_index;
     }
 }
@@ -414,6 +414,18 @@ void print_sparse_matrix(SparseMatrix<float> *mat) {
     std::cout << std::endl;
 }
 
+void sparse_to_dense_matrix(SparseMatrix<float> *sp_mat, Matrix<float> *mat) {
+    mat->set(sp_mat->num_rows_, sp_mat->num_columns_, true);
+    mat->set_values(0.0);
+    for (long row = 0; row < sp_mat->num_rows_; ++row) {
+        long first_index = sp_mat->csr_row_ptr_[row];
+        long last_index = sp_mat->csr_row_ptr_[row + 1];
+        for (int i = first_index; i < last_index; ++i) {
+            long column = sp_mat->csr_col_ind_[i];
+            mat->values_[row * mat->num_columns_ + column] = sp_mat->csr_val_[i];
+        }
+    }
+}
 
 long count_nans(Matrix<float> *x) {
     long num_nans = 0;
@@ -448,4 +460,17 @@ bool check_nans(std::vector<Matrix<float>> *x, std::string name) {
             return false;
         }
     }
+}
+
+bool check_equality(Matrix<float> *a, Matrix<float> *b) {
+    if (a->size_ != b->size_) {
+        throw "Matrices have unequal size";
+    }
+
+    for (int i = 0; i < a->size_; ++i) {
+        if (a->values_[i] != b->values_[i]) {
+            return false;
+        }
+    }
+    return true;
 }

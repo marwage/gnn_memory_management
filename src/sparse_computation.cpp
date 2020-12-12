@@ -267,3 +267,59 @@ void transpose_csr_matrix(SparseMatrix<float> *mat, CudaHelper *cuda_helper) {
     check_cuda(cudaFree(d_mat_csr_row_ptr));
     check_cuda(cudaFree(d_mat_csr_val));
 }
+
+void transpose_csr_matrix_cpu(SparseMatrix<float> *mat) {
+    if (mat->nnz_ == 0) {
+        return;
+    }
+
+    int *csc_row_ptr = new int[mat->num_columns_ + 1];
+    int *csc_col_ind = new int[mat->nnz_];
+    float *csc_val = new float[mat->nnz_];
+
+    // code from scipy
+    std::fill(csc_row_ptr, csc_row_ptr + mat->num_columns_, 0);
+
+    for (int n = 0; n < mat->nnz_; n++){
+        csc_row_ptr[mat->csr_col_ind_[n]]++;
+    }
+
+    for(int col = 0, cumsum = 0; col < mat->num_columns_; col++){
+        int temp  = csc_row_ptr[col];
+        csc_row_ptr[col] = cumsum;
+        cumsum += temp;
+    }
+    csc_row_ptr[mat->num_columns_] = mat->nnz_;
+
+    for(int row = 0; row < mat->num_rows_; row++){
+        int a = mat->csr_row_ptr_[row];
+        int b = mat->csr_row_ptr_[row+1];
+        int c = mat->csr_row_ptr_[mat->num_rows_];
+        for(int jj = mat->csr_row_ptr_[row]; jj < mat->csr_row_ptr_[row+1]; jj++){
+            int col  = mat->csr_col_ind_[jj];
+            int dest = csc_row_ptr[col];
+
+            csc_col_ind[dest] = row;
+            csc_val[dest] = mat->csr_val_[jj];
+
+            csc_row_ptr[col]++;
+        }
+    }
+
+    for(int col = 0, last = 0; col <= mat->num_columns_; col++){
+        int temp  = csc_row_ptr[col];
+        csc_row_ptr[col] = last;
+        last    = temp;
+    }
+    // end code from scipy
+
+    long tmp = mat->num_rows_;
+    mat->num_rows_ = mat->num_columns_;
+    mat->num_columns_ = tmp;
+    delete[] mat->csr_row_ptr_;
+    delete[] mat->csr_col_ind_;
+    delete[] mat->csr_val_;
+    mat->csr_row_ptr_ = csc_row_ptr;
+    mat->csr_col_ind_ = csc_col_ind;
+    mat->csr_val_ = csc_val;
+}

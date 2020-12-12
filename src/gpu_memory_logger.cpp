@@ -13,7 +13,9 @@ void log_memory(std::future<void> future, std::ofstream *log_file, long interval
         tp_now = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> time_span = tp_now - tp_start;
 
-        *log_file << time_span.count() << "," << (get_allocated_memory() / MiB) << "\n";
+        long allocated_memory_mib = get_allocated_memory() / MiB;
+
+        *log_file << time_span.count() << "," << allocated_memory_mib << "\n";
 
         std::this_thread::sleep_for(std::chrono::milliseconds(interval));
     }

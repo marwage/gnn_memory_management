@@ -122,30 +122,30 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adja
     }
 
     adjacencies_ = std::vector<SparseMatrix<float>>(num_chunks_ * num_chunks_);
-    long current_end_row;
+    long current_end_row; // end row is included [start_row, end_row] not [start_row, end_row)
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == num_chunks_ - 1) {
-            current_end_row = i * chunk_size + last_chunk_size_;
+            current_end_row = i * chunk_size + last_chunk_size_ - 1;
         } else {
-            current_end_row = (i + 1) * chunk_size;
+            current_end_row = (i + 1) * chunk_size - 1;
         }
 
         // chunk by row
         SparseMatrix<float> adjacency_chunk;
         get_rows(&adjacency_chunk, adjacency, i * chunk_size, current_end_row);
         // transpose
-        transpose_csr_matrix(&adjacency_chunk, cuda_helper_);
+        transpose_csr_matrix_cpu(&adjacency_chunk);
         // chunk by row (would be by column without transpose
         for (int j = 0; j < num_chunks_; ++j) {
             if (j == num_chunks_ - 1) {
-                current_end_row = j * chunk_size + last_chunk_size_;
+                current_end_row = j * chunk_size + last_chunk_size_ - 1;
             } else {
-                current_end_row = (j + 1) * chunk_size;
+                current_end_row = (j + 1) * chunk_size - 1;
             }
 
             get_rows(&adjacencies_[i * num_chunks_ + j], &adjacency_chunk, j * chunk_size, current_end_row);
             // transpose
-            transpose_csr_matrix(&adjacencies_[i * num_chunks_ + j], cuda_helper_);
+            transpose_csr_matrix_cpu(&adjacencies_[i * num_chunks_ + j]);
         }
     }
 

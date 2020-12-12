@@ -93,10 +93,14 @@ void get_rows(SparseMatrix<float> *reduced_mat, SparseMatrix<float> *mat, int st
 
 void print_sparse_matrix(SparseMatrix<float> *mat);
 
+void sparse_to_dense_matrix(SparseMatrix<float> *sp_mat, Matrix<float> *mat);
+
 long count_nans(Matrix<float> *x);
 
 bool check_nans(Matrix<float> *x, std::string name);
 
 bool check_nans(std::vector<Matrix<float>> *x, std::string name);
+
+bool check_equality(Matrix<float> *a, Matrix<float> *b);
 
 #endif
