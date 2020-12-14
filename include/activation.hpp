@@ -49,8 +49,7 @@ public:
     ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
-    std::vector<Matrix<float>> *forward_prop(std::vector<Matrix<float>> *x);
-    std::vector<Matrix<float>> *forward_double(std::vector<Matrix<float>> *x);
+    std::vector<Matrix<float>> *forward_pipeline(std::vector<Matrix<float>> *x);
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };
 

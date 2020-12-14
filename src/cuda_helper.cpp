@@ -4,21 +4,27 @@
 
 
 CudaHelper::CudaHelper() {
-    cublas_status = cublasCreate(&cublas_handle);
-    check_cublas(cublas_status);
-    cudnn_status = cudnnCreate(&cudnn_handle);
-    check_cudnn(cudnn_status);
-    cusparse_status = cusparseCreate(&cusparse_handle);
-    check_cusparse(cusparse_status);
+    check_cublas(cublasCreate(&cublas_handle));
+    check_cudnn(cudnnCreate(&cudnn_handle));
+    check_cusparse(cusparseCreate(&cusparse_handle));
+
+    check_cuda(cudaStreamCreate(&stream_in_));
+    check_cuda(cudaStreamCreate(&stream_out_));
+    check_cuda(cudaStreamCreate(&stream_compute_));
+
+    check_cublas(cublasSetStream(cublas_handle, stream_compute_));
+    check_cudnn(cudnnSetStream(cudnn_handle, stream_compute_));
+    check_cusparse(cusparseSetStream(cusparse_handle, stream_compute_));
 }
 
 CudaHelper::~CudaHelper() {
-    cublas_status = cublasDestroy(cublas_handle);
-    check_cublas(cublas_status);
-    cudnn_status = cudnnDestroy(cudnn_handle);
-    check_cudnn(cudnn_status);
-    cusparse_status = cusparseDestroy(cusparse_handle);
-    check_cusparse(cusparse_status);
+    check_cublas(cublasDestroy(cublas_handle));
+    check_cudnn(cudnnDestroy(cudnn_handle));
+    check_cusparse(cusparseDestroy(cusparse_handle));
+
+    check_cuda(cudaStreamDestroy(stream_in_));
+    check_cuda(cudaStreamDestroy(stream_out_));
+    check_cuda(cudaStreamDestroy(stream_compute_));
 }
 
 void check_cuda(cudaError_t status) {

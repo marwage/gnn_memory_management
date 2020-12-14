@@ -115,6 +115,7 @@ void forward_pipeline(std::vector<Matrix<float>> *x, std::vector<Matrix<float>> 
 
     cudaStreamDestroy(stream_in);
     cudaStreamDestroy(stream_out);
+    cudaStreamDestroy(stream_compute);
 
     // free GPU memory
     for (int j = 0; j < num_steps; ++j) {
