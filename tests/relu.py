@@ -2,7 +2,8 @@ import numpy as np
 import os
 import torch
 from helper import (print_close_equal, check_close_equal,
-        to_torch, print_not_close, write_return, update_return)
+        to_torch, print_not_close, write_return, update_return,
+        check_nans)
 
 
 def test_relu():
@@ -21,6 +22,8 @@ def test_relu():
     gradients = np.load(path)
     path = test_dir_path + "/incoming_gradients.npy"
     in_gradients = np.load(path)
+
+    check_nans(activations, "ReLU output")
 
     relu_layer = torch.nn.ReLU()
 
