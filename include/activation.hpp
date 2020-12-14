@@ -36,6 +36,7 @@ class ReluChunked : public LayerChunked {
 private:
     Relu relu_layer_;
     CudaHelper *cuda_helper_ = NULL;
+    cudnnActivationDescriptor_t relu_desc_;
     long chunk_size_;
     long last_chunk_size_;
     long num_chunks_;
@@ -48,6 +49,8 @@ public:
     ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
+    std::vector<Matrix<float>> *forward_prop(std::vector<Matrix<float>> *x);
+    std::vector<Matrix<float>> *forward_double(std::vector<Matrix<float>> *x);
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };
 
