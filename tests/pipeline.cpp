@@ -21,6 +21,14 @@ void forward_pipeline(std::vector<Matrix<float>> *x, std::vector<Matrix<float>> 
         check_cuda(cudaMalloc(&d_y.at(j), y->at(0).size_ * sizeof(float)));
     }
 
+    cudaStream_t stream_in;
+    check_cuda(cudaStreamCreate(&stream_in));
+    cudaStream_t stream_out;
+    check_cuda(cudaStreamCreate(&stream_out));
+    cudaStream_t stream_compute;
+    check_cuda(cudaStreamCreate(&stream_compute));
+    check_cublas(cublasSetStream(cuda_helper.cublas_handle, stream_compute));
+
     long num_chunks = x->size();
     float alpha = 1.0;
     long chunk_zero = 0;
@@ -36,16 +44,16 @@ void forward_pipeline(std::vector<Matrix<float>> *x, std::vector<Matrix<float>> 
             // zero in, one out, two compute
             // zero in
             if (chunk_zero < num_chunks) {
-                check_cuda(cudaMemcpy(d_x.at(0), x->at(chunk_zero).values_, x->at(chunk_zero).size_ * sizeof(float),
-                                      cudaMemcpyHostToDevice));
-                check_cuda(cudaMemcpy(d_y.at(0), y->at(chunk_zero).values_, y->at(chunk_zero).size_ * sizeof(float),
-                                      cudaMemcpyHostToDevice));
+                check_cuda(cudaMemcpyAsync(d_x.at(0), x->at(chunk_zero).values_, x->at(chunk_zero).size_ * sizeof(float),
+                                      cudaMemcpyHostToDevice, stream_in));
+                check_cuda(cudaMemcpyAsync(d_y.at(0), y->at(chunk_zero).values_, y->at(chunk_zero).size_ * sizeof(float),
+                                      cudaMemcpyHostToDevice, stream_in));
             }
 
             // one out
             if (chunk_one < num_chunks && i > 2) {
-                check_cuda(cudaMemcpy(y->at(chunk_one).values_, d_y.at(1), y->at(chunk_one).size_ * sizeof(float),
-                                      cudaMemcpyDeviceToHost));
+                check_cuda(cudaMemcpyAsync(y->at(chunk_one).values_, d_y.at(1), y->at(chunk_one).size_ * sizeof(float),
+                                      cudaMemcpyDeviceToHost, stream_out));
                 y->at(chunk_one).is_row_major_ = true;
             }
 
@@ -58,16 +66,16 @@ void forward_pipeline(std::vector<Matrix<float>> *x, std::vector<Matrix<float>> 
             // one in, two out, zero compute
             // one in
             if (chunk_one < num_chunks && i > 0) {
-                check_cuda(cudaMemcpy(d_x.at(1), x->at(chunk_one).values_, x->at(chunk_one).size_ * sizeof(float),
-                                      cudaMemcpyHostToDevice));
-                check_cuda(cudaMemcpy(d_y.at(1), y->at(chunk_one).values_, y->at(chunk_one).size_ * sizeof(float),
-                                      cudaMemcpyHostToDevice));
+                check_cuda(cudaMemcpyAsync(d_x.at(1), x->at(chunk_one).values_, x->at(chunk_one).size_ * sizeof(float),
+                                      cudaMemcpyHostToDevice, stream_in));
+                check_cuda(cudaMemcpyAsync(d_y.at(1), y->at(chunk_one).values_, y->at(chunk_one).size_ * sizeof(float),
+                                      cudaMemcpyHostToDevice, stream_in));
             }
 
             // two out
             if (chunk_two < num_chunks && i > 3) {
-                check_cuda(cudaMemcpy(y->at(chunk_two).values_, d_y.at(2), y->at(chunk_two).size_ * sizeof(float),
-                                      cudaMemcpyDeviceToHost));
+                check_cuda(cudaMemcpyAsync(y->at(chunk_two).values_, d_y.at(2), y->at(chunk_two).size_ * sizeof(float),
+                                      cudaMemcpyDeviceToHost, stream_out));
                 y->at(chunk_one).is_row_major_ = true;
             }
 
@@ -80,18 +88,18 @@ void forward_pipeline(std::vector<Matrix<float>> *x, std::vector<Matrix<float>> 
             // zero out,  two in, one compute
             // zero out
             if (chunk_zero < num_chunks && i > 1) {
-                check_cuda(cudaMemcpy(y->at(chunk_zero).values_, d_y.at(0),
+                check_cuda(cudaMemcpyAsync(y->at(chunk_zero).values_, d_y.at(0),
                                       y->at(chunk_zero).size_ * sizeof(float),
-                                      cudaMemcpyDeviceToHost));
+                                      cudaMemcpyDeviceToHost, stream_out));
                 y->at(chunk_zero).is_row_major_ = true;
             }
 
             // two in
             if (chunk_two < num_chunks && i > 0) {
-                check_cuda(cudaMemcpy(d_x.at(2), x->at(chunk_two).values_, x->at(chunk_two).size_ * sizeof(float),
-                                      cudaMemcpyHostToDevice));
-                check_cuda(cudaMemcpy(d_y.at(2), y->at(chunk_two).values_, y->at(chunk_two).size_ * sizeof(float),
-                                      cudaMemcpyHostToDevice));
+                check_cuda(cudaMemcpyAsync(d_x.at(2), x->at(chunk_two).values_, x->at(chunk_two).size_ * sizeof(float),
+                                      cudaMemcpyHostToDevice, stream_in));
+                check_cuda(cudaMemcpyAsync(d_y.at(2), y->at(chunk_two).values_, y->at(chunk_two).size_ * sizeof(float),
+                                      cudaMemcpyHostToDevice, stream_in));
             }
 
             // one compute
@@ -100,7 +108,13 @@ void forward_pipeline(std::vector<Matrix<float>> *x, std::vector<Matrix<float>> 
                                          &alpha, d_x.at(1), 1, d_y.at(1), 1));
             }
         }
+
+        // sync all spanned calls
+        check_cuda(cudaDeviceSynchronize());
     }
+
+    cudaStreamDestroy(stream_in);
+    cudaStreamDestroy(stream_out);
 
     // free GPU memory
     for (int j = 0; j < num_steps; ++j) {
