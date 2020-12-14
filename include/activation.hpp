@@ -40,6 +40,12 @@ private:
     long chunk_size_;
     long last_chunk_size_;
     long num_chunks_;
+    float alpha_;
+    float beta_;
+    std::vector<float *> d_x_;
+    std::vector<cudnnTensorDescriptor_t> x_desc_;
+    std::vector<float *> d_y_;
+    std::vector<cudnnTensorDescriptor_t> y_desc_;
     std::vector<Matrix<float>> *x_ = NULL;
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
@@ -49,8 +55,12 @@ public:
     ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
-    std::vector<Matrix<float>> *forward_pipeline(std::vector<Matrix<float>> *x);
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
+    std::vector<Matrix<float>> *forward_pipeline(std::vector<Matrix<float>> *x);
+    void in(long chunk, long buffer);
+    void out(long chunk, long buffer);
+    void compute(long buffer);
+    void pipeline();
 };
 
 class LogSoftmax : public Layer {
