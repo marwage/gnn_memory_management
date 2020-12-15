@@ -3,15 +3,15 @@
 #include "layer.hpp"
 
 
-void LayerPipelined::pipeline(bool forward, long num_chunks){
+void LayerPipelined::pipeline(bool forward, long num_chunks) {
     long chunk_zero = 0;
     long chunk_one = 1;
     long chunk_two = 2;
     for (int i = 0; i < num_chunks + 2; ++i) {
         // update chunk offsets
-        chunk_zero = (i / 3) * 3; // every three steps jump by 3
-        chunk_one = ((i - 1) / 3)  * 3 + 1; // one tick behind and one number higher
-        chunk_two = ((i - 2) / 3)  * 3 + 2; // two ticks behind and two number higher
+        chunk_zero = (i / 3) * 3;         // every three steps jump by 3
+        chunk_one = ((i - 1) / 3) * 3 + 1;// one tick behind and one number higher
+        chunk_two = ((i - 2) / 3) * 3 + 2;// two ticks behind and two number higher
 
         if (i % 3 == 0) {
             // zero in, one out, two compute
@@ -68,7 +68,6 @@ void LayerPipelined::pipeline(bool forward, long num_chunks){
                 } else {
                     backward_compute(0);
                 }
-
             }
         } else if (i % 3 == 2) {
             // two in, zero out, one compute

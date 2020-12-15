@@ -11,14 +11,13 @@
 
 
 class Dropout : public Layer {
-private:
+protected:
     CudaHelper *cuda_helper_ = NULL;
-    float probability_ = 0.2f;
+    float probability_;
     unsigned long long seed_;
+    size_t state_size_;
     char *reserve_space_ = NULL;
     size_t reserve_space_size_;
-    char *states_ = NULL;
-    size_t state_size_;
     Matrix<float> y_;
     Matrix<float> gradients_;
 
@@ -34,21 +33,57 @@ public:
 };
 
 class DropoutChunked : public LayerChunked {
-private:
+protected:
     CudaHelper *cuda_helper_ = NULL;
+    float probability_;
+    unsigned long long seed_;
     int chunk_size_;
     int last_chunk_size_;
     int num_chunks_;
-    std::vector<Dropout> dropout_layers_;
+    size_t state_size_;
+    std::vector<char *> reserve_space_;
+    size_t reserve_space_size_;
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
 
 public:
     DropoutChunked();
     DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes, long num_features);
+    ~DropoutChunked();
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) override;
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
+};
+
+class DropoutPipelined : public LayerPipelined, public DropoutChunked {
+protected:
+    long num_steps_;
+    std::vector<cudnnDropoutDescriptor_t> dropout_desc_;
+    std::vector<cudnnTensorDescriptor_t> x_desc_;
+    std::vector<cudnnTensorDescriptor_t> y_desc_;
+    std::vector<cudnnTensorDescriptor_t> dx_desc_;
+    std::vector<cudnnTensorDescriptor_t> dy_desc_;
+    std::vector<float *> d_x_;
+    std::vector<float *> d_y_;
+    std::vector<float *> d_dx_;
+    std::vector<float *> d_dy_;
+    std::vector<char *> d_states_;
+    std::vector<char *> d_reserve_space_;
+    std::vector<Matrix<float>> *x_ = NULL;
+    std::vector<Matrix<float>> *incoming_gradients_ = NULL;
+
+public:
+    DropoutPipelined();
+    DropoutPipelined(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
+    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
+    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
+    std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
+    void forward_in(long chunk, long buffer) override;
+    void forward_out(long chunk, long buffer) override;
+    void forward_compute(long buffer) override;
+    void backward_in(long chunk, long buffer) override;
+    void backward_out(long chunk, long buffer) override;
+    void backward_compute(long buffer) override;
 };
 
 #endif

@@ -6,9 +6,9 @@
 #include "cuda_helper.hpp"
 #include "graph_convolution.hpp"
 #include "helper.hpp"
+#include "log_softmax.hpp"
 #include "loss.hpp"
 #include "relu.hpp"
-#include "log_softmax.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
 
@@ -160,7 +160,7 @@ int integration_test_chunked(long chunk_size) {
 
     // layers
     GraphConvChunked graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.num_columns_, chunk_size, num_nodes);
-    AddChunked add(&cuda_helper, num_nodes, features.num_columns_, chunk_size);
+    AddChunked add(&cuda_helper, num_nodes, chunk_size);
     SageLinearChunked sage_linear_layer(&cuda_helper, features.num_columns_, num_classes, chunk_size, num_nodes);
     ReluChunked relu_layer(&cuda_helper, chunk_size, num_nodes, num_classes);
     LogSoftmaxChunked log_softmax_layer(&cuda_helper, chunk_size, num_nodes, num_classes);

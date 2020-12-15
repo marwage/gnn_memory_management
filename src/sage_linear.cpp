@@ -112,7 +112,7 @@ std::vector<Matrix<float>> *SageLinearChunked::forward(std::vector<Matrix<float>
     if (features->size() != aggr->size()) {
         throw "Features and aggregated features have a different number of chunks";
     }
-    for (int i = 0; i < features->size(); ++i) {
+    for (int i = 0; i < num_chunks_; ++i) {
         to_column_major_inplace(&features->at(i));
         to_column_major_inplace(&aggr->at(i));
     }
@@ -137,7 +137,7 @@ SageLinearGradientsChunked *SageLinearChunked::backward(std::vector<Matrix<float
     if (y_.size() != incoming_gradients->size()) {
         throw "Output and incoming gradients have a different number of chunks";
     }
-    for (int i = 0; i < incoming_gradients->size(); ++i) {
+    for (int i = 0; i < num_chunks_; ++i) {
         to_column_major_inplace(&incoming_gradients->at(i));
     }
 
@@ -146,8 +146,6 @@ SageLinearGradientsChunked *SageLinearChunked::backward(std::vector<Matrix<float
     self_weight_sum_.set_values(0.0);
     neigh_bias_sum_.set_values(0.0);
 
-    Matrix<float> *self_gradients;
-    Matrix<float> *neigh_gradients;
     for (int i = 0; i < num_chunks_; ++i) {
         linear_self_.backward(&incoming_gradients->at(i), &features_->at(i), &self_gradients_.at(i));
         linear_neigh_.backward(&incoming_gradients->at(i), &aggregated_features_->at(i), &neighbourhood_gradients_.at(i));

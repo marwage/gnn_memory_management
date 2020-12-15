@@ -28,6 +28,7 @@ protected:
     CudaHelper *cuda_helper_ = NULL;
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
+
 public:
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) = 0;
     virtual std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) = 0;

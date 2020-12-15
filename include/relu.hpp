@@ -40,8 +40,8 @@ public:
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };
 
-class ReluPipelined : public LayerPipelined, ReluChunked {
-private:
+class ReluPipelined : public LayerPipelined, public ReluChunked {
+protected:
     std::vector<cudnnTensorDescriptor_t> x_desc_;
     std::vector<cudnnTensorDescriptor_t> y_desc_;
     std::vector<cudnnTensorDescriptor_t> dx_desc_;

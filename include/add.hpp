@@ -23,7 +23,7 @@ private:
     std::vector<Matrix<float>> y_;
 
 public:
-    AddChunked(CudaHelper *cuda_helper, long num_nodes, long num_features, long chunk_size);
+    AddChunked(CudaHelper *cuda_helper, long num_nodes, long chunk_size);
     std::vector<Matrix<float>> *op(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b);
 };
 

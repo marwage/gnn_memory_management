@@ -168,7 +168,7 @@ void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long 
 }
 
 std::vector<Matrix<float>> *ReluChunked::forward(std::vector<Matrix<float>> *x) {
-    if (num_chunks_ != x->size()) {
+    if (num_chunks_ != (long) x->size()) {
         throw "Input has wrong number of chunks";
     }
     for (int i = 0; i < num_chunks_; ++i) {
@@ -185,8 +185,7 @@ std::vector<Matrix<float>> *ReluChunked::forward(std::vector<Matrix<float>> *x) 
     cudnnTensorDescriptor_t y_desc;
     check_cudnn(cudnnCreateTensorDescriptor(&y_desc));
 
-    long i = 0;
-    while (i < x->size()) {
+    for (int i = 0; i < num_chunks_; ++i) {
         // in
         check_cuda(cudaMemcpy(d_x, x->at(i).values_, x->at(i).size_ * sizeof(float),
                               cudaMemcpyHostToDevice));
@@ -208,9 +207,6 @@ std::vector<Matrix<float>> *ReluChunked::forward(std::vector<Matrix<float>> *x) 
                               y_.at(i).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
         y_.at(i).is_row_major_ = true;
-
-        // update
-        ++i;
     }
 
     // free GPU memory
@@ -223,11 +219,13 @@ std::vector<Matrix<float>> *ReluChunked::forward(std::vector<Matrix<float>> *x) 
 }
 
 std::vector<Matrix<float>> *ReluChunked::backward(std::vector<Matrix<float>> *incoming_gradients) {
-    if (num_chunks_ != incoming_gradients->size()) {
+    if (num_chunks_ != (long) incoming_gradients->size()) {
         throw "Incoming gradients has wrong number of chunks";
     }
     for (int i = 0; i < num_chunks_; ++i) {
         to_row_major_inplace(&incoming_gradients->at(i));
+        to_row_major_inplace((&x_->at(i)));
+        to_row_major_inplace((&y_.at(i)));
     }
 
     float *d_y;
@@ -275,6 +273,12 @@ std::vector<Matrix<float>> *ReluChunked::backward(std::vector<Matrix<float>> *in
                               cudaMemcpyDeviceToHost));
         gradients_.at(i).is_row_major_ = true;
     }
+
+    // free
+    check_cuda(cudaFree(d_x));
+    check_cuda(cudaFree(d_dx));
+    check_cuda(cudaFree(d_y));
+    check_cuda(cudaFree(d_dy));
 
     return &gradients_;
 }
@@ -325,11 +329,11 @@ void ReluPipelined::forward_compute(long buffer) {
 
 void ReluPipelined::backward_in(long chunk, long buffer) {
     check_cuda(cudaMemcpyAsync(d_y_.at(buffer), y_.at(chunk).values_, y_.at(chunk).size_ * sizeof(float),
-                          cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+                               cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
     check_cuda(cudaMemcpyAsync(d_dy_.at(buffer), incoming_gradients_->at(chunk).values_, incoming_gradients_->at(chunk).size_ * sizeof(float),
                                cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
     check_cuda(cudaMemcpyAsync(d_x_.at(buffer), x_->at(chunk).values_, x_->at(chunk).size_ * sizeof(float),
-                          cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+                               cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
     // no copy for d_dx needed
 
     check_cudnn(cudnnSetTensor4dDescriptor(y_desc_.at(buffer), CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
@@ -344,7 +348,7 @@ void ReluPipelined::backward_in(long chunk, long buffer) {
 
 void ReluPipelined::backward_out(long chunk, long buffer) {
     check_cuda(cudaMemcpyAsync(gradients_.at(chunk).values_, d_dx_.at(buffer), gradients_.at(chunk).size_ * sizeof(float),
-                          cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
+                               cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
     gradients_.at(chunk).is_row_major_ = true;
 }
 
@@ -361,13 +365,14 @@ std::vector<Matrix<float>> *ReluPipelined::forward(std::vector<Matrix<float>> *x
     x_ = x;
     long num_steps = 3;
 
-    if (x->size() != num_chunks_) {
+    if ((long) x->size() != num_chunks_) {
         throw "Input has wrong number of chunks";
     }
     for (long i = 0; i < num_chunks_; ++i) {
         to_row_major_inplace(&x->at(i));
     }
 
+    // allocate
     for (long j = 0; j < num_steps; ++j) {
         check_cuda(cudaMalloc(&d_x_.at(j), x->at(0).size_ * sizeof(float)));
         check_cudnn(cudnnCreateTensorDescriptor(&x_desc_.at(j)));
@@ -378,6 +383,7 @@ std::vector<Matrix<float>> *ReluPipelined::forward(std::vector<Matrix<float>> *x
 
     pipeline(true, num_chunks_);
 
+    // free
     for (long j = 0; j < num_steps; ++j) {
         check_cuda(cudaFree(d_x_.at(j)));
         check_cudnn(cudnnDestroyTensorDescriptor(x_desc_.at(j)));
@@ -393,13 +399,16 @@ std::vector<Matrix<float>> *ReluPipelined::backward(std::vector<Matrix<float>> *
     incoming_gradients_ = incoming_gradients;
     long num_steps = 3;
 
-    if (incoming_gradients->size() != num_chunks_) {
+    if ((long) incoming_gradients->size() != num_chunks_) {
         throw "Incoming gradients has wrong number of chunks";
     }
     for (int i = 0; i < num_chunks_; ++i) {
         to_row_major_inplace(&incoming_gradients->at(i));
+        to_row_major_inplace((&x_->at(i)));
+        to_row_major_inplace((&y_.at(i)));
     }
 
+    // allocate
     for (long j = 0; j < num_steps; ++j) {
         check_cuda(cudaMalloc(&d_x_.at(j), x_->at(0).size_ * sizeof(float)));
         check_cudnn(cudnnCreateTensorDescriptor(&x_desc_.at(j)));
@@ -416,6 +425,7 @@ std::vector<Matrix<float>> *ReluPipelined::backward(std::vector<Matrix<float>> *
 
     pipeline(false, num_chunks_);
 
+    // free
     for (long j = 0; j < num_steps; ++j) {
         check_cuda(cudaFree(d_x_.at(j)));
         check_cudnn(cudnnDestroyTensorDescriptor(x_desc_.at(j)));

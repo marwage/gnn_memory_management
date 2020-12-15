@@ -119,13 +119,13 @@ int test_sage_linear_adam_nans(Matrix<float> *input_self, Matrix<float> *input_n
 
         has_nans = has_nans && check_nans(gradients->self_gradients, "Input self gradients");
         has_nans = has_nans && check_nans(gradients->neighbourhood_gradients, "Input neigh gradients");
-        for (int i = 0; i < parameters_gradients.size(); ++i) {
+        for (long i = 0; i < (long) parameters_gradients.size(); ++i) {
             has_nans = has_nans && check_nans(parameters_gradients[i], "Parameter gradient " + std::to_string(i));
         }
 
         adam.step();
 
-        for (int i = 0; i < parameters_gradients.size(); ++i) {
+        for (long i = 0; i < (long) parameters_gradients.size(); ++i) {
             has_nans = has_nans && check_nans(parameters[i], "Parameter " + std::to_string(i));
         }
     }
@@ -166,13 +166,13 @@ int test_sage_linear_adam_nans_chunked(Matrix<float> *input_self, Matrix<float> 
 
         has_nans = has_nans && check_nans(gradients->self_gradients, "Input self gradients");
         has_nans = has_nans && check_nans(gradients->neighbourhood_gradients, "Input neigh gradients");
-        for (int i = 0; i < parameters_gradients.size(); ++i) {
+        for (long i = 0; i < (long) parameters_gradients.size(); ++i) {
             has_nans = has_nans && check_nans(parameters_gradients[i], "Parameter gradient " + std::to_string(i));
         }
 
         adam.step();
 
-        for (int i = 0; i < parameters_gradients.size(); ++i) {
+        for (long i = 0; i < (long) parameters_gradients.size(); ++i) {
             has_nans = has_nans && check_nans(parameters[i], "Parameter " + std::to_string(i));
         }
     }

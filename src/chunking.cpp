@@ -29,9 +29,10 @@ void chunk_up(Matrix<float> *x, std::vector<Matrix<float>> *x_chunked, long chun
 }
 
 void stitch(std::vector<Matrix<float>> *x_chunked, Matrix<float> *x) {
+    long num_chunks = x_chunked->size();
     long chunk_size = x_chunked->at(0).num_rows_;
     long num_features = x_chunked->at(0).num_columns_;
-    for (int i = 0; i < x_chunked->size(); ++i) {
+    for (int i = 0; i < num_chunks; ++i) {
         to_row_major_inplace(&x_chunked->at(i));
         std::copy(x_chunked->at(i).values_,
                   x_chunked->at(i).values_ + x_chunked->at(i).size_,
