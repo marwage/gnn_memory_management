@@ -1,6 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "activation.hpp"
+#include "log_softmax.hpp"
 #include "tensors.hpp"
 
 #include "catch2/catch.hpp"

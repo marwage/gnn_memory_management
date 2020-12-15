@@ -1,6 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "activation.hpp"
+#include "relu.hpp"
 #include "chunking.hpp"
 #include "helper.hpp"
 #include "tensors.hpp"
@@ -36,10 +36,10 @@ int test_relu_pipeline(long chunk_size) {
     chunk_up(&incoming_gradients, &incoming_gradients_chunked, chunk_size);
 
     // layer
-    ReluChunked relu(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
+    ReluPipelined relu(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
 
     // forward
-    std::vector<Matrix<float>> *output = relu.forward_pipeline(&features_chunked);
+    std::vector<Matrix<float>> *output = relu.forward(&features_chunked);
 
     Matrix<float> output_one(num_nodes, num_features, false);
     stitch(output, &output_one);

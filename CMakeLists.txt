@@ -24,7 +24,8 @@ set(SOURCE_FILES
         src/graph_convolution.cpp
         src/dropout.cpp
         src/linear.cpp
-        src/activation.cpp
+        src/relu.cpp
+        src/log_softmax.cpp
         src/loss.cpp
         src/sage_linear.cpp
         src/adam.cpp

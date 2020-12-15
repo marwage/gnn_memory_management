@@ -1,7 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "alzheimer.hpp"
-#include "activation.hpp"
 #include "adam.hpp"
 #include "add.hpp"
 #include "chunking.hpp"
@@ -9,6 +8,8 @@
 #include "dropout.hpp"
 #include "graph_convolution.hpp"
 #include "loss.hpp"
+#include "relu.hpp"
+#include "log_softmax.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
 
