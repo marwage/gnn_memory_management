@@ -6,6 +6,7 @@
 #include "cuda_helper.hpp"
 #include "linear.hpp"
 #include "tensors.hpp"
+#include "layer.hpp"
 
 #include <vector>
 
@@ -63,9 +64,36 @@ protected:
     SageLinearGradientsChunked input_gradients_;
 
 public:
+    SageLinearChunked();
     SageLinearChunked(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes);
-    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr);
-    SageLinearGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients);
+    virtual void set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes);
+    virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr);
+    virtual SageLinearGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients);
+};
+
+class SageLinearPipelined : public LayerPipelined, public SageLinearChunked {
+protected:
+    long num_steps_;
+    std::vector<float *> d_x_; // check
+    std::vector<float *> d_y_; // check
+    std::vector<float *> d_dx_;
+    std::vector<float *> d_dy_;
+    std::vector<Matrix<float>> *x_;
+    std::vector<Matrix<float>> *incoming_gradients_;
+
+public:
+    SageLinearPipelined();
+    SageLinearPipelined(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes);
+    void set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) override;
+    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr) override;
+    SageLinearGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients) override;
+    void forward_in(long chunk, long buffer) override;
+    void forward_out(long chunk, long buffer) override;
+    void forward_compute(long chunk, long buffer);
+    void forward_compute(long buffer) override;
+    void backward_in(long chunk, long buffer) override;
+    void backward_out(long chunk, long buffer) override;
+    void backward_compute(long buffer) override;
 };
 
 #endif

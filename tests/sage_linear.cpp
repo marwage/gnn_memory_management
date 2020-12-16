@@ -73,7 +73,7 @@ int test_sage_linear_chunked(Matrix<float> *input_self, Matrix<float> *input_nei
     return read_return_value(path);
 }
 
-int test_sage_linear_nans_chunked(Matrix<float> *input_self, Matrix<float> *input_neigh, Matrix<float> *incoming_gradients, long chunk_size) {
+int test_sage_linear_piplined(Matrix<float> *input_self, Matrix<float> *input_neigh, Matrix<float> *incoming_gradients, long chunk_size) {
     std::string path;
     CudaHelper cuda_helper;
     long num_nodes = input_self->num_rows_;
@@ -88,22 +88,25 @@ int test_sage_linear_nans_chunked(Matrix<float> *input_self, Matrix<float> *inpu
     chunk_up(input_neigh, &input_neigh_chunked, chunk_size);
     chunk_up(incoming_gradients, &incoming_gradients_chunked, chunk_size);
 
-    SageLinearChunked sage_linear_layer(&cuda_helper, num_in_features, num_out_features, chunk_size, num_nodes);
+    SageLinearPipelined sage_linear_layer(&cuda_helper, num_in_features, num_out_features, chunk_size, num_nodes);
 
-    std::vector<Matrix<float>> *result = sage_linear_layer.forward(&input_self_chunked, &input_neigh_chunked);
-
-    bool first_check = check_nans(result, "SageLinear op");
+    std::vector<Matrix<float>> *activations = sage_linear_layer.forward(&input_self_chunked, &input_neigh_chunked);
 
     SageLinearGradientsChunked *gradients = sage_linear_layer.backward(&incoming_gradients_chunked);
 
-    bool second_check = check_nans(gradients->self_gradients, "SageLinear backward self");
-    bool third_check = check_nans(gradients->neighbourhood_gradients, "SageLinear backward neigh");
+    Matrix<float> activations_one(num_nodes, num_out_features, false);
+    stitch(activations, &activations_one);
 
-    if (first_check || second_check || third_check) {
-        return 0;
-    } else {
-        return 1;
-    }
+    path = test_dir_path + "/result.npy";
+    save_npy_matrix(&activations_one, path);
+    save_params(sage_linear_layer.get_parameters());
+    save_grads(gradients, sage_linear_layer.get_gradients(), num_nodes);
+
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/sage_linear.py";
+    system(command);
+
+    path = test_dir_path + "/value.npy";
+    return read_return_value(path);
 }
 
 TEST_CASE("SageLinear", "[sagelinear]") {
@@ -156,7 +159,7 @@ TEST_CASE("SageLinear, chunked", "[sagelinear][chunked]") {
     CHECK(test_sage_linear_chunked(&input_self, &input_neigh, &in_gradients, 1 << 8));
 }
 
-TEST_CASE("SageLinear, chunked, NaNs", "[sagelinear][chunked][nans]") {
+TEST_CASE("SageLinear, pipelined", "[sagelinear][pipelined]") {
     std::string path;
     int rows = 2449029;// products
     int columns = 100; // products
@@ -171,7 +174,7 @@ TEST_CASE("SageLinear, chunked, NaNs", "[sagelinear][chunked][nans]") {
     Matrix<float> in_gradients(rows, num_out_features, true);
     in_gradients.set_random_values();
 
-    CHECK(test_sage_linear_nans_chunked(&input_self, &input_neigh, &in_gradients, 1 << 16));
-    CHECK(test_sage_linear_nans_chunked(&input_self, &input_neigh, &in_gradients, 1 << 12));
-    CHECK(test_sage_linear_nans_chunked(&input_self, &input_neigh, &in_gradients, 1 << 8));
+    CHECK(test_sage_linear_piplined(&input_self, &input_neigh, &in_gradients, 1 << 16));
+    CHECK(test_sage_linear_piplined(&input_self, &input_neigh, &in_gradients, 1 << 12));
+    CHECK(test_sage_linear_piplined(&input_self, &input_neigh, &in_gradients, 1 << 8));
 }

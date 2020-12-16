@@ -75,8 +75,8 @@ protected:
 public:
     DropoutPipelined();
     DropoutPipelined(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
-    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
-    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
+    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) override;
+    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
     void forward_in(long chunk, long buffer) override;
     void forward_out(long chunk, long buffer) override;
