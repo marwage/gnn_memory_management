@@ -9,8 +9,9 @@
 #include <vector>
 
 class Linear {
-private:
+protected:
     CudaHelper *cuda_helper_;
+    long num_nodes_;
     long num_in_features_;
     long num_out_features_;
     Matrix<float> weight_;
@@ -22,6 +23,12 @@ private:
     std::vector<float> ones_;
     Matrix<float> gradients_input_;
     Matrix<float> *x_ = NULL;
+    float *d_weight_;
+    float *d_bias_;
+    float *d_ones_;
+    float *d_db_;
+    float *d_dx_;
+    float *d_dweight_;
 
     void init_weight_bias();
     void expand_bias();
@@ -32,10 +39,16 @@ public:
     void set(CudaHelper *helper, long in_features, long out_features, long num_nodes);
     std::vector<Matrix<float> *> get_parameters();
     std::vector<Matrix<float> *> get_gradients();
+    std::vector<float *> get_gradients_cuda();
     void set_gradients(Matrix<float> *weight_grads, Matrix<float> *bias_grads);
+    void forward_init();
+    float *forward_compute(float *d_x, long num_rows);
+    void forward_free();
     Matrix<float> *forward(Matrix<float> *x);
+    void backward_init();
+    float *backward_compute(float *d_dy, float *d_x);
+    void backward_free();
     Matrix<float> *backward(Matrix<float> *in_gradients);
-    void backward(Matrix<float> *incoming_gradients, Matrix<float> *x, Matrix<float> *gradients);
 };
 
 #endif

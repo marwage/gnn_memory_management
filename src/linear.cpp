@@ -18,6 +18,7 @@ Linear::Linear(CudaHelper *helper, long in_features, long out_features, long num
 void Linear::set(CudaHelper *helper, long in_features, long out_features, long num_nodes) {
     cuda_helper_ = helper;
 
+    num_nodes_ = num_nodes;
     num_in_features_ = in_features;
     num_out_features_ = out_features;
 
@@ -27,7 +28,7 @@ void Linear::set(CudaHelper *helper, long in_features, long out_features, long n
     grad_weight_.set(weight_.num_rows_, weight_.num_columns_, false);
     grad_bias_.set(bias_.num_rows_, bias_.num_columns_, false);
 
-    Linear::init_weight_bias();
+    init_weight_bias();
 
     bias_expanded_.set(num_nodes, bias_.num_rows_, false);
 
@@ -68,6 +69,14 @@ std::vector<Matrix<float> *> Linear::get_gradients() {
     return gradients;
 }
 
+std::vector<float *> Linear::get_gradients_cuda() {
+    std::vector<float *> gradients(2);
+    gradients[0] = d_dweight_;
+    gradients[1] = d_db_;
+
+    return gradients;
+}
+
 void Linear::set_gradients(Matrix<float> *weight_grads, Matrix<float> *bias_grads) {
     to_column_major_inplace(weight_grads);
     to_column_major_inplace(bias_grads);
@@ -84,158 +93,160 @@ void Linear::expand_bias() {
     }
 }
 
-Matrix<float> *Linear::forward(Matrix<float> *x) {
-    to_column_major_inplace(x);
-    x_ = x;
+void Linear::forward_init() {
     to_column_major_inplace(&weight_);
     to_column_major_inplace(&bias_);
 
-    float *d_x;
-    float *d_weight;
-    float *d_bias;
-    check_cuda(cudaMalloc(reinterpret_cast<void **>(&d_x),
-                          x->num_rows_ * x->num_columns_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_x, x->values_,
-                          x->num_rows_ * x->num_columns_ * sizeof(float),
+    check_cuda(cudaMalloc(&d_weight_, weight_.size_ * sizeof(float)));
+    check_cuda(cudaMemcpy(d_weight_, weight_.values_, weight_.size_ * sizeof(float),
                           cudaMemcpyHostToDevice));
 
-    check_cuda(cudaMalloc(&d_weight,
-                          weight_.num_rows_ * weight_.num_columns_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_weight, weight_.values_,
-                          weight_.num_rows_ * weight_.num_columns_ * sizeof(float),
-                          cudaMemcpyHostToDevice));
+    expand_bias();
+    check_cuda(cudaMalloc(&d_bias_, bias_expanded_.size_ * sizeof(float)));
+}
 
-    Linear::expand_bias();
-    check_cuda(cudaMalloc(&d_bias,
-                          bias_expanded_.num_rows_ * bias_expanded_.num_columns_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_bias, bias_expanded_.values_,
-                          bias_expanded_.num_rows_ * bias_expanded_.num_columns_ * sizeof(float),
+float *Linear::forward_compute(float *d_x, long num_rows) {
+    // needs to be reset at every call because it's overwritten with the result
+    check_cuda(cudaMemcpy(d_bias_, bias_expanded_.values_, bias_expanded_.size_ * sizeof(float),
                           cudaMemcpyHostToDevice));
 
     float alpha = 1.0;
     float beta = 1.0;
-    check_cublas(cublasSgemm(cuda_helper_->cublas_handle,// PyTorch uses GEMM too
+    check_cublas(cublasSgemm(cuda_helper_->cublas_handle, // PyTorch uses GEMM too
                              CUBLAS_OP_N, CUBLAS_OP_N,
-                             x->num_rows_, weight_.num_columns_, x->num_columns_,
+                             num_rows, num_out_features_, num_in_features_,
                              &alpha,
-                             d_x, x->num_rows_,
-                             d_weight, weight_.num_rows_,
+                             d_x, num_rows,
+                             d_weight_, weight_.num_rows_,
                              &beta,
-                             d_bias, x->num_rows_));
+                             d_bias_, num_rows));
+
+    return d_bias_;
+}
+
+void Linear::forward_free() {
+    check_cuda(cudaFree(d_weight_));
+    check_cuda(cudaFree(d_bias_));
+}
+
+Matrix<float> *Linear::forward(Matrix<float> *x) {
+    to_column_major_inplace(x);
+    x_ = x;
+
+    forward_init();
+
+    float *d_x;
+    check_cuda(cudaMalloc(&d_x, x->size_ * sizeof(float)));
+    check_cuda(cudaMemcpy(d_x, x->values_, x->size_ * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
+    forward_compute(d_x, num_nodes_);
 
     // get result of linear
-    check_cuda(cudaMemcpy(y_.values_, d_bias,
-                          y_.num_rows_ * y_.num_columns_ * sizeof(float),
+    check_cuda(cudaMemcpy(y_.values_, d_bias_, y_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
-
     y_.is_row_major_ = false;
 
-    // free GPU memory
+    // free
     check_cuda(cudaFree(d_x));
-    check_cuda(cudaFree(d_weight));
-    check_cuda(cudaFree(d_bias));
+    forward_free();
 
     return &y_;
 }
 
-void Linear::backward(Matrix<float> *incoming_gradients, Matrix<float> *x, Matrix<float> *gradients) {
-    to_column_major_inplace(incoming_gradients);
-    to_column_major_inplace(x);
-    to_column_major_inplace(&weight_);
-    to_column_major_inplace(&bias_);
+void Linear::backward_init() {
+    check_cuda(cudaMalloc(&d_ones_, num_nodes_ * sizeof(float)));
+    check_cuda(cudaMemcpy(d_ones_, ones_.data(), num_nodes_ * sizeof(float),
+                          cudaMemcpyHostToDevice));
 
+    check_cuda(cudaMalloc(&d_db_, bias_expanded_.num_columns_ * sizeof(float)));
+
+    check_cuda(cudaMalloc(&d_weight_, weight_.size_ * sizeof(float)));
+    check_cuda(cudaMemcpy(d_weight_, weight_.values_, weight_.size_ * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
+    check_cuda(cudaMalloc(&d_dx_, gradients_input_.size_ * sizeof(float)));
+
+    check_cuda(cudaMalloc(&d_dweight_, grad_weight_.num_rows_ * grad_weight_.num_columns_ * sizeof(float)));
+}
+
+// d_dx = linear_self_.backward_compute(d_dy, d_x);
+float *Linear::backward_compute(float *d_dy, float *d_x) {
     float alpha = 1.0;
     float beta = 0.0;
 
-    // gradients of bias
-    float *d_g;
-    check_cuda(cudaMalloc(&d_g, incoming_gradients->size_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_g, incoming_gradients->values_,
-                          incoming_gradients->size_ * sizeof(float),
-                          cudaMemcpyHostToDevice));
-
-    float *d_ones;
-    check_cuda(cudaMalloc(&d_ones, incoming_gradients->num_rows_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_ones, ones_.data(),
-                          incoming_gradients->num_rows_ * sizeof(float),
-                          cudaMemcpyHostToDevice));
-
-    float *d_db;
-    check_cuda(cudaMalloc(&d_db, incoming_gradients->num_columns_ * sizeof(float)));
-
-
+    // dBias = incoming_gradients * ones
     check_cublas(cublasSgemv(cuda_helper_->cublas_handle,
                              CUBLAS_OP_T,
-                             incoming_gradients->num_rows_, incoming_gradients->num_columns_,
-                             &alpha, d_g, incoming_gradients->num_rows_,
-                             d_ones, 1,
-                             &beta, d_db, 1));
+                             num_nodes_, num_out_features_,
+                             &alpha, d_dy, num_nodes_,
+                             d_ones_, 1,
+                             &beta, d_db_, 1));
 
-    check_cuda(cudaMemcpy(grad_bias_.values_, d_db,
-                          grad_bias_.num_rows_ * grad_bias_.num_columns_ * sizeof(float),
-                          cudaMemcpyDeviceToHost));
-
-    check_cuda(cudaFree(d_ones));
-    check_cuda(cudaFree(d_db));
-
-    // gradient of weight
-    // gradients_input = in_gradients * weight.T
-    float *d_weight;
-    check_cuda(cudaMalloc(&d_weight, weight_.size_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_weight, weight_.values_,
-                          weight_.size_ * sizeof(float),
-                          cudaMemcpyHostToDevice));
-
-    float *d_dinput;
-    check_cuda(cudaMalloc(&d_dinput,
-                          gradients->size_ * sizeof(float)));
-
+    // gradients_input = incoming_gradients * weight.T
     check_cublas(cublasSgemm(cuda_helper_->cublas_handle,
                              CUBLAS_OP_N, CUBLAS_OP_T,
-                             incoming_gradients->num_rows_, weight_.num_rows_, incoming_gradients->num_columns_,
+                             num_nodes_, weight_.num_rows_, num_out_features_,
                              &alpha,
-                             d_g, incoming_gradients->num_rows_,
-                             d_weight, weight_.num_rows_,
+                             d_dy, num_nodes_,
+                             d_weight_, weight_.num_rows_,
                              &beta,
-                             d_dinput, gradients->num_rows_));
+                             d_dx_, num_nodes_));
 
-    check_cuda(cudaMemcpy(gradients->values_, d_dinput,
-                          gradients->num_rows_ * gradients->num_columns_ * sizeof(float),
-                          cudaMemcpyDeviceToHost));
-
-    check_cuda(cudaFree(d_dinput));
-    check_cuda(cudaFree(d_weight));
-
-    // dWeight = input.T * in_gradients
-    float *d_input;
-    check_cuda(cudaMalloc(&d_input, x->size_ * sizeof(float)));
-    check_cuda(cudaMemcpy(d_input, x->values_,
-                          x->num_rows_ * x->num_columns_ * sizeof(float),
-                          cudaMemcpyHostToDevice));
-
-    float *d_dweight;
-    check_cuda(cudaMalloc(&d_dweight, grad_weight_.num_rows_ * grad_weight_.num_columns_ * sizeof(float)));
-
+    // dWeight = input.T * incoming_gradients
     check_cublas(cublasSgemm(cuda_helper_->cublas_handle,
                              CUBLAS_OP_T, CUBLAS_OP_N,
-                             x->num_columns_, incoming_gradients->num_columns_, x->num_rows_,
+                             num_in_features_, num_out_features_, num_nodes_,
                              &alpha,
-                             d_input, x->num_rows_,
-                             d_g, incoming_gradients->num_rows_,
+                             d_x, num_nodes_,
+                             d_dy, num_nodes_,
                              &beta,
-                             d_dweight, grad_weight_.num_rows_));
+                             d_dweight_, grad_weight_.num_rows_));
 
-    check_cuda(cudaMemcpy(grad_weight_.values_, d_dweight,
-                          grad_weight_.num_rows_ * grad_weight_.num_columns_ * sizeof(float),
-                          cudaMemcpyDeviceToHost));
-
-    check_cuda(cudaFree(d_g));
-    check_cuda(cudaFree(d_dweight));
-    check_cuda(cudaFree(d_input));
+    return d_dx_;
 }
 
-Matrix<float> *Linear::backward(Matrix<float> *in_gradients) {
-    backward(in_gradients, x_, &gradients_input_);
+void Linear::backward_free() {
+    check_cuda(cudaFree(d_ones_));
+    check_cuda(cudaFree(d_db_));
+    check_cuda(cudaFree(d_weight_));
+    check_cuda(cudaFree(d_dx_));
+    check_cuda(cudaFree(d_dweight_));
+}
+
+Matrix<float> *Linear::backward(Matrix<float> *incoming_gradients) {
+    to_column_major_inplace(incoming_gradients);
+    to_column_major_inplace(x_);
+    to_column_major_inplace(&weight_);
+    to_column_major_inplace(&bias_);
+
+    backward_init();
+
+    float *d_dy;
+    check_cuda(cudaMalloc(&d_dy, incoming_gradients->size_ * sizeof(float)));
+    check_cuda(cudaMemcpy(d_dy, incoming_gradients->values_, incoming_gradients->size_ * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
+    float *d_x;
+    check_cuda(cudaMalloc(&d_x, x_->size_ * sizeof(float)));
+    check_cuda(cudaMemcpy(d_x, x_->values_, x_->size_ * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
+    backward_compute(d_dy, d_x);
+
+    // gradients of bias
+    check_cuda(cudaMemcpy(grad_bias_.values_, d_db_, grad_bias_.size_ * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    // gradients of input
+    check_cuda(cudaMemcpy(gradients_input_.values_, d_dx_, gradients_input_.size_ * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    // gradients of weight
+    check_cuda(cudaMemcpy(grad_weight_.values_, d_dweight_, grad_weight_.size_ * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    backward_free();
 
     return &gradients_input_;
 }
