@@ -3,12 +3,12 @@ import os
 import scipy.io
 import scipy.sparse as sp
 import torch
-from helper import (check_close_equal, save_return_value,
+from helper import (check_close_equal, save_return_value, update_return,
                     to_torch, print_close_equal, count_nans, write_equal)
 
 
 def test_linear():
-    all_close = 1.0
+    all_close = True
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     home = os.getenv("HOME")
@@ -42,7 +42,7 @@ def test_linear():
 
     ratio_close, ratio_equal = check_close_equal(activations, true_activations)
     print_close_equal("Linear", ratio_close, ratio_equal)
-    all_close = all_close * ratio_close
+    all_close = update_return(ratio_close)
 
     # BACKPROPAGATION
     true_activations_torch.backward(in_gradients_torch)
@@ -63,18 +63,18 @@ def test_linear():
     if (num_nans > 0):
         print("Input gradients: Number of NaNs: {}".format(num_nans))
         path = test_dir_path + "/value.npy"
-        write_equal(0.0, pyth)
+        write_equal(0.0, path)
     ratio_close, ratio_equal = check_close_equal(input_gradients, true_input_gradients)
     print_close_equal("Input gradients", ratio_close, ratio_equal)
-    all_close = all_close * ratio_close
+    all_close = update_return(ratio_close)
 
     ratio_close, ratio_equal = check_close_equal(weight_gradients, true_weight_gradients)
     print_close_equal("Weight gradients", ratio_close, ratio_equal)
-    all_close = all_close * ratio_close
+    all_close = update_return(ratio_close)
 
     ratio_close, ratio_equal = check_close_equal(bias_gradients, true_bias_gradients)
     print_close_equal("Bias gradients", ratio_close, ratio_equal)
-    all_close = all_close * ratio_close
+    all_close = update_return(ratio_close)
 
     path = test_dir_path + "/value.npy"
     write_equal(all_close, path)
@@ -82,3 +82,4 @@ def test_linear():
 
 if __name__ == "__main__":
     test_linear()
+

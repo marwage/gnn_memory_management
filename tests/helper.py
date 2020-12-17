@@ -129,7 +129,8 @@ def print_close_equal(matrix_name, close, equal):
 
 
 def update_return(ratio):
-    if ratio < 0.99:
+    if ratio < 0.98:
         return False
     else:
         return True
+
