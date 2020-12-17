@@ -356,7 +356,7 @@ void DropoutPipelined::forward_out(long chunk, long buffer) {
     y_.at(chunk).is_row_major_ = true;
 }
 
-void DropoutPipelined::forward_compute(long buffer) {
+void DropoutPipelined::forward_compute(long chunk, long buffer) {
     check_cudnn(cudnnDropoutForward(cuda_helper_->cudnn_handle,
                                     dropout_desc_.at(buffer), x_desc_.at(buffer), d_x_.at(buffer),
                                     y_desc_.at(buffer), d_y_.at(buffer),
@@ -379,7 +379,7 @@ void DropoutPipelined::backward_out(long chunk, long buffer) {
                                cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
 }
 
-void DropoutPipelined::backward_compute(long buffer) {
+void DropoutPipelined::backward_compute(long chunk, long buffer) {
     check_cudnn(cudnnDropoutBackward(cuda_helper_->cudnn_handle, dropout_desc_.at(buffer),
                                      dy_desc_.at(buffer), d_dy_.at(buffer), dx_desc_.at(buffer), d_dx_.at(buffer),
                                      d_reserve_space_.at(buffer), reserve_space_size_));

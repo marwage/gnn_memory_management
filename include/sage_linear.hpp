@@ -4,9 +4,9 @@
 #define SAGE_LINEAR_H
 
 #include "cuda_helper.hpp"
+#include "layer.hpp"
 #include "linear.hpp"
 #include "tensors.hpp"
-#include "layer.hpp"
 
 #include <vector>
 
@@ -74,8 +74,8 @@ public:
 class SageLinearPipelined : public LayerPipelined, public SageLinearChunked {
 protected:
     long num_steps_;
-    std::vector<float *> d_x_; // check
-    std::vector<float *> d_y_; // check
+    std::vector<float *> d_x_;// check
+    std::vector<float *> d_y_;// check
     std::vector<float *> d_dx_;
     std::vector<float *> d_dy_;
     std::vector<Matrix<float>> *x_;
@@ -89,11 +89,10 @@ public:
     SageLinearGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients) override;
     void forward_in(long chunk, long buffer) override;
     void forward_out(long chunk, long buffer) override;
-    void forward_compute(long chunk, long buffer);
-    void forward_compute(long buffer) override;
+    void forward_compute(long chunk, long buffer) override;
     void backward_in(long chunk, long buffer) override;
     void backward_out(long chunk, long buffer) override;
-    void backward_compute(long buffer) override;
+    void backward_compute(long chunk, long buffer) override;
 };
 
 #endif

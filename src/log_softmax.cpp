@@ -291,7 +291,7 @@ void LogSoftmaxPipelined::forward_out(long chunk, long buffer) {
     y_.at(chunk).is_row_major_ = true;
 }
 
-void LogSoftmaxPipelined::forward_compute(long buffer) {
+void LogSoftmaxPipelined::forward_compute(long chunk, long buffer) {
     check_cudnn(cudnnSoftmaxForward(cuda_helper_->cudnn_handle, CUDNN_SOFTMAX_LOG, CUDNN_SOFTMAX_MODE_INSTANCE,
                                     &alpha_, x_desc_.at(buffer), d_x_.at(buffer),
                                     &beta_, y_desc_.at(buffer), d_y_.at(buffer)));
@@ -317,7 +317,7 @@ void LogSoftmaxPipelined::backward_out(long chunk, long buffer) {
     gradients_.at(chunk).is_row_major_ = true;
 }
 
-void LogSoftmaxPipelined::backward_compute(long buffer) {
+void LogSoftmaxPipelined::backward_compute(long chunk, long buffer) {
     check_cudnn(cudnnSoftmaxBackward(cuda_helper_->cudnn_handle, CUDNN_SOFTMAX_LOG, CUDNN_SOFTMAX_MODE_INSTANCE,
                                      &alpha_, y_desc_.at(buffer), d_y_.at(buffer),
                                      dy_desc_.at(buffer), d_dy_.at(buffer),

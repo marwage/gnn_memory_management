@@ -71,7 +71,7 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, l
     set(helper, num_in_features, num_out_features, chunk_size, num_nodes);
 }
 
-void SageLinearChunked::set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes){
+void SageLinearChunked::set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) {
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
     num_in_features_ = num_in_features;
@@ -140,11 +140,11 @@ std::vector<Matrix<float>> *SageLinearChunked::forward(std::vector<Matrix<float>
                               cudaMemcpyHostToDevice));
 
         // compute
-        d_y = linear_self_.forward_compute(d_x, features->at(i).num_rows_);
+        linear_self_.forward_compute(d_x, features->at(i).num_rows_, d_y);
 
         // out
         check_cuda(cudaMemcpy(y_self_.at(i).values_, d_y, y_self_.at(i).size_ * sizeof(float),
-                   cudaMemcpyDeviceToHost));
+                              cudaMemcpyDeviceToHost));
         y_self_.at(i).is_row_major_ = false;
     }
     linear_self_.forward_free();
@@ -156,7 +156,7 @@ std::vector<Matrix<float>> *SageLinearChunked::forward(std::vector<Matrix<float>
                               cudaMemcpyHostToDevice));
 
         // compute
-        d_y = linear_neigh_.forward_compute(d_x, aggr->at(i).num_rows_);
+        linear_neigh_.forward_compute(d_x, aggr->at(i).num_rows_, d_y);
 
         // out
         check_cuda(cudaMemcpy(y_neigh_.at(i).values_, d_y, y_neigh_.at(i).size_ * sizeof(float),
@@ -211,6 +211,7 @@ SageLinearGradientsChunked *SageLinearChunked::backward(std::vector<Matrix<float
     float *d_x;
     check_cuda((cudaMalloc(&d_x, features_->at(0).size_ * sizeof(float))));
     float *d_dx;
+    check_cuda(cudaMalloc(&d_dx, features_->at(0).size_ * sizeof(float)));
     std::vector<float *> gradients_cuda;
 
     linear_self_.backward_init();
@@ -222,7 +223,7 @@ SageLinearGradientsChunked *SageLinearChunked::backward(std::vector<Matrix<float
                               cudaMemcpyHostToDevice));
 
         // compute
-        d_dx = linear_self_.backward_compute(d_dy, d_x);
+        linear_self_.backward_compute(d_dy, d_x, features_->at(i).num_rows_, d_dx);
         gradients_cuda = linear_self_.get_gradients_cuda();
         mat_mat_add_cuda(cuda_helper_, gradients_cuda.at(0), d_weight_sum, num_in_features_ * num_out_features_);
         mat_mat_add_cuda(cuda_helper_, gradients_cuda.at(1), d_bias_sum, num_out_features_);
@@ -250,7 +251,7 @@ SageLinearGradientsChunked *SageLinearChunked::backward(std::vector<Matrix<float
         check_cuda(cudaMemcpy(d_x, aggregated_features_->at(i).values_, aggregated_features_->at(i).size_ * sizeof(float),
                               cudaMemcpyHostToDevice));
         // backward neigh
-        d_dx = linear_neigh_.backward_compute(d_dy, d_x);
+        linear_neigh_.backward_compute(d_dy, d_x, incoming_gradients->at(i).num_rows_, d_dx);
         gradients_cuda = linear_neigh_.get_gradients_cuda();
         mat_mat_add_cuda(cuda_helper_, gradients_cuda.at(0), d_weight_sum, num_in_features_ * num_out_features_);
         mat_mat_add_cuda(cuda_helper_, gradients_cuda.at(1), d_bias_sum, num_out_features_);
@@ -304,11 +305,7 @@ void SageLinearPipelined::forward_out(long chunk, long buffer) {
 }
 
 void SageLinearPipelined::forward_compute(long chunk, long buffer) {
-    d_y_.at(buffer) = linear_neigh_.forward_compute(d_x_.at(buffer), aggregated_features_->at(chunk).num_rows_);
-}
-
-void SageLinearPipelined::forward_compute(long buffer) {
-    // TESTING
+    linear_neigh_.forward_compute(d_x_.at(buffer), aggregated_features_->at(chunk).num_rows_, d_y_.at(buffer));
 }
 
 std::vector<Matrix<float>> *SageLinearPipelined::forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr) {
@@ -335,20 +332,19 @@ std::vector<Matrix<float>> *SageLinearPipelined::forward(std::vector<Matrix<floa
         check_cuda(cudaFree(d_x_.at(i)));
     }
 
+    return &y_;
 }
 
 void SageLinearPipelined::backward_in(long chunk, long buffer) {
-
 }
 
 void SageLinearPipelined::backward_out(long chunk, long buffer) {
-
 }
 
-void SageLinearPipelined::backward_compute(long buffer) {
-
+void SageLinearPipelined::backward_compute(long chunk, long buffer) {
 }
 
 SageLinearGradientsChunked *SageLinearPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
 
+    return &input_gradients_;
 }

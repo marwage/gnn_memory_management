@@ -80,10 +80,10 @@ public:
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
     void forward_in(long chunk, long buffer) override;
     void forward_out(long chunk, long buffer) override;
-    void forward_compute(long buffer) override;
+    void forward_compute(long chunk, long buffer) override;
     void backward_in(long chunk, long buffer) override;
     void backward_out(long chunk, long buffer) override;
-    void backward_compute(long buffer) override;
+    void backward_compute(long chunk, long buffer) override;
 };
 
 #endif

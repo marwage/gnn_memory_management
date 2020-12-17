@@ -36,9 +36,9 @@ void LayerPipelined::pipeline(bool forward, long num_chunks) {
             // two computation
             if (chunk_two < num_chunks && i > 2) {
                 if (forward) {
-                    forward_compute(2);
+                    forward_compute(chunk_two, 2);
                 } else {
-                    backward_compute(2);
+                    backward_compute(chunk_two, 2);
                 }
             }
         } else if (i % 3 == 1) {
@@ -64,9 +64,9 @@ void LayerPipelined::pipeline(bool forward, long num_chunks) {
             // zero compute
             if (chunk_zero < num_chunks && i > 0) {
                 if (forward) {
-                    forward_compute(0);
+                    forward_compute(chunk_zero, 0);
                 } else {
-                    backward_compute(0);
+                    backward_compute(chunk_zero, 0);
                 }
             }
         } else if (i % 3 == 2) {
@@ -92,9 +92,9 @@ void LayerPipelined::pipeline(bool forward, long num_chunks) {
             // one compute
             if (chunk_one < num_chunks && i > 0) {
                 if (forward) {
-                    forward_compute(1);
+                    forward_compute(chunk_one, 1);
                 } else {
-                    backward_compute(1);
+                    backward_compute(chunk_one, 1);
                 }
             }
         }

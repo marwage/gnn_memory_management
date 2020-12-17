@@ -320,7 +320,7 @@ void ReluPipelined::forward_out(long chunk, long buffer) {
     y_.at(chunk).is_row_major_ = true;
 }
 
-void ReluPipelined::forward_compute(long buffer) {
+void ReluPipelined::forward_compute(long chunk, long buffer) {
     check_cudnn(cudnnActivationForward(cuda_helper_->cudnn_handle,
                                        relu_desc_,
                                        &alpha_, x_desc_.at(buffer), d_x_.at(buffer),
@@ -352,7 +352,7 @@ void ReluPipelined::backward_out(long chunk, long buffer) {
     gradients_.at(chunk).is_row_major_ = true;
 }
 
-void ReluPipelined::backward_compute(long buffer) {
+void ReluPipelined::backward_compute(long chunk, long buffer) {
     check_cudnn(cudnnActivationBackward(cuda_helper_->cudnn_handle,
                                         relu_desc_,
                                         &alpha_, y_desc_.at(buffer), d_y_.at(buffer),

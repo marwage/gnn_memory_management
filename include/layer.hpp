@@ -10,7 +10,7 @@
 
 class Layer {
 protected:
-    CudaHelper *cuda_helper_ = NULL;
+    CudaHelper *cuda_helper_;
     Matrix<float> y_;
     Matrix<float> gradients_;
 
@@ -25,7 +25,7 @@ protected:
     long chunk_size_;
     long last_chunk_size_;
     long num_chunks_;
-    CudaHelper *cuda_helper_ = NULL;
+    CudaHelper *cuda_helper_;
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
 
@@ -39,10 +39,10 @@ class LayerPipelined {
 public:
     virtual void forward_in(long chunk, long buffer) = 0;
     virtual void forward_out(long chunk, long buffer) = 0;
-    virtual void forward_compute(long buffer) = 0;
+    virtual void forward_compute(long chunk, long buffer) = 0;
     virtual void backward_in(long chunk, long buffer) = 0;
     virtual void backward_out(long chunk, long buffer) = 0;
-    virtual void backward_compute(long buffer) = 0;
+    virtual void backward_compute(long chunk, long buffer) = 0;
     void pipeline(bool forward, long num_chunks);
 };
 
