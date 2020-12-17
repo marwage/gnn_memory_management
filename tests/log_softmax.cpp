@@ -1,6 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "activation.hpp"
+#include "log_softmax.hpp"
 #include "tensors.hpp"
 
 #include "catch2/catch.hpp"
@@ -17,6 +17,13 @@ TEST_CASE("Log-softmax", "[logsoftmax]") {
 
 TEST_CASE("Log-softmax, chunked", "[logsoftmax][chunked]") {
     LogSoftmaxChunked logsoftmax;
+    CHECK(test_layer_chunked(&logsoftmax, "log_softmax", 1 << 15));
+    CHECK(test_layer_chunked(&logsoftmax, "log_softmax", 1 << 12));
+    CHECK(test_layer_chunked(&logsoftmax, "log_softmax", 1 << 8));
+}
+
+TEST_CASE("Log-softmax, chunked, piplined", "[logsoftmax][chunked][piplined]") {
+    LogSoftmaxPipelined logsoftmax;
     CHECK(test_layer_chunked(&logsoftmax, "log_softmax", 1 << 15));
     CHECK(test_layer_chunked(&logsoftmax, "log_softmax", 1 << 12));
     CHECK(test_layer_chunked(&logsoftmax, "log_softmax", 1 << 8));

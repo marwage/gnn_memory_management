@@ -6,6 +6,14 @@ project(alzheimer VERSION 0.1
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+#set(CMAKE_CXX_FLAGS "-ansi -pedantic-errors -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-ansi -Wall -Wextra")
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif ()
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 find_package(CUDA 10.2 REQUIRED)
@@ -18,7 +26,8 @@ set(SOURCE_FILES
         src/graph_convolution.cpp
         src/dropout.cpp
         src/linear.cpp
-        src/activation.cpp
+        src/relu.cpp
+        src/log_softmax.cpp
         src/loss.cpp
         src/sage_linear.cpp
         src/adam.cpp
@@ -34,7 +43,8 @@ set(SOURCE_FILES
         src/gpu_memory_logger.cpp
         src/sparse_computation.cpp
         src/dense_computation.cpp
-        src/chunking.cpp)
+        src/chunking.cpp
+        src/pipeline.cpp)
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})

@@ -24,14 +24,15 @@ float NLLLoss::forward(Matrix<float> *x, Matrix<int> *labels) {
 }
 
 float NLLLoss::forward(std::vector<Matrix<float>> *x, Matrix<int> *labels) {
-    for (int i = 0; i < x->size(); ++i) {
+    long num_chunks = x->size();
+    for (int i = 0; i < num_chunks; ++i) {
         to_row_major_inplace(&x->at(i));
     }
 
     double loss = 0.0;
     long row = 0;
     long chunk_size = x->at(0).num_rows_;
-    for (int i = 0; i < x->size(); ++i) {
+    for (int i = 0; i < num_chunks; ++i) {
         for (int j = 0; j < x->at(i).num_rows_; ++j) {
             row = i * chunk_size + j;
             loss = loss + x->at(i).values_[j * x->at(i).num_columns_ + labels->values_[row]];

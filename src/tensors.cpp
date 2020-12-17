@@ -161,9 +161,6 @@ template void SparseMatrixCuda<float>::set(int num_rows, int num_columns, int nu
 
 template<typename T>
 void print_matrix(Matrix<T> *mat) {
-    int N = mat->num_rows_;
-    int M = mat->num_columns_;
-
     std::cout << "-----" << std::endl;
     for (int i = 0; i < mat->num_rows_; i = i + 1) {
         for (int j = 0; j < mat->num_columns_; j = j + 1) {
@@ -250,7 +247,7 @@ void transpose(T *a_T, T *a, long rows, long cols,
 }
 
 template<typename T>
-void *transpose(T *a_T, T *a, long rows, long cols) {
+void transpose(T *a_T, T *a, long rows, long cols) {
     transpose(a_T, a, rows, cols, 0, rows, 0, cols);
 }
 
@@ -444,22 +441,21 @@ bool check_nans(Matrix<float> *x, std::string name) {
     if (num_nans > 0) {
         std::cout << name << " has " << num_nans << " NaNs" << std::endl;
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 bool check_nans(std::vector<Matrix<float>> *x, std::string name) {
+    long num_chunks = x->size();
     long num_nans = 0;
-    for (long i = 0; i < x->size(); ++i) {
+    for (long i = 0; i < num_chunks; ++i) {
         num_nans = count_nans(&x->at(i));
         if (num_nans > 0) {
             std::cout << name << " has " << num_nans << " NaNs at " << std::to_string(i) << std::endl;
             return true;
-        } else {
-            return false;
         }
     }
+    return false;
 }
 
 bool check_equality(Matrix<float> *a, Matrix<float> *b) {

@@ -1,8 +1,8 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "cuda_helper.hpp"
-#include "tensors.hpp"
 #include "sparse_computation.hpp"
+#include "tensors.hpp"
 
 #include "catch2/catch.hpp"
 #include <string>
@@ -90,8 +90,7 @@ int test_sparse_to_dense() {
 
     print_matrix(&mat);
 
-    return 1; // TODO
-
+    return 1;// TODO
 }
 
 TEST_CASE("Sparse transpose", "[sparse][transpose]") {

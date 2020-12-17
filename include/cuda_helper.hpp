@@ -9,15 +9,14 @@
 #include <cudnn.h>
 
 class CudaHelper {
-private:
-    cublasStatus_t cublas_status;
-    cudnnStatus_t cudnn_status;
-    cusparseStatus_t cusparse_status;
-
 public:
     cublasHandle_t cublas_handle;
     cudnnHandle_t cudnn_handle;
     cusparseHandle_t cusparse_handle;
+
+    cudaStream_t stream_in_;
+    cudaStream_t stream_out_;
+    cudaStream_t stream_compute_;
 
     CudaHelper();
     ~CudaHelper();

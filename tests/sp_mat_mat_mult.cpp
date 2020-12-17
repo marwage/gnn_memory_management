@@ -13,7 +13,7 @@
 void sp_mat_mat_mult_chunked(CudaHelper *cuda_helper, std::vector<SparseMatrix<float>> *sp, std::vector<Matrix<float>> *x, std::vector<Matrix<float>> *y) {
     long num_chunks = x->size();
 
-    for (int i = 0; i < x->size(); ++i) {
+    for (long i = 0; i < num_chunks; ++i) {
         to_column_major_inplace(&x->at(i));
     }
 

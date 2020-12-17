@@ -20,7 +20,6 @@ int test_adam() {
     long num_in_features = 1024;
     long num_out_features = 512;
     float learning_rate = 0.003;
-    long num_params = 2;
 
     Matrix<float> weight_grads(num_in_features, num_out_features, false);
     weight_grads.set_random_values();

@@ -280,23 +280,20 @@ void transpose_csr_matrix_cpu(SparseMatrix<float> *mat) {
     // code from scipy
     std::fill(csc_row_ptr, csc_row_ptr + mat->num_columns_, 0);
 
-    for (int n = 0; n < mat->nnz_; n++){
+    for (int n = 0; n < mat->nnz_; n++) {
         csc_row_ptr[mat->csr_col_ind_[n]]++;
     }
 
-    for(int col = 0, cumsum = 0; col < mat->num_columns_; col++){
-        int temp  = csc_row_ptr[col];
+    for (int col = 0, cumsum = 0; col < mat->num_columns_; col++) {
+        int temp = csc_row_ptr[col];
         csc_row_ptr[col] = cumsum;
         cumsum += temp;
     }
     csc_row_ptr[mat->num_columns_] = mat->nnz_;
 
-    for(int row = 0; row < mat->num_rows_; row++){
-        int a = mat->csr_row_ptr_[row];
-        int b = mat->csr_row_ptr_[row+1];
-        int c = mat->csr_row_ptr_[mat->num_rows_];
-        for(int jj = mat->csr_row_ptr_[row]; jj < mat->csr_row_ptr_[row+1]; jj++){
-            int col  = mat->csr_col_ind_[jj];
+    for (int row = 0; row < mat->num_rows_; row++) {
+        for (int jj = mat->csr_row_ptr_[row]; jj < mat->csr_row_ptr_[row + 1]; jj++) {
+            int col = mat->csr_col_ind_[jj];
             int dest = csc_row_ptr[col];
 
             csc_col_ind[dest] = row;
@@ -306,10 +303,10 @@ void transpose_csr_matrix_cpu(SparseMatrix<float> *mat) {
         }
     }
 
-    for(int col = 0, last = 0; col <= mat->num_columns_; col++){
-        int temp  = csc_row_ptr[col];
+    for (int col = 0, last = 0; col <= mat->num_columns_; col++) {
+        int temp = csc_row_ptr[col];
         csc_row_ptr[col] = last;
-        last    = temp;
+        last = temp;
     }
     // end code from scipy
 

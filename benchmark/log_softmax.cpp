@@ -1,6 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "activation.hpp"
+#include "log_softmax.hpp"
 #include "chunking.hpp"
 #include "cuda_helper.hpp"
 #include "gpu_memory_logger.hpp"

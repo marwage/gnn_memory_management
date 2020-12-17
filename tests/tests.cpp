@@ -4,5 +4,5 @@
 
 #include <catch2/catch.hpp>
 
-TEST_CASE("All test cases reside in other .cpp files (empty)", "[multi-file]") {
+TEST_CASE("All test cases reside forward_in other .cpp files (empty)", "[multi-file]") {
 }

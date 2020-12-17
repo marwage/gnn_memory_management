@@ -122,7 +122,7 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adja
     }
 
     adjacencies_ = std::vector<SparseMatrix<float>>(num_chunks_ * num_chunks_);
-    long current_end_row; // end row is included [start_row, end_row] not [start_row, end_row)
+    long current_end_row;// end row is included [start_row, end_row] not [start_row, end_row)
     for (int i = 0; i < num_chunks_; ++i) {
         if (i == num_chunks_ - 1) {
             current_end_row = i * chunk_size + last_chunk_size_ - 1;
@@ -168,7 +168,7 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adja
 }
 
 std::vector<Matrix<float>> *GraphConvChunked::forward(std::vector<Matrix<float>> *x) {
-    for (int i = 0; i < x->size(); ++i) {
+    for (int i = 0; i < num_chunks_; ++i) {
         to_column_major_inplace(&x->at(i));
     }
 
@@ -219,7 +219,7 @@ std::vector<Matrix<float>> *GraphConvChunked::forward(std::vector<Matrix<float>>
 }
 
 std::vector<Matrix<float>> *GraphConvChunked::backward(std::vector<Matrix<float>> *incoming_gradients) {
-    for (int i = 0; i < incoming_gradients->size(); ++i) {
+    for (int i = 0; i < num_chunks_; ++i) {
         to_column_major_inplace(&incoming_gradients->at(i));
     }
 

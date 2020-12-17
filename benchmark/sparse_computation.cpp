@@ -1,9 +1,9 @@
 // Copyright 2020 Marcel Wagenländer
 
+#include "sparse_computation.hpp"
 #include "cuda_helper.hpp"
 #include "gpu_memory_logger.hpp"
 #include "tensors.hpp"
-#include "sparse_computation.hpp"
 
 #include <benchmark/benchmark.h>
 
