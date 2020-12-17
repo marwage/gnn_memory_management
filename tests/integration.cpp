@@ -124,7 +124,7 @@ int integration_test() {
     save_npy_matrix(graph_convolution_grads, path);
 
     // add sage_linear_gradients.self_grads + gradients
-    Matrix<float> *add_grads = add.op(linear_grads->self_gradients, graph_convolution_grads);
+    Matrix<float> *add_grads = add.forward(linear_grads->self_gradients, graph_convolution_grads);
     path = test_dir_path + "/add_grads.npy";
     save_npy_matrix(add_grads, path);
 
@@ -160,7 +160,7 @@ int integration_test_chunked(long chunk_size) {
 
     // layers
     GraphConvChunked graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.num_columns_, chunk_size, num_nodes);
-    AddChunked add(&cuda_helper, num_nodes, chunk_size);
+    AddChunked add(&cuda_helper, chunk_size, num_nodes, features.num_columns_);
     SageLinearChunked sage_linear_layer(&cuda_helper, features.num_columns_, num_classes, chunk_size, num_nodes);
     ReluChunked relu_layer(&cuda_helper, chunk_size, num_nodes, num_classes);
     LogSoftmaxChunked log_softmax_layer(&cuda_helper, chunk_size, num_nodes, num_classes);
@@ -273,7 +273,7 @@ int integration_test_chunked(long chunk_size) {
     save_npy_matrix(&graph_convolution_grads_one, path);
 
     // add sage_linear_gradients.self_grads + gradients
-    std::vector<Matrix<float>> *add_grads = add.op(linear_grads->self_gradients, graph_convolution_grads);
+    std::vector<Matrix<float>> *add_grads = add.forward(linear_grads->self_gradients, graph_convolution_grads);
 
     Matrix<float> add_grads_one(num_nodes, add_grads->at(0).num_columns_, false);
     stitch(add_grads, &add_grads_one);

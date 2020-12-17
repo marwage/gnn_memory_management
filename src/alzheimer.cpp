@@ -165,7 +165,7 @@ void alzheimer(std::string dataset) {
         gradients = graph_convolution_2.backward(sage_linear_gradients->neighbourhood_gradients);
 
         // add sage_linear_gradients.self_grads + gradients
-        gradients = add_2.op(sage_linear_gradients->self_gradients, gradients);
+        gradients = add_2.forward(sage_linear_gradients->self_gradients, gradients);
 
         // dropout 2
         gradients = dropout_2.backward(gradients);
@@ -180,7 +180,7 @@ void alzheimer(std::string dataset) {
         gradients = graph_convolution_1.backward(gradients);
 
         // add sage_linear_gradients.self_grads + gradients
-        gradients = add_1.op(sage_linear_gradients->self_gradients, gradients);
+        gradients = add_1.forward(sage_linear_gradients->self_gradients, gradients);
 
         // dropout 1
         gradients = dropout_1.backward(gradients);
@@ -250,8 +250,8 @@ void alzheimer_chunked(std::string dataset, long chunk_size) {
 
     // layers
     NLLLoss loss_layer(num_nodes, num_classes);
-    AddChunked add_1(&cuda_helper, num_nodes, chunk_size);
-    AddChunked add_2(&cuda_helper, num_nodes, chunk_size);
+    AddChunked add_1(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
+    AddChunked add_2(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
     DropoutChunked dropout_0(&cuda_helper, chunk_size, num_nodes, features.num_columns_);
     GraphConvChunked graph_convolution_0(&cuda_helper, &adjacency, "mean", features.num_columns_, chunk_size, num_nodes);
     SageLinearChunked linear_0(&cuda_helper, features.num_columns_, num_hidden_channels, chunk_size, num_nodes);
@@ -356,7 +356,7 @@ void alzheimer_chunked(std::string dataset, long chunk_size) {
         gradients = graph_convolution_2.backward(sage_linear_gradients->neighbourhood_gradients);
 
         // add sage_linear_gradients.self_grads + gradients
-        gradients = add_2.op(sage_linear_gradients->self_gradients, gradients);
+        gradients = add_2.forward(sage_linear_gradients->self_gradients, gradients);
 
         // dropout 2
         gradients = dropout_2.backward(gradients);
@@ -371,7 +371,7 @@ void alzheimer_chunked(std::string dataset, long chunk_size) {
         gradients = graph_convolution_1.backward(gradients);
 
         // add sage_linear_gradients.self_grads + gradients
-        gradients = add_1.op(sage_linear_gradients->self_gradients, gradients);
+        gradients = add_1.forward(sage_linear_gradients->self_gradients, gradients);
 
         // dropout 1
         gradients = dropout_1.backward(gradients);
