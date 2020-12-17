@@ -22,7 +22,8 @@ set(TEST_FILES
         tests/sparse.cpp
         tests/layer.cpp
         tests/sp_mat_mat_mult.cpp
-        tests/pipeline.cpp)
+        tests/pipeline.cpp
+        tests/add.cpp)
 
 set(HELPER_FILES
         tests/helper.cpp)

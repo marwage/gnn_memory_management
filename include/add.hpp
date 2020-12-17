@@ -42,7 +42,7 @@ protected:
 public:
     AddChunked();
     AddChunked(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
-    void set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
+    virtual void set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b);
     virtual AddGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients);
 };
@@ -56,12 +56,17 @@ protected:
     std::vector<Matrix<float>> *b_;
 
 public:
+    AddPipelined();
     AddPipelined(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
+    void set(CudaHelper *cudaHelper, long chunkSize, long numNodes, long numFeatures) override;
     void forward_in(long chunk, long buffer) override;
     void forward_out(long chunk, long buffer) override;
     void forward_compute(long chunk, long buffer) override;
-    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b);
-    AddGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients);
+    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b) override;
+    void backward_in(long chunk, long buffer) override;
+    void backward_out(long chunk, long buffer) override;
+    void backward_compute(long chunk, long buffer) override;
+    AddGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };
 
 #endif//ADD_H

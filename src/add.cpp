@@ -96,8 +96,14 @@ AddGradientsChunked *AddChunked::backward(std::vector<Matrix<float>> *incoming_g
 
 // PIPELINED --- PIPELINED --- PIPELINED
 
-AddPipelined::AddPipelined(CudaHelper *cudaHelper, long chunkSize, long numNodes, long numFeatures)
-    : AddChunked(cudaHelper, chunkSize, numNodes, numFeatures) {
+AddPipelined::AddPipelined() {}
+
+AddPipelined::AddPipelined(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features) {
+    set(cuda_helper, chunk_size, num_nodes, num_features);
+}
+
+void AddPipelined::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features) {
+    AddChunked::set(cuda_helper, chunk_size, num_nodes, num_features);
 
     num_steps_ = 3;
     d_a_ = std::vector<float *>(num_steps_);
@@ -105,6 +111,9 @@ AddPipelined::AddPipelined(CudaHelper *cudaHelper, long chunkSize, long numNodes
 }
 
 void AddPipelined::forward_in(long chunk, long buffer) {
+    // DEBUGGING
+    auto aaa = cuda_helper_->stream_in_;
+
     check_cuda(cudaMemcpyAsync(d_a_.at(buffer), a_->at(chunk).values_, a_->at(chunk).size_ * sizeof(float),
                                cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
     check_cuda(cudaMemcpyAsync(d_b_.at(buffer), b_->at(chunk).values_, b_->at(chunk).size_ * sizeof(float),
@@ -148,6 +157,18 @@ std::vector<Matrix<float>> *AddPipelined::forward(std::vector<Matrix<float>> *a,
     }
 
     return &y_;
+}
+
+void AddPipelined::backward_in(long chunk, long buffer) {
+    throw "Function not used";
+}
+
+void AddPipelined::backward_out(long chunk, long buffer) {
+    throw "Function not used";
+}
+
+void AddPipelined::backward_compute(long chunk, long buffer) {
+    throw "Function not used";
 }
 
 AddGradientsChunked *AddPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {

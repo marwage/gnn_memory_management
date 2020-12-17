@@ -42,7 +42,7 @@ public:
     std::vector<Matrix<float> *> get_gradients();
 };
 
-class SageLinearChunked {
+class SageLinearChunkedParent {
 protected:
     long num_in_features_;
     long num_out_features_;
@@ -50,27 +50,38 @@ protected:
     long chunk_size_;
     long last_chunk_size_;
     long num_chunks_;
-    LinearChunked linear_self_;
-    LinearChunked linear_neigh_;
-    AddChunked add_;
     std::vector<Matrix<float>> *y_;
     SageLinearGradientsChunked input_gradients_;
 
 public:
-    SageLinearChunked();
-    SageLinearChunked(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes);
-    virtual void set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes);
-    virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr);
-    virtual SageLinearGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients);
-    std::vector<Matrix<float> *> get_parameters();
-    std::vector<Matrix<float> *> get_gradients();
+    virtual void set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) = 0;
+    virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr) = 0;
+    virtual SageLinearGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients) = 0;
+    virtual std::vector<Matrix<float> *> get_parameters() = 0;
+    virtual std::vector<Matrix<float> *> get_gradients() = 0;
 };
 
-class SageLinearPipelined : public LayerPipelined, public SageLinearChunked {
+class SageLinearChunked : public SageLinearChunkedParent {
 protected:
-    long num_steps_;
+    LinearChunked linear_self_;
+    LinearChunked linear_neigh_;
+    AddChunked add_;
+
+public:
+    SageLinearChunked();
+    SageLinearChunked(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes);
+    void set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) override;
+    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr) override;
+    SageLinearGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients) override;
+    std::vector<Matrix<float> *> get_parameters() override;
+    std::vector<Matrix<float> *> get_gradients() override;
+};
+
+class SageLinearPipelined : public SageLinearChunkedParent {
+protected:
     LinearPipelined linear_self_;
     LinearPipelined linear_neigh_;
+    AddPipelined add_;
 
 public:
     SageLinearPipelined();
@@ -78,12 +89,8 @@ public:
     void set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) override;
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr) override;
     SageLinearGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients) override;
-    void forward_in(long chunk, long buffer) override;
-    void forward_out(long chunk, long buffer) override;
-    void forward_compute(long chunk, long buffer) override;
-    void backward_in(long chunk, long buffer) override;
-    void backward_out(long chunk, long buffer) override;
-    void backward_compute(long chunk, long buffer) override;
+    std::vector<Matrix<float> *> get_parameters() override;
+    std::vector<Matrix<float> *> get_gradients() override;
 };
 
 #endif
