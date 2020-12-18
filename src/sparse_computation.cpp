@@ -5,24 +5,47 @@
 #include <vector>
 
 
-void malloc_memcpy_sp_mat(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_mat) {
+void malloc_sp_mat(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_mat) {
     float *d_A_csr_val;
     int *d_A_csr_row_offsets, *d_A_col_ind;
-    check_cuda(cudaMalloc(&d_A_csr_val,
-                          sp_mat->nnz_ * sizeof(float)));
-    check_cuda(cudaMalloc(&d_A_csr_row_offsets,
-                          (sp_mat->num_rows_ + 1) * sizeof(int)));
-    check_cuda(cudaMalloc(&d_A_col_ind,
-                          sp_mat->nnz_ * sizeof(int)));
-    check_cuda(cudaMemcpy(d_A_csr_val, sp_mat->csr_val_,
-                          sp_mat->nnz_ * sizeof(float), cudaMemcpyHostToDevice));
-    check_cuda(cudaMemcpy(d_A_csr_row_offsets, sp_mat->csr_row_ptr_,
-                          (sp_mat->num_rows_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
-    check_cuda(cudaMemcpy(d_A_col_ind, sp_mat->csr_col_ind_,
-                          sp_mat->nnz_ * sizeof(int), cudaMemcpyHostToDevice));
+    check_cuda(cudaMalloc(&d_A_csr_val, sp_mat->nnz_ * sizeof(float)));
+    check_cuda(cudaMalloc(&d_A_csr_row_offsets, (sp_mat->num_rows_ + 1) * sizeof(int)));
+    check_cuda(cudaMalloc(&d_A_col_ind, sp_mat->nnz_ * sizeof(int)));
 
-    d_sp_mat->set(sp_mat->num_rows_, sp_mat->num_columns_, sp_mat->nnz_,
-                  d_A_csr_val, d_A_csr_row_offsets, d_A_col_ind);
+    d_sp_mat->set(sp_mat->num_rows_, sp_mat->num_columns_, sp_mat->nnz_, d_A_csr_val, d_A_csr_row_offsets, d_A_col_ind);
+}
+
+void memcpy_sp_mat(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_mat) {
+    check_cuda(cudaMemcpy(d_sp_mat->csr_val_, sp_mat->csr_val_,
+                          sp_mat->nnz_ * sizeof(float), cudaMemcpyHostToDevice));
+    check_cuda(cudaMemcpy(d_sp_mat->csr_row_ptr_, sp_mat->csr_row_ptr_,
+                          (sp_mat->num_rows_ + 1) * sizeof(int), cudaMemcpyHostToDevice));
+    check_cuda(cudaMemcpy(d_sp_mat->csr_col_ind_, sp_mat->csr_col_ind_,
+                          sp_mat->nnz_ * sizeof(int), cudaMemcpyHostToDevice));
+}
+
+void memcpy_sp_mat_async(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_mat, cudaStream_t stream) {
+    check_cuda(cudaMemcpyAsync(d_sp_mat->csr_val_, sp_mat->csr_val_, sp_mat->nnz_ * sizeof(float),
+                          cudaMemcpyHostToDevice, stream));
+    check_cuda(cudaMemcpyAsync(d_sp_mat->csr_row_ptr_, sp_mat->csr_row_ptr_, (sp_mat->num_rows_ + 1) * sizeof(int),
+                          cudaMemcpyHostToDevice, stream));
+    check_cuda(cudaMemcpyAsync(d_sp_mat->csr_col_ind_, sp_mat->csr_col_ind_, sp_mat->nnz_ * sizeof(int),
+                          cudaMemcpyHostToDevice, stream));
+}
+
+void malloc_memcpy_sp_mat(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_mat) {
+    malloc_sp_mat(d_sp_mat, sp_mat);
+    memcpy_sp_mat(d_sp_mat, sp_mat);
+}
+
+long max_nnz(std::vector<SparseMatrix<float>> *sp_mat) {
+    long max = 0;
+    for (int i = 0; i < sp_mat->size(); ++i) {
+        if (sp_mat->at(i).nnz_ > max) {
+            max = sp_mat->at(i).nnz_;
+        }
+    }
+    return max;
 }
 
 void sp_mat_mat_multi(CudaHelper *cuda_helper, SparseMatrix<float> *sp_mat, Matrix<float> *mat, Matrix<float> *result, bool add_to_result) {
@@ -54,15 +77,22 @@ void sp_mat_mat_multi(CudaHelper *cuda_helper, SparseMatrix<float> *sp_mat, Matr
     check_cuda(cudaFree(d_result));
 }
 
-void sp_mat_mat_multi_cuda(CudaHelper *cuda_helper, SparseMatrixCuda<float> *d_sp_mat, float *d_mat, float *d_result, long mat_columns, bool add_to_result) {
+void sp_mat_mat_multi_cuda(CudaHelper *cuda_helper, SparseMatrixCuda<float> *d_sp_mat, float *d_mat, float *d_result,
+                           long mat_columns, bool add_to_result) {
+    sp_mat_mat_multi_cuda(cuda_helper, d_sp_mat, d_mat, d_result, d_sp_mat->num_rows_, d_sp_mat->num_columns_,
+                          mat_columns, d_sp_mat->nnz_, add_to_result);
+}
+
+void sp_mat_mat_multi_cuda(CudaHelper *cuda_helper, SparseMatrixCuda<float> *d_sp_mat, float *d_mat, float *d_result,
+                           long sp_mat_rows, long sp_mat_columns, long mat_columns, long sp_mat_nnz, bool add_to_result) {
     if (d_sp_mat->nnz_ == 0) {
         //        check_cuda(cudaMemset(d_result, 0, d_sp_mat->num_rows_ * mat_columns * sizeof(float)));
         return;
     }
 
     cusparseSpMatDescr_t a_descr;
-    check_cusparse(cusparseCreateCsr(&a_descr, d_sp_mat->num_rows_,
-                                     d_sp_mat->num_columns_, d_sp_mat->nnz_,
+    check_cusparse(cusparseCreateCsr(&a_descr, sp_mat_rows,
+                                     sp_mat_columns, sp_mat_nnz,
                                      d_sp_mat->csr_row_ptr_, d_sp_mat->csr_col_ind_,
                                      d_sp_mat->csr_val_,
                                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
@@ -70,14 +100,14 @@ void sp_mat_mat_multi_cuda(CudaHelper *cuda_helper, SparseMatrixCuda<float> *d_s
 
     // create cusparse d_mat
     cusparseDnMatDescr_t x_descr;
-    check_cusparse(cusparseCreateDnMat(&x_descr, d_sp_mat->num_columns_, mat_columns,
-                                       d_sp_mat->num_columns_, d_mat,
+    check_cusparse(cusparseCreateDnMat(&x_descr, sp_mat_columns, mat_columns,
+                                       sp_mat_columns, d_mat,
                                        CUDA_R_32F, CUSPARSE_ORDER_COL));
 
     // create cusparse d_result
     cusparseDnMatDescr_t result_descr;
-    check_cusparse(cusparseCreateDnMat(&result_descr, d_sp_mat->num_rows_, mat_columns,
-                                       d_sp_mat->num_rows_, d_result,
+    check_cusparse(cusparseCreateDnMat(&result_descr, sp_mat_rows, mat_columns,
+                                       sp_mat_rows, d_result,
                                        CUDA_R_32F, CUSPARSE_ORDER_COL));
 
     // get buffer size for SpMM
@@ -90,8 +120,8 @@ void sp_mat_mat_multi_cuda(CudaHelper *cuda_helper, SparseMatrixCuda<float> *d_s
     check_cusparse(cusparseSpMM_bufferSize(cuda_helper->cusparse_handle,
                                            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                            &alpha, a_descr, x_descr, &beta, result_descr,
-                                           // CUSPARSE_MM_ALG_DEFAULT is deprecated
-                                           // but CUSPARSE_SPMM_ALG_DEFAULT is not working
+            // CUSPARSE_MM_ALG_DEFAULT is deprecated
+            // but CUSPARSE_SPMM_ALG_DEFAULT is not working
                                            CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,
                                            &buffer_size));
     void *d_buffer;

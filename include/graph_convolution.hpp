@@ -30,24 +30,47 @@ public:
 };
 
 class GraphConvChunked {
-private:
-    CudaHelper *cuda_helper_ = NULL;
+protected:
+    CudaHelper *cuda_helper_;
     long chunk_size_;
     long last_chunk_size_;
     long num_chunks_;
     long num_nodes_;
     bool mean_;
-    SparseMatrix<float> *adjacency_ = NULL;
+    SparseMatrix<float> *adjacency_;
     std::vector<SparseMatrix<float>> adjacencies_;
     Matrix<float> sum_;
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
 
 public:
+    GraphConvChunked();
     GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                      long num_features, long chunk_size, long num_nodes);
-    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
-    std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
+    virtual void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
+                     long num_features, long chunk_size, long num_nodes);
+    virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
+    virtual std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
+};
+
+class GraphConvPipelined : public GraphConvChunked {
+protected:
+    long num_steps_;
+    std::vector<float *> d_x_;
+    std::vector<float *> d_y_;
+    std::vector<float *> d_sum_;
+    std::vector<SparseMatrixCuda<float>> d_adj_;
+    std::vector<Matrix<float>> *x_;
+
+public:
+    GraphConvPipelined();
+    GraphConvPipelined(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
+                       long num_features, long chunk_size, long num_nodes);
+    void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
+             long num_features, long chunk_size, long num_nodes);
+    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
+    std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
+    void pipeline();
 };
 
 #endif

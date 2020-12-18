@@ -42,30 +42,42 @@ int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float
     return read_return_value(path);
 }
 
-int test_graph_conv_chunked(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float> *in_gradients, long chunk_size) {
+int test_graph_conv_chunked(GraphConvChunked *graph_convolution, long chunk_size) {
     std::string path;
+    path = flickr_dir_path + "/features.npy";
+    Matrix<float> features = load_npy_matrix<float>(path);
+
+    path = flickr_dir_path + "/adjacency.mtx";
+    SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
+
+    Matrix<float> incoming_gradients(features.num_rows_, features.num_columns_, false);
+    incoming_gradients.set_random_values();
+    path = test_dir_path + "/in_gradients.npy";
+    save_npy_matrix(&incoming_gradients, path);
+
     CudaHelper cuda_helper;
-    GraphConvChunked graph_conv(&cuda_helper, adj, "mean", input->num_columns_, chunk_size, input->num_rows_);
+    graph_convolution->set(&cuda_helper, &adjacency, "mean", features.num_columns_, chunk_size, features.num_rows_);
 
-    long num_nodes = input->num_rows_;
+    long num_nodes = features.num_rows_;
+    long num_features = features.num_columns_;
     long num_chunks = ceil((float) num_nodes / (float) chunk_size);
-    std::vector<Matrix<float>> input_chunked(num_chunks);
-    chunk_up(input, &input_chunked, chunk_size);
+    std::vector<Matrix<float>> features_chunked(num_chunks);
+    chunk_up(&features, &features_chunked, chunk_size);
     std::vector<Matrix<float>> incoming_gradients_chunked(num_chunks);
-    chunk_up(in_gradients, &incoming_gradients_chunked, chunk_size);
+    chunk_up(&incoming_gradients, &incoming_gradients_chunked, chunk_size);
 
-    std::vector<Matrix<float>> *activations = graph_conv.forward(&input_chunked);
+    std::vector<Matrix<float>> *activations = graph_convolution->forward(&features_chunked);
 
     check_nans(activations, "activations");
 
-    std::vector<Matrix<float>> *gradients = graph_conv.backward(&incoming_gradients_chunked);
+    std::vector<Matrix<float>> *gradients = graph_convolution->backward(&incoming_gradients_chunked);
 
-    Matrix<float> activations_one(num_nodes, input->num_columns_, true);
+    Matrix<float> activations_one(num_nodes, num_features, true);
     stitch(activations, &activations_one);
     path = test_dir_path + "/activations.npy";
     save_npy_matrix(&activations_one, path);
 
-    Matrix<float> gradients_one(num_nodes, input->num_columns_, true);
+    Matrix<float> gradients_one(num_nodes, num_features, true);
     stitch(gradients, &gradients_one);
     path = test_dir_path + "/gradients.npy";
     save_npy_matrix(&gradients_one, path);
@@ -95,19 +107,15 @@ TEST_CASE("Graph convolution", "[graphconv]") {
 }
 
 TEST_CASE("Graph convolution, chunked", "[graphconv][chunked]") {
-    std::string path;
-    path = flickr_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
+    GraphConvChunked graph_convolution;
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 15));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13));
+}
 
-    path = flickr_dir_path + "/adjacency.mtx";
-    SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
-
-    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_random_values();
-    path = test_dir_path + "/in_gradients.npy";
-    save_npy_matrix(&in_gradients, path);
-
-    CHECK(test_graph_conv_chunked(&features, &adjacency, &in_gradients, 1 << 15));
-    CHECK(test_graph_conv_chunked(&features, &adjacency, &in_gradients, 1 << 14));
-    CHECK(test_graph_conv_chunked(&features, &adjacency, &in_gradients, 1 << 13));
+TEST_CASE("Graph convolution, pipelined", "[graphconv][pipelined]") {
+    GraphConvPipelined graph_convolution;
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 15));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13));
 }

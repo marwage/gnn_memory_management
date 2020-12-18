@@ -46,6 +46,7 @@ public:
 template<typename T>
 class SparseMatrixCuda {
 public:
+    bool freed_ = false;
     int num_rows_ = 0;
     int num_columns_ = 0;
     int nnz_ = 0;
@@ -54,8 +55,9 @@ public:
     int *csr_col_ind_ = NULL;
 
     SparseMatrixCuda();
-    SparseMatrixCuda(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind);
+    void set(int num_rows, int num_columns, int num_nnz);
     void set(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind);
+    void free();
     ~SparseMatrixCuda();
 };
 

@@ -128,17 +128,41 @@ SparseMatrixCuda<T>::SparseMatrixCuda() {}
 template SparseMatrixCuda<float>::SparseMatrixCuda();
 
 template<typename T>
-SparseMatrixCuda<T>::SparseMatrixCuda(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind) {
-}
-template SparseMatrixCuda<float>::SparseMatrixCuda(int num_rows, int num_columns, int num_nnz, float *csr_val, int *csr_row_ptr, int *csr_col_ind);
-
-template<typename T>
 SparseMatrixCuda<T>::~SparseMatrixCuda() {
-    check_cuda(cudaFree(csr_val_));
-    check_cuda(cudaFree(csr_row_ptr_));
-    check_cuda(cudaFree(csr_col_ind_));
+    free();
 }
 template SparseMatrixCuda<float>::~SparseMatrixCuda();
+
+template<typename T>
+void SparseMatrixCuda<T>::free() {
+    if (!freed_) {
+        check_cuda(cudaFree(csr_val_));
+        check_cuda(cudaFree(csr_row_ptr_));
+        check_cuda(cudaFree(csr_col_ind_));
+
+        freed_ = true;
+    }
+}
+template void SparseMatrixCuda<float>::free();
+
+template<typename T>
+void SparseMatrixCuda<T>::set(int num_rows, int num_columns, int num_nnz) {
+    num_rows_ = num_rows;
+    num_columns_ = num_columns;
+    nnz_ = num_nnz;
+
+    if (csr_val_ != NULL)
+        check_cuda(cudaFree(csr_val_));
+    if (csr_row_ptr_ != NULL)
+        check_cuda(cudaFree(csr_row_ptr_));
+    if (csr_col_ind_ != NULL)
+        check_cuda(cudaFree(csr_col_ind_));
+
+    check_cuda(cudaMalloc(&csr_val_, nnz_ * sizeof(T)));
+    check_cuda(cudaMalloc(&csr_row_ptr_, (num_rows_ + 1) * sizeof(int)));
+    check_cuda(cudaMalloc(&csr_col_ind_, nnz_ * sizeof(int)));
+}
+template void SparseMatrixCuda<float>::set(int num_rows, int num_columns, int num_nnz);
 
 template<typename T>
 void SparseMatrixCuda<T>::set(int num_rows, int num_columns, int num_nnz, T *csr_val, int *csr_row_ptr, int *csr_col_ind) {
