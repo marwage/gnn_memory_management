@@ -56,9 +56,9 @@ public:
 class GraphConvPipelined : public GraphConvChunked {
 protected:
     long num_steps_;
+    float * d_y_;
+    float * d_sum_;
     std::vector<float *> d_x_;
-    std::vector<float *> d_y_;
-    std::vector<float *> d_sum_;
     std::vector<SparseMatrixCuda<float>> d_adj_;
     std::vector<Matrix<float>> *x_;
 
