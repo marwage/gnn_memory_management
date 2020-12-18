@@ -359,18 +359,40 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
                                        y_.at(row).num_rows_ * sizeof(float), cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
         }
 
-        for (long column = 0; column < num_chunks_; ++column) {
-            SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column);
-//            memcpy_sp_mat_async(&d_adj_.at(0), adj, cuda_helper_->stream_in_); // TODO not working if async
-            memcpy_sp_mat(&d_adj_.at(0), adj);
+        for (long column = 0; column < num_chunks_ + 1; ++column) {
+            long column_a = (column / 2) * 2;
+            long column_b = ((column - 1) / 2) * 2 + 1;
+            if (column % 2 == 0) {
+                // a in, b compute
+                if (column_a < num_chunks_) {
+                    SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column_a);
+                    // memcpy_sp_mat_async(&d_adj_.at(0), adj, cuda_helper_->stream_in_); // TODO not working if async
+                    memcpy_sp_mat(&d_adj_.at(0), adj);
 
-            check_cuda(cudaMemcpyAsync(d_x_.at(0), x->at(column).values_, x->at(column).size_ * sizeof(float),
-                                  cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+                    check_cuda(cudaMemcpyAsync(d_x_.at(0), x->at(column_a).values_, x->at(column_a).size_ * sizeof(float),
+                                               cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+                }
+
+                if (column > 0) {
+                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(1), d_x_.at(1), d_y_.at(0),
+                                          x->at(column_b).num_columns_, true);
+                }
+            } else {
+                // b in, a compute
+                if (column_b < num_chunks_) {
+                    SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column_b);
+                    // memcpy_sp_mat_async(&d_adj_.at(0), adj, cuda_helper_->stream_in_); // TODO not working if async
+                    memcpy_sp_mat(&d_adj_.at(1), adj);
+
+                    check_cuda(cudaMemcpyAsync(d_x_.at(1), x->at(column_b).values_, x->at(column_b).size_ * sizeof(float),
+                                               cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+                }
+
+                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(0), d_x_.at(0), d_y_.at(0),
+                                      x->at(column_a).num_columns_, true);
+            }
 
             check_cuda(cudaDeviceSynchronize());
-
-            sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(0), d_x_.at(0), d_y_.at(0),
-                                  x->at(column).num_columns_, true);
         }
 
         if (mean_) {
