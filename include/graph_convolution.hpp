@@ -11,8 +11,8 @@
 
 class GraphConvolution {
 private:
-    CudaHelper *cuda_helper_ = NULL;
-    SparseMatrix<float> *adjacency_ = NULL;
+    CudaHelper *cuda_helper_;
+    SparseMatrix<float> *adjacency_;
     std::string reduction_;
     bool mean_;
     Matrix<float> sum_;
@@ -35,7 +35,6 @@ protected:
     long chunk_size_;
     long last_chunk_size_;
     long num_chunks_;
-    long num_nodes_;
     bool mean_;
     SparseMatrix<float> *adjacency_;
     std::vector<SparseMatrix<float>> adjacencies_;
@@ -56,21 +55,22 @@ public:
 class GraphConvPipelined : public GraphConvChunked {
 protected:
     long num_steps_;
-    float * d_y_;
-    float * d_sum_;
+    float *d_y_;
+    float *d_sum_forward_;
+    float *d_gradients_;
     std::vector<float *> d_x_;
     std::vector<SparseMatrixCuda<float>> d_adj_;
-    std::vector<Matrix<float>> *x_;
+    std::vector<float *> d_incoming_gradients_;
+    std::vector<float *> d_sum_backward_;
 
 public:
     GraphConvPipelined();
     GraphConvPipelined(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                        long num_features, long chunk_size, long num_nodes);
     void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-             long num_features, long chunk_size, long num_nodes);
+             long num_features, long chunk_size, long num_nodes) override;
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
-    void pipeline();
 };
 
 #endif

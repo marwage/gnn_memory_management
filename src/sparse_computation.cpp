@@ -34,11 +34,11 @@ void memcpy_sp_mat_async(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> 
     d_sp_mat->nnz_ = sp_mat->nnz_;
 
     check_cuda(cudaMemcpyAsync(d_sp_mat->csr_val_, sp_mat->csr_val_, sp_mat->nnz_ * sizeof(float),
-                          cudaMemcpyHostToDevice, stream));
+                               cudaMemcpyHostToDevice, stream));
     check_cuda(cudaMemcpyAsync(d_sp_mat->csr_row_ptr_, sp_mat->csr_row_ptr_, (sp_mat->num_rows_ + 1) * sizeof(int),
-                          cudaMemcpyHostToDevice, stream));
+                               cudaMemcpyHostToDevice, stream));
     check_cuda(cudaMemcpyAsync(d_sp_mat->csr_col_ind_, sp_mat->csr_col_ind_, sp_mat->nnz_ * sizeof(int),
-                          cudaMemcpyHostToDevice, stream));
+                               cudaMemcpyHostToDevice, stream));
 }
 
 void malloc_memcpy_sp_mat(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_mat) {
@@ -48,7 +48,7 @@ void malloc_memcpy_sp_mat(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float>
 
 long max_nnz(std::vector<SparseMatrix<float>> *sp_mat) {
     long max = 0;
-    for (int i = 0; i < sp_mat->size(); ++i) {
+    for (long i = 0; i < (long) sp_mat->size(); ++i) {
         if (sp_mat->at(i).nnz_ > max) {
             max = sp_mat->at(i).nnz_;
         }
@@ -128,8 +128,8 @@ void sp_mat_mat_multi_cuda(CudaHelper *cuda_helper, SparseMatrixCuda<float> *d_s
     check_cusparse(cusparseSpMM_bufferSize(cuda_helper->cusparse_handle,
                                            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                            &alpha, a_descr, x_descr, &beta, result_descr,
-            // CUSPARSE_MM_ALG_DEFAULT is deprecated
-            // but CUSPARSE_SPMM_ALG_DEFAULT is not working
+                                           // CUSPARSE_MM_ALG_DEFAULT is deprecated
+                                           // but CUSPARSE_SPMM_ALG_DEFAULT is not working
                                            CUDA_R_32F, CUSPARSE_MM_ALG_DEFAULT,
                                            &buffer_size));
     void *d_buffer;

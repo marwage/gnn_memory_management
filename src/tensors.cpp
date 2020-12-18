@@ -140,6 +140,9 @@ void SparseMatrixCuda<T>::free() {
         check_cuda(cudaFree(csr_row_ptr_));
         check_cuda(cudaFree(csr_col_ind_));
 
+        csr_val_ = NULL;
+        csr_row_ptr_ = NULL;
+        csr_col_ind_ = NULL;
         freed_ = true;
     }
 }
@@ -150,6 +153,7 @@ void SparseMatrixCuda<T>::set(int num_rows, int num_columns, int num_nnz) {
     num_rows_ = num_rows;
     num_columns_ = num_columns;
     nnz_ = num_nnz;
+    freed_ = false;
 
     if (csr_val_ != NULL)
         check_cuda(cudaFree(csr_val_));

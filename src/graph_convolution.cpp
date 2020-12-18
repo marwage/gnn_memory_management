@@ -109,10 +109,9 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adja
 }
 
 void GraphConvChunked::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                                   long num_features, long chunk_size, long num_nodes) {
+                           long num_features, long chunk_size, long num_nodes) {
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
-    num_nodes_ = num_nodes;
     adjacency_ = adjacency;
     if (reduction.compare("mean") == 0) {
         mean_ = true;
@@ -287,31 +286,29 @@ GraphConvPipelined::GraphConvPipelined(CudaHelper *helper, SparseMatrix<float> *
 }
 
 void GraphConvPipelined::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction, long num_features,
-                                       long chunk_size, long num_nodes) {
+                             long chunk_size, long num_nodes) {
     GraphConvChunked::set(helper, adjacency, reduction, num_features, chunk_size, num_nodes);
 
     num_steps_ = 2;
     d_x_ = std::vector<float *>(num_steps_);
     d_adj_ = std::vector<SparseMatrixCuda<float>>(num_steps_);
+    d_incoming_gradients_ = std::vector<float *>(num_steps_);
+    d_sum_backward_ = std::vector<float *>(num_steps_);
 }
 
 std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float>> *x) {
-    x_ = x;
-
     for (int i = 0; i < num_chunks_; ++i) {
         to_column_major_inplace(&x->at(i));
     }
 
-    for (long i = 0; i < num_steps_; ++i) {
-        check_cuda(cudaMalloc(&d_x_.at(i), x->at(0).size_ * sizeof(float)));
-    }
-    if (mean_) {
-        check_cuda(cudaMalloc(&d_sum_, y_.at(0).num_rows_ * sizeof(float)));
-    }
     check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
+    if (mean_) {
+        check_cuda(cudaMalloc(&d_sum_forward_, y_.at(0).num_rows_ * sizeof(float)));
+    }
     long adj_max_nnz = max_nnz(&adjacencies_);
     for (int i = 0; i < num_steps_; ++i) {
         d_adj_.at(i).set(chunk_size_, chunk_size_, adj_max_nnz);
+        check_cuda(cudaMalloc(&d_x_.at(i), x->at(0).size_ * sizeof(float)));
     }
 
     for (long row = 0; row < num_chunks_; ++row) {
@@ -319,7 +316,7 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
                                    cuda_helper_->stream_in_));
 
         if (mean_) {
-            check_cuda(cudaMemcpyAsync(d_sum_, &sum_.values_[row * chunk_size_],
+            check_cuda(cudaMemcpyAsync(d_sum_forward_, &sum_.values_[row * chunk_size_],
                                        y_.at(row).num_rows_ * sizeof(float), cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
         }
 
@@ -330,7 +327,7 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
                 // a in, b compute
                 if (column_a < num_chunks_) {
                     SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column_a);
-                     memcpy_sp_mat_async(&d_adj_.at(0), adj, cuda_helper_->stream_in_);
+                    memcpy_sp_mat_async(&d_adj_.at(0), adj, cuda_helper_->stream_in_);
 
                     check_cuda(cudaMemcpyAsync(d_x_.at(0), x->at(column_a).values_, x->at(column_a).size_ * sizeof(float),
                                                cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
@@ -344,7 +341,7 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
                 // b in, a compute
                 if (column_b < num_chunks_) {
                     SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column_b);
-                     memcpy_sp_mat_async(&d_adj_.at(1), adj, cuda_helper_->stream_in_);
+                    memcpy_sp_mat_async(&d_adj_.at(1), adj, cuda_helper_->stream_in_);
 
                     check_cuda(cudaMemcpyAsync(d_x_.at(1), x->at(column_b).values_, x->at(column_b).size_ * sizeof(float),
                                                cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
@@ -358,19 +355,17 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
         }
 
         if (mean_) {
-            div_mat_vec(d_y_, d_sum_, y_.at(row).num_rows_, y_.at(row).num_columns_);
+            div_mat_vec(d_y_, d_sum_forward_, y_.at(row).num_rows_, y_.at(row).num_columns_);
         }
 
         check_cuda(cudaMemcpyAsync(y_.at(row).values_, d_y_, y_.at(row).size_ * sizeof(float),
-                              cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
-
-        check_cuda(cudaDeviceSynchronize());
+                                   cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
     }
 
     // free
     check_cuda(cudaFree(d_y_));
     if (mean_) {
-        check_cuda(cudaFree(d_sum_));
+        check_cuda(cudaFree(d_sum_forward_));
     }
     for (long i = 0; i < num_steps_; ++i) {
         check_cuda(cudaFree(d_x_.at(i)));
@@ -381,21 +376,98 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
 }
 
 std::vector<Matrix<float>> *GraphConvPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
-    return incoming_gradients;
-}
+    for (long i = 0; i < num_chunks_; ++i) {
+        to_column_major_inplace(&incoming_gradients->at(i));
+    }
 
-void GraphConvPipelined::pipeline() {
-    for (long row = 0; row < num_chunks_ + 2; ++row) {
-        long chunk_zero = (row / 3) * 3;         // every three steps jump by 3
-        long chunk_one = ((row - 1) / 3) * 3 + 1;// one tick behind and one number higher
-        long chunk_two = ((row - 2) / 3) * 3 + 2;// two ticks behind and two number higher
+    check_cuda(cudaMalloc(&d_gradients_, gradients_.at(0).size_ * sizeof(float)));
 
-        for (int column = 0; column < num_chunks_ + 1; ++column) {
-            long adj_chunk_zero = (column / 2) * 2;         // every two steps jump by 2
-            long adj_chunk_one = ((column - 1) / 2) * 2 + 1;// one tick behind and one number higher
+    long adj_max_nnz = max_nnz(&adjacencies_);
+    for (long i = 0; i < num_steps_; ++i) {
+        d_adj_.at(i).set(chunk_size_, chunk_size_, adj_max_nnz);
+        check_cuda(cudaMalloc(&d_incoming_gradients_.at(i), incoming_gradients->at(0).size_ * sizeof(float)));
+        if (mean_) {
+            check_cuda(cudaMalloc(&d_sum_backward_.at(i), incoming_gradients->at(0).num_rows_ * sizeof(float)));
         }
     }
 
-        // sync all spanned calls
-        check_cuda(cudaDeviceSynchronize());
+    for (long row = 0; row < num_chunks_; ++row) {
+        check_cuda(cudaMemsetAsync(d_gradients_, 0, gradients_.at(row).size_ * sizeof(float), cuda_helper_->stream_in_));
+
+        for (long column = 0; column < num_chunks_ + 1; ++column) {
+            long column_a = (column / 2) * 2;
+            long column_b = ((column - 1) / 2) * 2 + 1;
+
+            if (column % 2 == 0) {
+                // a in, b compute
+                if (column_a < num_chunks_) {
+                    SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column_a);
+                    memcpy_sp_mat_async(&d_adj_.at(0), adj, cuda_helper_->stream_in_);
+
+                    check_cuda(cudaMemcpyAsync(d_incoming_gradients_.at(0), incoming_gradients->at(column_a).values_,
+                                               incoming_gradients->at(column_a).size_ * sizeof(float), cudaMemcpyHostToDevice,
+                                               cuda_helper_->stream_in_));
+
+                    if (mean_) {
+                        check_cuda(cudaMemcpyAsync(d_sum_backward_.at(0), &sum_.values_[column_a * chunk_size_],
+                                                   incoming_gradients->at(column_a).num_rows_ * sizeof(float),
+                                                   cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+                    }
+                }
+
+                if (column > 0) {
+                    if (mean_) {
+                        div_mat_vec(d_incoming_gradients_.at(1), d_sum_backward_.at(1), incoming_gradients->at(column_b).num_rows_,
+                                    incoming_gradients->at(column_b).num_columns_);
+                    }
+
+                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(1), d_incoming_gradients_.at(1), d_gradients_,
+                                          incoming_gradients->at(column_b).num_columns_, true);
+                }
+            } else {
+                // b in, a compute
+                if (column_b < num_chunks_) {
+                    SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column_b);
+                    memcpy_sp_mat_async(&d_adj_.at(1), adj, cuda_helper_->stream_in_);
+
+                    check_cuda(cudaMemcpyAsync(d_incoming_gradients_.at(1), incoming_gradients->at(column_b).values_,
+                                               incoming_gradients->at(column_b).size_ * sizeof(float), cudaMemcpyHostToDevice,
+                                               cuda_helper_->stream_in_));
+
+                    if (mean_) {
+                        check_cuda(cudaMemcpyAsync(d_sum_backward_.at(1), &sum_.values_[column_b * chunk_size_],
+                                                   incoming_gradients->at(column_b).num_rows_ * sizeof(float),
+                                                   cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+                    }
+                }
+
+                if (column > 0) {
+                    if (mean_) {
+                        div_mat_vec(d_incoming_gradients_.at(0), d_sum_backward_.at(0), incoming_gradients->at(column_a).num_rows_,
+                                    incoming_gradients->at(column_a).num_columns_);
+                    }
+
+                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(0), d_incoming_gradients_.at(0), d_gradients_,
+                                          incoming_gradients->at(column_a).num_columns_, true);
+                }
+            }
+
+            check_cuda(cudaDeviceSynchronize());
+        }
+
+        check_cuda(cudaMemcpy(gradients_.at(row).values_, d_gradients_, gradients_.at(row).size_ * sizeof(float),
+                              cudaMemcpyDeviceToHost));
+    }
+
+    // free GPU memory
+    check_cuda(cudaFree(d_gradients_));
+    for (long i = 0; i < num_steps_; ++i) {
+        d_adj_.at(i).free();
+        check_cuda(cudaFree(d_incoming_gradients_.at(i)));
+        if (mean_) {
+            check_cuda(cudaFree(d_sum_backward_.at(i)));
+        }
+    }
+
+    return &gradients_;
 }
