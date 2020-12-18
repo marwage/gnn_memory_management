@@ -1,7 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "graph_convolution.hpp"
-#include "chunking.hpp"
 #include "cuda_helper.hpp"
 #include "divmv.h"
 #include "sparse_computation.hpp"
@@ -352,29 +351,36 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
     }
 
     for (long row = 0; row < num_chunks_; ++row) {
-        // column chunk of row chunk
-        check_cuda(cudaMemset(d_y_.at(0), 0, y_.at(row).size_ * sizeof(float)));
+        check_cuda(cudaMemsetAsync(d_y_.at(0), 0, y_.at(row).size_ * sizeof(float),
+                                   cuda_helper_->stream_in_));
+
+        if (mean_) {
+            check_cuda(cudaMemcpyAsync(d_sum_.at(0), &sum_.values_[row * chunk_size_],
+                                       y_.at(row).num_rows_ * sizeof(float), cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+        }
 
         for (long column = 0; column < num_chunks_; ++column) {
             SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column);
+//            memcpy_sp_mat_async(&d_adj_.at(0), adj, cuda_helper_->stream_in_); // TODO not working if async
             memcpy_sp_mat(&d_adj_.at(0), adj);
 
-            check_cuda(cudaMemcpy(d_x_.at(0), x->at(column).values_, x->at(column).size_ * sizeof(float),
-                                  cudaMemcpyHostToDevice));
+            check_cuda(cudaMemcpyAsync(d_x_.at(0), x->at(column).values_, x->at(column).size_ * sizeof(float),
+                                  cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+
+            check_cuda(cudaDeviceSynchronize());
 
             sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(0), d_x_.at(0), d_y_.at(0),
-                                  adj->num_rows_, adj->num_columns_, x->at(column).num_columns_, adj->nnz_, true);
+                                  x->at(column).num_columns_, true);
         }
 
         if (mean_) {
-            check_cuda(cudaMemcpy(d_sum_.at(0), &sum_.values_[row * chunk_size_],
-                                  y_.at(row).num_rows_ * sizeof(float), cudaMemcpyHostToDevice));
-
             div_mat_vec(d_y_.at(0), d_sum_.at(0), y_.at(row).num_rows_, y_.at(row).num_columns_);
         }
 
-        check_cuda(cudaMemcpy(y_.at(row).values_, d_y_.at(0), y_.at(row).size_ * sizeof(float),
-                              cudaMemcpyDeviceToHost));
+        check_cuda(cudaMemcpyAsync(y_.at(row).values_, d_y_.at(0), y_.at(row).size_ * sizeof(float),
+                              cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
+
+        check_cuda(cudaDeviceSynchronize());
     }
 
     // free

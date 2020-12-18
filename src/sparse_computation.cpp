@@ -16,6 +16,10 @@ void malloc_sp_mat(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_ma
 }
 
 void memcpy_sp_mat(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_mat) {
+    d_sp_mat->num_rows_ = sp_mat->num_rows_;
+    d_sp_mat->num_columns_ = sp_mat->num_columns_;
+    d_sp_mat->nnz_ = sp_mat->nnz_;
+
     check_cuda(cudaMemcpy(d_sp_mat->csr_val_, sp_mat->csr_val_,
                           sp_mat->nnz_ * sizeof(float), cudaMemcpyHostToDevice));
     check_cuda(cudaMemcpy(d_sp_mat->csr_row_ptr_, sp_mat->csr_row_ptr_,
@@ -25,6 +29,10 @@ void memcpy_sp_mat(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_ma
 }
 
 void memcpy_sp_mat_async(SparseMatrixCuda<float> *d_sp_mat, SparseMatrix<float> *sp_mat, cudaStream_t stream) {
+    d_sp_mat->num_rows_ = sp_mat->num_rows_;
+    d_sp_mat->num_columns_ = sp_mat->num_columns_;
+    d_sp_mat->nnz_ = sp_mat->nnz_;
+
     check_cuda(cudaMemcpyAsync(d_sp_mat->csr_val_, sp_mat->csr_val_, sp_mat->nnz_ * sizeof(float),
                           cudaMemcpyHostToDevice, stream));
     check_cuda(cudaMemcpyAsync(d_sp_mat->csr_row_ptr_, sp_mat->csr_row_ptr_, (sp_mat->num_rows_ + 1) * sizeof(int),
