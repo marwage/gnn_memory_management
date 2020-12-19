@@ -5,313 +5,122 @@
 #include "cuda_helper.hpp"
 #include "gpu_memory_logger.hpp"
 #include "tensors.hpp"
+#include "dataset.hpp"
 
 #include <benchmark/benchmark.h>
 
-
-const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string flickr_dir_path = dir_path + "/flickr";
-const std::string reddit_dir_path = dir_path + "/reddit";
-const std::string products_dir_path = dir_path + "/products";
+void benchmark_layer(Layer *layer, Dataset dataset, benchmark::State &state, bool forward);
+void benchmark_layer_chunked(LayerChunked *layer, Dataset dataset, benchmark::State &state, bool forward);
 
 
 static void BM_Layer_Logsoftmax_Flickr_Forward(benchmark::State &state) {
-    std::string path;
-    path = flickr_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-
-    CudaHelper cuda_helper;
-    LogSoftmax logsoftmax(&cuda_helper, features.num_rows_, features.num_columns_);
-
-    GPUMemoryLogger memory_logger("logsoftmax_flickr_forward");
-    memory_logger.start();
-
-    Matrix<float> *activations;
-    for (auto _ : state) {
-        activations = logsoftmax.forward(&features);
-    }
-
-    memory_logger.stop();
+    LogSoftmax logsoftmax;
+    benchmark_layer(&logsoftmax, flickr, state, true);
 }
 BENCHMARK(BM_Layer_Logsoftmax_Flickr_Forward);
 
-static void BM_Layer_Logsoftmax_Chunked_Flickr_Forward(benchmark::State &state) {
-    std::string path;
-    path = flickr_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-
-    long chunk_size = state.range(0);
-    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
-    std::vector<Matrix<float>> features_chunked(num_chunks);
-    chunk_up(&features, &features_chunked, chunk_size);
-
-    CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
-
-    GPUMemoryLogger memory_logger("logsoftmax_flickr_forward_" + std::to_string(chunk_size));
-    memory_logger.start();
-
-    std::vector<Matrix<float>> *activations;
-    for (auto _ : state) {
-        activations = logsoftmax.forward(&features_chunked);
-    }
-
-    memory_logger.stop();
-}
-BENCHMARK(BM_Layer_Logsoftmax_Chunked_Flickr_Forward)->Range(1 << 10, 1 << 15);
-
 static void BM_Layer_Logsoftmax_Flickr_Backward(benchmark::State &state) {
-    std::string path;
-    path = flickr_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_random_values();
-
-    CudaHelper cuda_helper;
-    LogSoftmax logsoftmax(&cuda_helper, features.num_rows_, features.num_columns_);
-
-    Matrix<float> *activations = logsoftmax.forward(&features);
-
-    GPUMemoryLogger memory_logger("logsoftmax_flickr_backward");
-    memory_logger.start();
-
-    Matrix<float> *gradients;
-    for (auto _ : state) {
-        gradients = logsoftmax.backward(&in_gradients);
-    }
-
-    memory_logger.stop();
+    LogSoftmax logsoftmax;
+    benchmark_layer(&logsoftmax, flickr, state, false);
 }
 BENCHMARK(BM_Layer_Logsoftmax_Flickr_Backward);
 
-static void BM_Layer_Logsoftmax_Flickr_Chunked_Backward(benchmark::State &state) {
-    std::string path;
-    path = flickr_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_random_values();
-
-    long chunk_size = state.range(0);
-    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
-    std::vector<Matrix<float>> features_chunked(num_chunks);
-    chunk_up(&features, &features_chunked, chunk_size);
-    std::vector<Matrix<float>> in_gradients_chunked(num_chunks);
-    chunk_up(&in_gradients, &in_gradients_chunked, chunk_size);
-
-    CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
-
-    std::vector<Matrix<float>> *activations = logsoftmax.forward(&features_chunked);
-
-    GPUMemoryLogger memory_logger("logsoftmax_flickr_backward_" + std::to_string(chunk_size));
-    memory_logger.start();
-
-    std::vector<Matrix<float>> *gradients;
-    for (auto _ : state) {
-        gradients = logsoftmax.backward(&in_gradients_chunked);
-    }
-
-    memory_logger.stop();
-}
-BENCHMARK(BM_Layer_Logsoftmax_Flickr_Chunked_Backward)->Range(1 << 10, 1 << 15);
-
 static void BM_Layer_Logsoftmax_Reddit_Forward(benchmark::State &state) {
-    std::string path;
-    path = reddit_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-
-    CudaHelper cuda_helper;
-    LogSoftmax logsoftmax(&cuda_helper, features.num_rows_, features.num_columns_);
-
-    GPUMemoryLogger memory_logger("logsoftmax_reddit_forward");
-    memory_logger.start();
-
-    Matrix<float> *activations;
-    for (auto _ : state) {
-        activations = logsoftmax.forward(&features);
-    }
-
-    memory_logger.stop();
+    LogSoftmax logsoftmax;
+    benchmark_layer(&logsoftmax, reddit, state, true);
 }
 BENCHMARK(BM_Layer_Logsoftmax_Reddit_Forward);
 
-static void BM_Layer_Logsoftmax_Reddit_Chunked_Forward(benchmark::State &state) {
-    std::string path;
-    path = reddit_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-
-    long chunk_size = state.range(0);
-    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
-    std::vector<Matrix<float>> features_chunked(num_chunks);
-    chunk_up(&features, &features_chunked, chunk_size);
-
-    CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
-
-    GPUMemoryLogger memory_logger("logsoftmax_reddit_forward_" + std::to_string(chunk_size));
-    memory_logger.start();
-
-    std::vector<Matrix<float>> *activations;
-    for (auto _ : state) {
-        activations = logsoftmax.forward(&features_chunked);
-    }
-
-    memory_logger.stop();
-}
-BENCHMARK(BM_Layer_Logsoftmax_Reddit_Chunked_Forward)->Range(1 << 12, 1 << 17);
-
 static void BM_Layer_Logsoftmax_Reddit_Backward(benchmark::State &state) {
-    std::string path;
-    path = reddit_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_random_values();
-
-    CudaHelper cuda_helper;
-    LogSoftmax logsoftmax(&cuda_helper, features.num_rows_, features.num_columns_);
-
-    Matrix<float> *activations = logsoftmax.forward(&features);
-
-    GPUMemoryLogger memory_logger("logsoftmax_reddit_backward");
-    memory_logger.start();
-
-    Matrix<float> *gradients;
-    for (auto _ : state) {
-        gradients = logsoftmax.backward(&in_gradients);
-    }
-
-    memory_logger.stop();
+    LogSoftmax logsoftmax;
+    benchmark_layer(&logsoftmax, reddit, state, false);
 }
 BENCHMARK(BM_Layer_Logsoftmax_Reddit_Backward);
 
-static void BM_Layer_Logsoftmax_Reddit_Chunked_Backward(benchmark::State &state) {
-    std::string path;
-    path = reddit_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_random_values();
-
-    long chunk_size = state.range(0);
-    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
-    std::vector<Matrix<float>> features_chunked(num_chunks);
-    chunk_up(&features, &features_chunked, chunk_size);
-    std::vector<Matrix<float>> in_gradients_chunked(num_chunks);
-    chunk_up(&in_gradients, &in_gradients_chunked, chunk_size);
-
-    CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
-
-    std::vector<Matrix<float>> *activations = logsoftmax.forward(&features_chunked);
-
-    GPUMemoryLogger memory_logger("logsoftmax_reddit_backward_" + std::to_string(chunk_size));
-    memory_logger.start();
-
-    std::vector<Matrix<float>> *gradients;
-    for (auto _ : state) {
-        gradients = logsoftmax.backward(&in_gradients_chunked);
-    }
-
-    memory_logger.stop();
-}
-BENCHMARK(BM_Layer_Logsoftmax_Reddit_Chunked_Backward)->Range(1 << 12, 1 << 17);
-
 static void BM_Layer_Logsoftmax_Products_Forward(benchmark::State &state) {
-    std::string path;
-    path = products_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-
-    CudaHelper cuda_helper;
-    LogSoftmax logsoftmax(&cuda_helper, features.num_rows_, features.num_columns_);
-
-    GPUMemoryLogger memory_logger("logsoftmax_products_forward");
-    memory_logger.start();
-
-    Matrix<float> *activations;
-    for (auto _ : state) {
-        activations = logsoftmax.forward(&features);
-    }
-
-    memory_logger.stop();
+    LogSoftmax logsoftmax;
+    benchmark_layer(&logsoftmax, products, state, true);
 }
 BENCHMARK(BM_Layer_Logsoftmax_Products_Forward);
 
-static void BM_Layer_Logsoftmax_Products_Chunked_Forward(benchmark::State &state) {
-    std::string path;
-    path = products_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-
-    long chunk_size = state.range(0);
-    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
-    std::vector<Matrix<float>> features_chunked(num_chunks);
-    chunk_up(&features, &features_chunked, chunk_size);
-
-    CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
-
-    GPUMemoryLogger memory_logger("logsoftmax_products_forward_" + std::to_string(chunk_size));
-    memory_logger.start();
-
-    std::vector<Matrix<float>> *activations;
-    for (auto _ : state) {
-        activations = logsoftmax.forward(&features_chunked);
-    }
-
-    memory_logger.stop();
-}
-BENCHMARK(BM_Layer_Logsoftmax_Products_Chunked_Forward)->Range(1 << 16, 1 << 21);
-
 static void BM_Layer_Logsoftmax_Products_Backward(benchmark::State &state) {
-    std::string path;
-    path = products_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_random_values();
-
-    CudaHelper cuda_helper;
-    LogSoftmax logsoftmax(&cuda_helper, features.num_rows_, features.num_columns_);
-
-    Matrix<float> *activations = logsoftmax.forward(&features);
-
-    GPUMemoryLogger memory_logger("logsoftmax_products_backward");
-    memory_logger.start();
-
-    Matrix<float> *gradients;
-    for (auto _ : state) {
-        gradients = logsoftmax.backward(&in_gradients);
-    }
-
-    memory_logger.stop();
+    LogSoftmax logsoftmax;
+    benchmark_layer(&logsoftmax, products, state, false);
 }
 BENCHMARK(BM_Layer_Logsoftmax_Products_Backward);
 
+// CHUNKED --- CHUNKED --- CHUNKED
+
+static void BM_Layer_Logsoftmax_Chunked_Flickr_Forward(benchmark::State &state) {
+    LogSoftmaxChunked logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, flickr, state, true);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Chunked_Flickr_Forward)->Range(1 << 10, 1 << 15);
+
+static void BM_Layer_Logsoftmax_Flickr_Chunked_Backward(benchmark::State &state) {
+    LogSoftmaxChunked logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, flickr, state, false);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Flickr_Chunked_Backward)->Range(1 << 10, 1 << 15);
+
+static void BM_Layer_Logsoftmax_Reddit_Chunked_Forward(benchmark::State &state) {
+    LogSoftmaxChunked logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, reddit, state, true);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Reddit_Chunked_Forward)->Range(1 << 12, 1 << 17);
+
+static void BM_Layer_Logsoftmax_Reddit_Chunked_Backward(benchmark::State &state) {
+    LogSoftmaxChunked logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, reddit, state, false);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Reddit_Chunked_Backward)->Range(1 << 12, 1 << 17);
+
+static void BM_Layer_Logsoftmax_Products_Chunked_Forward(benchmark::State &state) {
+    LogSoftmaxChunked logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, products, state, true);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Products_Chunked_Forward)->Range(1 << 16, 1 << 21);
+
 static void BM_Layer_Logsoftmax_Products_Chunked_Backward(benchmark::State &state) {
-    std::string path;
-    path = products_dir_path + "/features.npy";
-    Matrix<float> features = load_npy_matrix<float>(path);
-    Matrix<float> in_gradients(features.num_rows_, features.num_columns_, true);
-    in_gradients.set_random_values();
-
-    long chunk_size = state.range(0);
-    long num_chunks = ceil((float) features.num_rows_ / (float) chunk_size);
-    std::vector<Matrix<float>> features_chunked(num_chunks);
-    chunk_up(&features, &features_chunked, chunk_size);
-    std::vector<Matrix<float>> in_gradients_chunked(num_chunks);
-    chunk_up(&in_gradients, &in_gradients_chunked, chunk_size);
-
-    CudaHelper cuda_helper;
-    LogSoftmaxChunked logsoftmax(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
-
-    std::vector<Matrix<float>> *activations = logsoftmax.forward(&features_chunked);
-
-    GPUMemoryLogger memory_logger("logsoftmax_products_backward_" + std::to_string(chunk_size));
-    memory_logger.start();
-
-    std::vector<Matrix<float>> *gradients;
-    for (auto _ : state) {
-        gradients = logsoftmax.backward(&in_gradients_chunked);
-    }
-
-    memory_logger.stop();
+    LogSoftmaxChunked logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, products, state, false);
 }
 BENCHMARK(BM_Layer_Logsoftmax_Products_Chunked_Backward)->Range(1 << 16, 1 << 21);
+
+// PIPELINED --- PIPELINED --- PIPELINED
+
+static void BM_Layer_Logsoftmax_Pipelined_Flickr_Forward(benchmark::State &state) {
+    LogSoftmaxPipelined logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, flickr, state, true);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Pipelined_Flickr_Forward)->Range(1 << 10, 1 << 15);
+
+static void BM_Layer_Logsoftmax_Flickr_Pipelined_Backward(benchmark::State &state) {
+    LogSoftmaxPipelined logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, flickr, state, false);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Flickr_Pipelined_Backward)->Range(1 << 10, 1 << 15);
+
+static void BM_Layer_Logsoftmax_Reddit_Pipelined_Forward(benchmark::State &state) {
+    LogSoftmaxPipelined logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, reddit, state, true);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Reddit_Pipelined_Forward)->Range(1 << 12, 1 << 17);
+
+static void BM_Layer_Logsoftmax_Reddit_Pipelined_Backward(benchmark::State &state) {
+    LogSoftmaxPipelined logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, reddit, state, false);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Reddit_Pipelined_Backward)->Range(1 << 12, 1 << 17);
+
+static void BM_Layer_Logsoftmax_Products_Pipelined_Forward(benchmark::State &state) {
+    LogSoftmaxPipelined logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, products, state, true);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Products_Pipelined_Forward)->Range(1 << 16, 1 << 21);
+
+static void BM_Layer_Logsoftmax_Products_Pipelined_Backward(benchmark::State &state) {
+    LogSoftmaxPipelined logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, products, state, false);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Products_Pipelined_Backward)->Range(1 << 16, 1 << 21);

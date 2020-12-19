@@ -15,6 +15,8 @@ protected:
     Matrix<float> gradients_;
 
 public:
+    std::string name_;
+
     virtual Matrix<float> *forward(Matrix<float> *x) = 0;
     virtual Matrix<float> *backward(Matrix<float> *incoming_gradients) = 0;
     virtual void set(CudaHelper *helper, long num_nodes, long num_features) = 0;
@@ -30,6 +32,8 @@ protected:
     std::vector<Matrix<float>> gradients_;
 
 public:
+    std::string name_;
+
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) = 0;
     virtual std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) = 0;
     virtual void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) = 0;

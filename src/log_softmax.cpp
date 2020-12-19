@@ -16,6 +16,7 @@ LogSoftmax::LogSoftmax(CudaHelper *helper, long num_nodes, long num_features) {
 }
 
 void LogSoftmax::set(CudaHelper *helper, long num_nodes, long num_features) {
+    name_ = "log-softmax";
     cuda_helper_ = helper;
     alpha_ = 1.0;
     beta_ = 0.0;
@@ -134,6 +135,7 @@ LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long n
 }
 
 void LogSoftmaxChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
+    name_ = "log-softmax_chunked";
     chunk_size_ = chunk_size;
     cuda_helper_ = helper;
     alpha_ = 1.0;
@@ -265,6 +267,7 @@ LogSoftmaxPipelined::LogSoftmaxPipelined(CudaHelper *helper, long chunk_size, lo
 void LogSoftmaxPipelined::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
     LogSoftmaxChunked::set(helper, chunk_size, num_nodes, num_features);
 
+    name_ = "log-softmax_pipelined";
     long num_steps = 3;
     d_x_ = std::vector<float *>(num_steps);
     x_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps);

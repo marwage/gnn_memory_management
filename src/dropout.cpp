@@ -23,6 +23,7 @@ Dropout::~Dropout() {
 }
 
 void Dropout::set(CudaHelper *helper, long num_nodes, long num_features) {
+    name_ = "dropout";
     cuda_helper_ = helper;
     probability_ = 0.2;
     seed_ = rand();
@@ -167,6 +168,7 @@ DropoutChunked::~DropoutChunked() {
 }
 
 void DropoutChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
+    name_ = "dropout_chunked";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
     probability_ = 0.2;
@@ -319,6 +321,7 @@ DropoutPipelined::DropoutPipelined(CudaHelper *helper, long chunk_size, long num
 void DropoutPipelined::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
     DropoutChunked::set(helper, chunk_size, num_nodes, num_features);
 
+    name_ = "dropout_pipelined";
     num_steps_ = 3;
     check_cudnn(cudnnDropoutGetStatesSize(cuda_helper_->cudnn_handle, &state_size_));
 

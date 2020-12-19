@@ -13,6 +13,7 @@ Relu::Relu(CudaHelper *helper, long num_nodes, long num_features) {
 }
 
 void Relu::set(CudaHelper *helper, long num_nodes, long num_features) {
+    name_ = "relu";
     cuda_helper_ = helper;
     alpha_ = 1.0;
     beta_ = 0.0;
@@ -136,6 +137,7 @@ ReluChunked::ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, lo
 }
 
 void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
+    name_ = "relu_chunked";
     chunk_size_ = chunk_size;
     cuda_helper_ = helper;
     alpha_ = 1.0;
@@ -294,6 +296,7 @@ ReluPipelined::ReluPipelined(CudaHelper *helper, long chunk_size, long num_nodes
 void ReluPipelined::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
     ReluChunked::set(helper, chunk_size, num_nodes, num_features);
 
+    name_ = "relu_pipelined";
     long num_steps = 3;
     d_x_ = std::vector<float *>(num_steps);
     x_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps);
