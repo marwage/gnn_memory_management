@@ -111,9 +111,6 @@ void AddPipelined::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes,
 }
 
 void AddPipelined::forward_in(long chunk, long buffer) {
-    // DEBUGGING
-    auto aaa = cuda_helper_->stream_in_;
-
     check_cuda(cudaMemcpyAsync(d_a_.at(buffer), a_->at(chunk).values_, a_->at(chunk).size_ * sizeof(float),
                                cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
     check_cuda(cudaMemcpyAsync(d_b_.at(buffer), b_->at(chunk).values_, b_->at(chunk).size_ * sizeof(float),

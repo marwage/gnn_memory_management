@@ -13,6 +13,7 @@ SageLinear::SageLinear(CudaHelper *helper, long in_features, long out_features, 
 }
 
 void SageLinear::set(CudaHelper *helper, long in_features, long out_features, long num_nodes) {
+    name_ = "sage-linear";
     cuda_helper_ = helper;
 
     num_in_features_ = in_features;
@@ -72,6 +73,7 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, l
 }
 
 void SageLinearChunked::set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) {
+    name_ = "sage-linear_chunked";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
     num_in_features_ = num_in_features;
@@ -152,6 +154,7 @@ SageLinearPipelined::SageLinearPipelined(CudaHelper *helper, long num_in_feature
 }
 
 void SageLinearPipelined::set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) {
+    name_ = "sage-linear_pipelined";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
     num_in_features_ = num_in_features;

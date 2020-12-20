@@ -101,7 +101,7 @@ void benchmark_layer_chunked(LayerChunked *layer, Dataset dataset, benchmark::St
         direction = "backward";
     }
 
-    GPUMemoryLogger memory_logger(layer->name_ + "_" + get_dataset_name(dataset) + "_" + direction + "_" + std::to_string(state.range(0)));
+    GPUMemoryLogger memory_logger(layer->name_ + "_" + get_dataset_name(dataset) + "_" + direction + "_" + std::to_string(chunk_size));
     memory_logger.start();
 
     for (auto _ : state) {

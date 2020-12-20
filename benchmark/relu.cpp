@@ -3,9 +3,9 @@
 #include "relu.hpp"
 #include "chunking.hpp"
 #include "cuda_helper.hpp"
+#include "dataset.hpp"
 #include "gpu_memory_logger.hpp"
 #include "tensors.hpp"
-#include "dataset.hpp"
 
 #include <benchmark/benchmark.h>
 
@@ -60,14 +60,13 @@ static void BM_Layer_Relu_Products_Backward_Hidden(benchmark::State &state) {
     CudaHelper cuda_helper;
     Relu relu(&cuda_helper, num_nodes, num_features);
 
-    Matrix<float> *activations = relu.forward(&input);
+    relu.forward(&input);
 
     GPUMemoryLogger memory_logger("relu_products_backward_hidden", 50);
     memory_logger.start();
 
-    Matrix<float> *gradients;
     for (auto _ : state) {
-        gradients = relu.backward(&incoming_gradients);
+        relu.backward(&incoming_gradients);
     }
 
     memory_logger.stop();
@@ -92,14 +91,13 @@ static void BM_Layer_Relu_Products_Chunked_Backward_Hidden(benchmark::State &sta
     CudaHelper cuda_helper;
     ReluChunked relu(&cuda_helper, chunk_size, num_nodes, num_features);
 
-    std::vector<Matrix<float>> *activations = relu.forward(&input_chunked);
+    relu.forward(&input_chunked);
 
     GPUMemoryLogger memory_logger("relu_products_backward_hidden_" + std::to_string(chunk_size));
     memory_logger.start();
 
-    std::vector<Matrix<float>> *gradients;
     for (auto _ : state) {
-        gradients = relu.backward(&incoming_gradients_chunked);
+        relu.backward(&incoming_gradients_chunked);
     }
 
     memory_logger.stop();

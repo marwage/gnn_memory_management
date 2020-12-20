@@ -33,6 +33,7 @@ protected:
     SageLinearGradients input_gradients_;
 
 public:
+    std::string name_;
     SageLinear();
     SageLinear(CudaHelper *helper, long in_features, long out_features, long num_nodes);
     void set(CudaHelper *helper, long in_features, long out_features, long num_nodes);
@@ -54,6 +55,8 @@ protected:
     SageLinearGradientsChunked input_gradients_;
 
 public:
+    std::string name_;
+
     virtual void set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) = 0;
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr) = 0;
     virtual SageLinearGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients) = 0;

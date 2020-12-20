@@ -20,6 +20,8 @@ private:
     Matrix<float> gradients_;
 
 public:
+    std::string name_;
+
     GraphConvolution();
     GraphConvolution(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                      long num_nodes, long num_features);
@@ -43,6 +45,8 @@ protected:
     std::vector<Matrix<float>> gradients_;
 
 public:
+    std::string name_;
+
     GraphConvChunked();
     GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                      long num_features, long chunk_size, long num_nodes);

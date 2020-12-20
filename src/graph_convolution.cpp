@@ -18,6 +18,7 @@ GraphConvolution::GraphConvolution(CudaHelper *helper, SparseMatrix<float> *adja
 
 void GraphConvolution::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                            long num_nodes, long num_features) {
+    name_ = "feature-aggregation";
     cuda_helper_ = helper;
     adjacency_ = adjacency;
     reduction_ = reduction;
@@ -110,6 +111,7 @@ GraphConvChunked::GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adja
 
 void GraphConvChunked::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                            long num_features, long chunk_size, long num_nodes) {
+    name_ = "feature-aggregation_chunked";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
     adjacency_ = adjacency;
@@ -289,6 +291,7 @@ void GraphConvPipelined::set(CudaHelper *helper, SparseMatrix<float> *adjacency,
                              long chunk_size, long num_nodes) {
     GraphConvChunked::set(helper, adjacency, reduction, num_features, chunk_size, num_nodes);
 
+    name_ = "feature-aggregation_pipelined";
     num_steps_ = 2;
     d_x_ = std::vector<float *>(num_steps_);
     d_adj_ = std::vector<SparseMatrixCuda<float>>(num_steps_);
