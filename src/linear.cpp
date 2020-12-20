@@ -34,7 +34,7 @@ void Linear::set(CudaHelper *helper, long in_features, long out_features, long n
     bias_expanded_.set(num_nodes, bias_.num_rows_, false);
     expand_bias();
 
-    y_.set(num_nodes, weight_.num_columns_, false);
+    y_.set(num_nodes, num_out_features_, false);
 
     ones_ = std::vector<float>(num_nodes, 1.0);
 

@@ -34,7 +34,7 @@ void benchmark_sagelinear(Dataset dataset, benchmark::State &state, bool forward
     aggregates.set_random_values();
     Matrix<float> incoming_gradients;
     if (!forward) {
-        incoming_gradients.set(features.num_rows_, features.num_columns_, true);
+        incoming_gradients.set(features.num_rows_, num_out_features, true);
         incoming_gradients.set_random_values();
     }
 
@@ -82,7 +82,7 @@ void benchmark_sagelinear_chunked(SageLinearChunkedParent *sagelinear, Dataset d
     aggregates.set_random_values();
     Matrix<float> incoming_gradients;
     if (!forward) {
-        incoming_gradients.set(features.num_rows_, features.num_columns_, true);
+        incoming_gradients.set(features.num_rows_, num_out_features, true);
         incoming_gradients.set_random_values();
     }
 
@@ -124,7 +124,6 @@ void benchmark_sagelinear_chunked(SageLinearChunkedParent *sagelinear, Dataset d
 
     memory_logger.stop();
 }
-
 
 static void BM_Layer_Sagelinear_Flickr_Forward(benchmark::State &state) {
     benchmark_sagelinear(flickr, state, true);
