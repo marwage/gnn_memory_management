@@ -28,7 +28,7 @@ void benchmark_feature_aggregation(Dataset dataset, benchmark::State &state, boo
     std::string path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
     to_column_major_inplace(&features);
-    path = flickr_dir_path + "/adjacency.mtx";
+    path = dataset_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
     Matrix<float> incoming_gradients;
     if (!forward) {
@@ -76,7 +76,7 @@ void benchmark_feature_aggregation_chunked(GraphConvChunked *feature_aggr, Datas
     std::string path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
     to_column_major_inplace(&features);
-    path = flickr_dir_path + "/adjacency.mtx";
+    path = dataset_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
     Matrix<float> incoming_gradients;
     if (!forward) {
