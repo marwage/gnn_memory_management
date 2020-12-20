@@ -24,7 +24,7 @@ template Matrix<float>::Matrix(long num_rows, long num_columns, bool is_row_majo
 
 template<typename T>
 Matrix<T>::~Matrix() {
-    delete[] values_;
+    check_cuda(cudaFreeHost(values_));
 }
 template Matrix<float>::~Matrix();
 template Matrix<int>::~Matrix();
@@ -35,9 +35,9 @@ void Matrix<T>::set(long num_rows, long num_columns, bool is_row_major) {
     num_columns_ = num_columns;
     size_ = num_rows_ * num_columns;
     if (values_ != NULL) {
-        delete[] values_;
+        check_cuda(cudaFreeHost(values_));
     }
-    values_ = new T[size_];
+    check_cuda(cudaMallocHost(&values_, size_ * sizeof(T)));
     is_row_major_ = is_row_major;
 }
 template void Matrix<int>::set(long num_rows, long num_columns, bool is_row_major);
@@ -49,7 +49,7 @@ void Matrix<T>::set(long num_rows, long num_columns, T *matrix_values, bool is_r
     num_columns_ = num_columns;
     size_ = num_rows_ * num_columns;
     if (values_ != NULL) {
-        delete[] values_;
+        check_cuda(cudaFreeHost(values_));
     }
     values_ = matrix_values;
     is_row_major_ = is_row_major;
@@ -98,9 +98,9 @@ template SparseMatrix<float>::SparseMatrix(int num_rows, int num_columns, int nu
 
 template<typename T>
 SparseMatrix<T>::~SparseMatrix() {
-    delete[] csr_col_ind_;
-    delete[] csr_row_ptr_;
-    delete[] csr_val_;
+    check_cuda(cudaFreeHost(csr_col_ind_));
+    check_cuda(cudaFreeHost(csr_row_ptr_));
+    check_cuda(cudaFreeHost(csr_val_));
 }
 template SparseMatrix<float>::~SparseMatrix();
 
@@ -111,15 +111,15 @@ void SparseMatrix<T>::set(int num_rows, int num_columns, int num_nnz) {
     nnz_ = num_nnz;
 
     if (csr_val_ != NULL)
-        delete[] csr_val_;
+        check_cuda(cudaFreeHost(csr_val_));
     if (csr_row_ptr_ != NULL)
-        delete[] csr_row_ptr_;
+        check_cuda(cudaFreeHost(csr_row_ptr_));
     if (csr_col_ind_ != NULL)
-        delete[] csr_col_ind_;
+        check_cuda(cudaFreeHost(csr_col_ind_));
 
-    csr_val_ = new T[nnz_];
-    csr_row_ptr_ = new int[num_rows_ + 1];
-    csr_col_ind_ = new int[nnz_];
+    check_cuda(cudaMallocHost(&csr_val_, nnz_ * sizeof(T)));
+    check_cuda(cudaMallocHost(&csr_row_ptr_, (num_rows_ + 1) * sizeof(int)));
+    check_cuda(cudaMallocHost(&csr_col_ind_, nnz_ * sizeof(int)));
 }
 template void SparseMatrix<float>::set(int num_rows, int num_columns, int num_nnz);
 
@@ -316,16 +316,26 @@ template Matrix<bool> load_npy_matrix<bool>(std::string path);
 template<typename T>
 SparseMatrix<T> load_mtx_matrix(std::string path) {
     char *path_char = &*path.begin();
-    SparseMatrix<T> sp_mat;
+    int num_rows;
+    int num_columns;
+    int nnz;
+    T *val;
+    int *row_ptr;
+    int *col_ind;
     int err = loadMMSparseMatrix<T>(path_char, 'f', true,
-                                    &sp_mat.num_rows_, &sp_mat.num_columns_, &sp_mat.nnz_,
-                                    &sp_mat.csr_val_, &sp_mat.csr_row_ptr_,
-                                    &sp_mat.csr_col_ind_, true);
+                                    &num_rows, &num_columns, &nnz,
+                                    &val, &row_ptr,
+                                    &col_ind, true);
     if (err) {
         std::cout << "loadMMSparseMatrix failed" << std::endl;
     }
-    one_to_zero_index(sp_mat.csr_row_ptr_, sp_mat.num_rows_ + 1);
-    one_to_zero_index(sp_mat.csr_col_ind_, sp_mat.nnz_);
+    one_to_zero_index(row_ptr, num_rows + 1);
+    one_to_zero_index(col_ind, nnz);
+
+    SparseMatrix<T> sp_mat(num_rows, num_columns, nnz);
+    std::copy(col_ind, col_ind + nnz, sp_mat.csr_col_ind_);
+    std::copy(row_ptr, row_ptr + num_rows + 1, sp_mat.csr_row_ptr_);
+    std::copy(val, val + nnz, sp_mat.csr_val_);
 
     return sp_mat;
 }
@@ -354,10 +364,11 @@ template void save_npy_matrix_no_trans<int>(Matrix<int> *mat, std::string path);
 template<typename T>
 void to_column_major_inplace(Matrix<T> *mat) {
     if (mat->is_row_major_) {
-        T *values_T = new T[mat->size_];
+        T *values_T;
+        check_cuda(cudaMallocHost(&values_T, mat->size_ * sizeof(T)));
         transpose<T>(values_T, mat->values_, mat->num_rows_, mat->num_columns_);
 
-        delete[] mat->values_;
+        check_cuda(cudaFreeHost(mat->values_));
         mat->values_ = values_T;
         mat->is_row_major_ = false;
     }
@@ -369,7 +380,8 @@ template void to_column_major_inplace<int>(Matrix<int> *mat);
 template<typename T>
 void to_column_major(Matrix<T> *mat_col, Matrix<T> *mat) {
     if (mat->is_row_major_) {
-        T *a_T = new T[mat->size_];
+        T *a_T;
+        check_cuda(cudaMallocHost(&a_T, mat->size_ * sizeof(T)));
         transpose<T>(a_T, mat->values_, mat->num_rows_, mat->num_columns_);
         mat_col->set(mat->num_rows_, mat->num_columns_, a_T, false);
     } else {
@@ -383,10 +395,11 @@ template void to_column_major<int>(Matrix<int> *mat_col, Matrix<int> *mat);
 template<typename T>
 void to_row_major_inplace(Matrix<T> *mat) {
     if (!mat->is_row_major_) {
-        T *values_T = new T[mat->size_];
+        T *values_T;
+        check_cuda(cudaMallocHost(&values_T, mat->size_ * sizeof(T)));
         transpose<T>(values_T, mat->values_, mat->num_columns_, mat->num_rows_);
 
-        delete[] mat->values_;
+        check_cuda(cudaFreeHost(mat->values_));
         mat->values_ = values_T;
         mat->is_row_major_ = true;
     }
@@ -397,7 +410,8 @@ template void to_row_major_inplace<int>(Matrix<int> *mat);
 template<typename T>
 void to_row_major(Matrix<T> *mat_row, Matrix<T> *mat) {
     if (!mat->is_row_major_) {
-        T *a_T = new T[mat->size_];
+        T *a_T;
+        check_cuda(cudaMallocHost(&a_T, mat->size_ * sizeof(T)));
         transpose<T>(a_T, mat->values_, mat->num_columns_, mat->num_rows_);
         mat_row->set(mat->num_rows_, mat->num_columns_, a_T, true);
     } else {

@@ -286,10 +286,10 @@ void transpose_csr_matrix(SparseMatrix<float> *mat, CudaHelper *cuda_helper) {
     long tmp = mat->num_rows_;
     mat->num_rows_ = mat->num_columns_;
     mat->num_columns_ = tmp;
-    delete[] mat->csr_row_ptr_;
-    delete[] mat->csr_col_ind_;
-    mat->csr_row_ptr_ = new int[mat->num_rows_ + 1];
-    mat->csr_col_ind_ = new int[mat->nnz_];
+    check_cuda(cudaFreeHost(mat->csr_row_ptr_));
+    check_cuda(cudaFreeHost(mat->csr_col_ind_));
+    check_cuda(cudaMallocHost(&mat->csr_row_ptr_, (mat->num_rows_ + 1) * sizeof(int)));
+    check_cuda(cudaMallocHost(&mat->csr_col_ind_, mat->nnz_ * sizeof(int)));
 
     check_cuda(cudaMemcpy(mat->csr_row_ptr_, d_mat_csc_col_ptr,
                           (mat->num_rows_ + 1) * sizeof(int), cudaMemcpyDeviceToHost));
@@ -311,9 +311,12 @@ void transpose_csr_matrix_cpu(SparseMatrix<float> *mat) {
         return;
     }
 
-    int *csc_row_ptr = new int[mat->num_columns_ + 1];
-    int *csc_col_ind = new int[mat->nnz_];
-    float *csc_val = new float[mat->nnz_];
+    int *csc_row_ptr;
+    check_cuda(cudaMallocHost(&csc_row_ptr, (mat->num_columns_ + 1) * sizeof(int)));
+    int *csc_col_ind;
+    check_cuda(cudaMallocHost(&csc_col_ind, mat->nnz_ * sizeof(int)));
+    float *csc_val;
+    check_cuda(cudaMallocHost(&csc_val, mat->nnz_ * sizeof(float)));
 
     // code from scipy
     std::fill(csc_row_ptr, csc_row_ptr + mat->num_columns_, 0);
@@ -351,9 +354,9 @@ void transpose_csr_matrix_cpu(SparseMatrix<float> *mat) {
     long tmp = mat->num_rows_;
     mat->num_rows_ = mat->num_columns_;
     mat->num_columns_ = tmp;
-    delete[] mat->csr_row_ptr_;
-    delete[] mat->csr_col_ind_;
-    delete[] mat->csr_val_;
+    check_cuda(cudaFreeHost(mat->csr_row_ptr_));
+    check_cuda(cudaFreeHost(mat->csr_col_ind_));
+    check_cuda(cudaFreeHost(mat->csr_val_));
     mat->csr_row_ptr_ = csc_row_ptr;
     mat->csr_col_ind_ = csc_col_ind;
     mat->csr_val_ = csc_val;

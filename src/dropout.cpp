@@ -19,7 +19,7 @@ Dropout::Dropout(CudaHelper *helper, long num_nodes, long num_features) {
 }
 
 Dropout::~Dropout() {
-    delete[] reserve_space_;
+    check_cuda(cudaFreeHost(reserve_space_));
 }
 
 void Dropout::set(CudaHelper *helper, long num_nodes, long num_features) {
@@ -79,7 +79,7 @@ Matrix<float> *Dropout::forward(Matrix<float> *x) {
     y_.is_row_major_ = true;
 
     if (reserve_space_ == NULL) {
-        reserve_space_ = new char[reserve_space_size_];
+        check_cuda(cudaMallocHost(&reserve_space_, reserve_space_size_));
     }
     check_cuda(cudaMemcpy(reserve_space_, d_reserve_space,
                           reserve_space_size_,
@@ -163,7 +163,7 @@ DropoutChunked::DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes
 
 DropoutChunked::~DropoutChunked() {
     for (long i = 0; i < num_chunks_; ++i) {
-        delete[] reserve_space_.at(i);
+        check_cuda(cudaFreeHost(reserve_space_.at(i)));
     }
 }
 
@@ -247,7 +247,7 @@ std::vector<Matrix<float>> *DropoutChunked::forward(std::vector<Matrix<float>> *
         y_.at(i).is_row_major_ = true;
 
         if (reserve_space_.at(i) == NULL) {
-            reserve_space_.at(i) = new char[reserve_space_size_];
+            check_cuda(cudaMallocHost(&reserve_space_.at(i), reserve_space_size_));
         }
         check_cuda(cudaMemcpy(reserve_space_.at(i), d_reserve_space, reserve_space_size_, cudaMemcpyDeviceToHost));
     }
@@ -349,7 +349,7 @@ void DropoutPipelined::forward_in(long chunk, long buffer) {
 
 void DropoutPipelined::forward_out(long chunk, long buffer) {
     if (reserve_space_.at(chunk) == NULL) {
-        reserve_space_.at(chunk) = new char[reserve_space_size_];
+        check_cuda(cudaMallocHost(&reserve_space_.at(chunk), reserve_space_size_));
     }
     check_cuda(cudaMemcpyAsync(reserve_space_.at(chunk), d_reserve_space_.at(buffer), reserve_space_size_,
                                cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
