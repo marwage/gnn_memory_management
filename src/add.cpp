@@ -5,6 +5,7 @@
 
 
 Add::Add(CudaHelper *cuda_helper, long num_nodes, long num_features) {
+    name_ = "add";
     cuda_helper_ = cuda_helper;
     y_.set(num_nodes, num_features, true);
 }
@@ -31,6 +32,7 @@ AddChunked::AddChunked(CudaHelper *cuda_helper, long chunk_size, long num_nodes,
 }
 
 void AddChunked::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features) {
+    name_ = "add_chunked";
     cuda_helper_ = cuda_helper;
     chunk_size_ = chunk_size;
     num_chunks_ = ceil((float) num_nodes / (float) chunk_size);
@@ -105,6 +107,7 @@ AddPipelined::AddPipelined(CudaHelper *cuda_helper, long chunk_size, long num_no
 void AddPipelined::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features) {
     AddChunked::set(cuda_helper, chunk_size, num_nodes, num_features);
 
+    name_ = "add_pipelined";
     num_steps_ = 3;
     d_a_ = std::vector<float *>(num_steps_);
     d_b_ = std::vector<float *>(num_steps_);

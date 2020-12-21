@@ -17,6 +17,7 @@ Linear::Linear(CudaHelper *helper, long in_features, long out_features, long num
 }
 
 void Linear::set(CudaHelper *helper, long in_features, long out_features, long num_nodes) {
+    name_ = "linear";
     cuda_helper_ = helper;
 
     num_nodes_ = num_nodes;
@@ -260,6 +261,7 @@ LinearChunked::LinearChunked(CudaHelper *helper, long chunk_size, long num_nodes
 }
 
 void LinearChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_in_features, long num_out_features) {
+    name_ = "linear_chunked";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
     num_in_features_ = num_in_features;
@@ -387,6 +389,7 @@ LinearPipelined::LinearPipelined(CudaHelper *helper, long chunk_size, long num_n
 void LinearPipelined::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_in_features, long num_out_features) {
     LinearChunked::set(helper, chunk_size, num_nodes, num_in_features, num_out_features);
 
+    name_ = "linear_pipelined";
     num_steps_ = 3;
 
     d_x_ = std::vector<float *>(num_steps_);

@@ -10,7 +10,9 @@ set(BENCHMARK_FILES
         benchmark/relu.cpp
         benchmark/sage_linear.cpp
         benchmark/sparse_computation.cpp
-        benchmark/layer.cpp)
+        benchmark/layer.cpp
+        benchmark/linear.cpp
+        benchmark/add.cpp)
 
 set(EXECUTABLE_NAME benchmark)
 add_executable(${EXECUTABLE_NAME}

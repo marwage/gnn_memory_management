@@ -25,6 +25,8 @@ private:
     AddGradients gradients_;
 
 public:
+    std::string name_;
+
     Add(CudaHelper *cuda_helper, long num_nodes, long num_features);
     Matrix<float> *forward(Matrix<float> *a, Matrix<float> *b);
     AddGradients *backward(Matrix<float> *incoming_gradients);
@@ -40,6 +42,8 @@ protected:
     AddGradientsChunked gradients_;
 
 public:
+    std::string name_;
+
     AddChunked();
     AddChunked(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
     virtual void set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);

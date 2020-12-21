@@ -33,6 +33,8 @@ protected:
     void expand_bias();
 
 public:
+    std::string name_;
+
     Linear();
     Linear(CudaHelper *helper, long in_features, long out_features, long num_nodes);
     void set(CudaHelper *helper, long in_features, long out_features, long num_nodes);
@@ -64,6 +66,8 @@ protected:
     std::vector<Matrix<float>> *x_;
 
 public:
+    std::string name_;
+
     LinearChunked();
     LinearChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_in_features, long num_out_features);
     virtual void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_in_features, long num_out_features);
