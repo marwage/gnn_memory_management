@@ -175,6 +175,6 @@ BENCHMARK(BM_Layer_Add_Reddit_Pipelined_Forward)->Range(1 << 12, 1 << 17);
 
 static void BM_Layer_Add_Products_Pipelined_Forward(benchmark::State &state) {
     AddPipelined add;
-    benchmark_linear_chunked(&add, products, state, true);
+    benchmark_add_chunked(&add, products, state, true);
 }
 BENCHMARK(BM_Layer_Add_Products_Pipelined_Forward)->Range(1 << 16, 1 << 21);

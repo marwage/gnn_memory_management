@@ -92,7 +92,7 @@ void benchmark_linear_chunked(LinearChunked *linear, Dataset dataset, benchmark:
     }
 
     CudaHelper cuda_helper;
-    linear->set(&cuda_helper, features.num_columns_, num_out_features, chunk_size, features.num_rows_);
+    linear->set(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_, num_out_features);
 
     if (!forward) {
         linear->forward(&features_chunked);
