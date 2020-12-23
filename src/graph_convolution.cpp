@@ -326,32 +326,39 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
         for (long column = 0; column < num_chunks_ + 1; ++column) {
             long column_a = (column / 2) * 2;
             long column_b = ((column - 1) / 2) * 2 + 1;
+            SparseMatrix<float> *adj_a;
+            SparseMatrix<float> *adj_b;
+            if (column_a < num_chunks_)
+                adj_a = &adjacencies_.at(row * num_chunks_ + column_a);
+            if (column_b < num_chunks_)
+                adj_b = &adjacencies_.at(row * num_chunks_ + column_b);
+
             if (column % 2 == 0) {
                 // a in, b compute
-                if (column_a < num_chunks_) {
-                    SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column_a);
-                    memcpy_sp_mat_async(&d_adj_.at(0), adj, cuda_helper_->stream_in_);
+                if (column_a < num_chunks_ && adj_a->nnz_ > 0) {
+                        memcpy_sp_mat_async(&d_adj_.at(0), adj_a, cuda_helper_->stream_in_);
 
-                    check_cuda(cudaMemcpyAsync(d_x_.at(0), x->at(column_a).values_, x->at(column_a).size_ * sizeof(float),
-                                               cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+                        check_cuda(cudaMemcpyAsync(d_x_.at(0), x->at(column_a).values_, x->at(column_a).size_ * sizeof(float),
+                                                   cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
                 }
 
-                if (column > 0) {
+                if (column > 0 && adj_b->nnz_ > 0) {
                     sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(1), d_x_.at(1), d_y_,
                                           x->at(column_b).num_columns_, true);
                 }
             } else {
                 // b in, a compute
-                if (column_b < num_chunks_) {
-                    SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column_b);
-                    memcpy_sp_mat_async(&d_adj_.at(1), adj, cuda_helper_->stream_in_);
+                if (column_b < num_chunks_ && adj_b->nnz_ > 0) {
+                    memcpy_sp_mat_async(&d_adj_.at(1), adj_b, cuda_helper_->stream_in_);
 
                     check_cuda(cudaMemcpyAsync(d_x_.at(1), x->at(column_b).values_, x->at(column_b).size_ * sizeof(float),
                                                cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
                 }
 
-                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(0), d_x_.at(0), d_y_,
-                                      x->at(column_a).num_columns_, true);
+                if (adj_a->nnz_ > 0) {
+                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(0), d_x_.at(0), d_y_,
+                                          x->at(column_a).num_columns_, true);
+                }
             }
 
             check_cuda(cudaDeviceSynchronize());
@@ -364,6 +371,8 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
         check_cuda(cudaMemcpyAsync(y_.at(row).values_, d_y_, y_.at(row).size_ * sizeof(float),
                                    cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
     }
+
+    check_cuda(cudaDeviceSynchronize());
 
     // free
     check_cuda(cudaFree(d_y_));
@@ -400,12 +409,17 @@ std::vector<Matrix<float>> *GraphConvPipelined::backward(std::vector<Matrix<floa
         for (long column = 0; column < num_chunks_ + 1; ++column) {
             long column_a = (column / 2) * 2;
             long column_b = ((column - 1) / 2) * 2 + 1;
+            SparseMatrix<float> *adj_a;
+            SparseMatrix<float> *adj_b;
+            if (column_a < num_chunks_)
+                adj_a = &adjacencies_.at(row * num_chunks_ + column_a);
+            if (column_b < num_chunks_)
+                adj_b = &adjacencies_.at(row * num_chunks_ + column_b);
 
             if (column % 2 == 0) {
                 // a in, b compute
-                if (column_a < num_chunks_) {
-                    SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column_a);
-                    memcpy_sp_mat_async(&d_adj_.at(0), adj, cuda_helper_->stream_in_);
+                if (column_a < num_chunks_ && adj_a->nnz_ > 0) {
+                    memcpy_sp_mat_async(&d_adj_.at(0), adj_a, cuda_helper_->stream_in_);
 
                     check_cuda(cudaMemcpyAsync(d_incoming_gradients_.at(0), incoming_gradients->at(column_a).values_,
                                                incoming_gradients->at(column_a).size_ * sizeof(float), cudaMemcpyHostToDevice,
@@ -418,7 +432,7 @@ std::vector<Matrix<float>> *GraphConvPipelined::backward(std::vector<Matrix<floa
                     }
                 }
 
-                if (column > 0) {
+                if (column > 0 && adj_b->nnz_ > 0) {
                     if (mean_) {
                         div_mat_vec(d_incoming_gradients_.at(1), d_sum_backward_.at(1), incoming_gradients->at(column_b).num_rows_,
                                     incoming_gradients->at(column_b).num_columns_);
@@ -429,9 +443,8 @@ std::vector<Matrix<float>> *GraphConvPipelined::backward(std::vector<Matrix<floa
                 }
             } else {
                 // b in, a compute
-                if (column_b < num_chunks_) {
-                    SparseMatrix<float> *adj = &adjacencies_.at(row * num_chunks_ + column_b);
-                    memcpy_sp_mat_async(&d_adj_.at(1), adj, cuda_helper_->stream_in_);
+                if (column_b < num_chunks_ && adj_b->nnz_ > 0) {
+                    memcpy_sp_mat_async(&d_adj_.at(1), adj_b, cuda_helper_->stream_in_);
 
                     check_cuda(cudaMemcpyAsync(d_incoming_gradients_.at(1), incoming_gradients->at(column_b).values_,
                                                incoming_gradients->at(column_b).size_ * sizeof(float), cudaMemcpyHostToDevice,
@@ -444,7 +457,7 @@ std::vector<Matrix<float>> *GraphConvPipelined::backward(std::vector<Matrix<floa
                     }
                 }
 
-                if (column > 0) {
+                if (column > 0 && adj_a->nnz_ > 0) {
                     if (mean_) {
                         div_mat_vec(d_incoming_gradients_.at(0), d_sum_backward_.at(0), incoming_gradients->at(column_a).num_rows_,
                                     incoming_gradients->at(column_a).num_columns_);
@@ -461,6 +474,8 @@ std::vector<Matrix<float>> *GraphConvPipelined::backward(std::vector<Matrix<floa
         check_cuda(cudaMemcpy(gradients_.at(row).values_, d_gradients_, gradients_.at(row).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
     }
+
+    check_cuda(cudaDeviceSynchronize());
 
     // free GPU memory
     check_cuda(cudaFree(d_gradients_));
