@@ -199,11 +199,14 @@ std::vector<Matrix<float>> *GraphConvChunked::forward(std::vector<Matrix<float>>
 
         for (int j = 0; j < num_chunks_; ++j) {
             SparseMatrixCuda<float> d_adj_i;
-            malloc_memcpy_sp_mat(&d_adj_i, &adjacencies_[i * num_chunks_ + j]);
+            SparseMatrix<float> *adj = &adjacencies_[i * num_chunks_ + j];
+            if (adj->nnz_ > 0) {
+                malloc_memcpy_sp_mat(&d_adj_i, adj);
 
-            check_cuda(cudaMemcpy(d_x, x->at(j).values_, x->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
+                check_cuda(cudaMemcpy(d_x, x->at(j).values_, x->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
 
-            sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_x, d_y, x->at(j).num_columns_, true);
+                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_x, d_y, x->at(j).num_columns_, true);
+            }
         }
 
         if (mean_) {
@@ -250,18 +253,21 @@ std::vector<Matrix<float>> *GraphConvChunked::backward(std::vector<Matrix<float>
 
         for (int j = 0; j < num_chunks_; ++j) {
             SparseMatrixCuda<float> d_adj_i;
-            malloc_memcpy_sp_mat(&d_adj_i, &adjacencies_[i * num_chunks_ + j]);
+            SparseMatrix<float> *adj = &adjacencies_[i * num_chunks_ + j];
+            if (adj->nnz_ > 0) {
+                malloc_memcpy_sp_mat(&d_adj_i, &adjacencies_[i * num_chunks_ + j]);
 
-            check_cuda(cudaMemcpy(d_incoming_gradients, incoming_gradients->at(j).values_, incoming_gradients->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
+                check_cuda(cudaMemcpy(d_incoming_gradients, incoming_gradients->at(j).values_, incoming_gradients->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
 
-            if (mean_) {
-                check_cuda(cudaMemcpy(d_sum, &sum_.values_[j * chunk_size_], incoming_gradients->at(j).num_rows_ * sizeof(float),
-                                      cudaMemcpyHostToDevice));
+                if (mean_) {
+                    check_cuda(cudaMemcpy(d_sum, &sum_.values_[j * chunk_size_], incoming_gradients->at(j).num_rows_ * sizeof(float),
+                                          cudaMemcpyHostToDevice));
 
-                div_mat_vec(d_incoming_gradients, d_sum, incoming_gradients->at(j).num_rows_, incoming_gradients->at(j).num_columns_);
+                    div_mat_vec(d_incoming_gradients, d_sum, incoming_gradients->at(j).num_rows_, incoming_gradients->at(j).num_columns_);
+                }
+
+                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_incoming_gradients, d_gradients, incoming_gradients->at(j).num_columns_, true);
             }
-
-            sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_incoming_gradients, d_gradients, incoming_gradients->at(j).num_columns_, true);
         }
 
         check_cuda(cudaMemcpy(gradients_.at(i).values_, d_gradients, gradients_.at(i).size_ * sizeof(float),
