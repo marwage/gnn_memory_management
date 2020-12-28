@@ -8,7 +8,6 @@
 #include <cstring>
 #include <cuda_runtime.h>
 #include <cudnn.h>
-#include <cudnn_v7.h>
 #include <iostream>
 
 
