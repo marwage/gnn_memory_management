@@ -10,7 +10,7 @@ def gen_data():
     print("n {}".format(n))
     f = 512
     print("f {}".format(f))
-    density = 2e-5
+    density = 1e-5
 
     features = np.random.randn(n, f)
     features = features.astype(np.float32)
@@ -22,7 +22,7 @@ def gen_data():
     values = np.ones(k, dtype=np.float32)
     i = np.random.randint(n, size=k, dtype=np.int32)
     j = np.random.randint(n, size=k, dtype=np.int32)
-    adj = sp.coo_matrix((values, (i, j)), shape=(n, n))
+    adj = sp.coo_matrix((values, (i, j)), shape=(n, n)).asformat("csr")
 
     path = dir_path + "/adjacency.mtx"
     scipy.io.mmwrite(path, adj)
