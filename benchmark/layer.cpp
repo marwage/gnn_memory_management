@@ -9,22 +9,11 @@
 
 #include <benchmark/benchmark.h>
 
-const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string flickr_dir_path = dir_path + "/flickr";
-const std::string reddit_dir_path = dir_path + "/reddit";
-const std::string products_dir_path = dir_path + "/products";
+const std::string dir_path = "/mnt/data";
 
 
 void benchmark_layer(Layer *layer, Dataset dataset, benchmark::State &state, bool forward) {
-    std::string dataset_path;
-    if (dataset == flickr) {
-        dataset_path = flickr_dir_path;
-    } else if (dataset == reddit) {
-        dataset_path = reddit_dir_path;
-    } else if (dataset == products) {
-        dataset_path = products_dir_path;
-    }
+    std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
     std::string path;
     path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
@@ -63,14 +52,7 @@ void benchmark_layer(Layer *layer, Dataset dataset, benchmark::State &state, boo
 }
 
 void benchmark_layer_chunked(LayerChunked *layer, Dataset dataset, benchmark::State &state, bool forward) {
-    std::string dataset_path;
-    if (dataset == flickr) {
-        dataset_path = flickr_dir_path;
-    } else if (dataset == reddit) {
-        dataset_path = reddit_dir_path;
-    } else if (dataset == products) {
-        dataset_path = products_dir_path;
-    }
+    std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
     std::string path;
     path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);

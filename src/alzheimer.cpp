@@ -6,7 +6,7 @@
 #include "chunking.hpp"
 #include "cuda_helper.hpp"
 #include "dropout.hpp"
-#include "graph_convolution.hpp"
+#include "feature_aggregation.hpp"
 #include "log_softmax.hpp"
 #include "loss.hpp"
 #include "relu.hpp"
@@ -15,12 +15,12 @@
 
 #include <iostream>
 
+const std::string dir_path = "/mnt/data";
+
 
 void alzheimer(std::string dataset) {
     // read tensors
     // set path to directory
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string dataset_path = dir_path + "/" + dataset;
 
     // read features
@@ -201,8 +201,6 @@ void alzheimer(std::string dataset) {
 void alzheimer_chunked(std::string dataset, long chunk_size) {
     // read tensors
     // set path to directory
-    std::string home = std::getenv("HOME");
-    std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
     std::string dataset_path = dir_path + "/" + dataset;
 
     // read features

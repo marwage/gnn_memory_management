@@ -6,7 +6,10 @@
 #include <string>
 
 
-enum Dataset{flickr, reddit, products};
+enum Dataset { flickr,
+               reddit,
+               products,
+               ivy };
 
 std::string get_dataset_name(Dataset dataset);
 

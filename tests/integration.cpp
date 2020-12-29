@@ -4,7 +4,7 @@
 #include "add.hpp"
 #include "chunking.hpp"
 #include "cuda_helper.hpp"
-#include "graph_convolution.hpp"
+#include "feature_aggregation.hpp"
 #include "helper.hpp"
 #include "log_softmax.hpp"
 #include "loss.hpp"

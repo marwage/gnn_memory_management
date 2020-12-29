@@ -83,6 +83,18 @@ static void BM_Layer_Dropout_Products_Chunked_Backward(benchmark::State &state) 
 }
 BENCHMARK(BM_Layer_Dropout_Products_Chunked_Backward)->Range(1 << 16, 1 << 21);
 
+static void BM_Layer_Dropout_Ivy_Chunked_Forward(benchmark::State &state) {
+    DropoutChunked dropout;
+    benchmark_layer_chunked(&dropout, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Dropout_Ivy_Chunked_Forward)->Arg(1 << 19);
+
+static void BM_Layer_Dropout_Ivy_Chunked_Backward(benchmark::State &state) {
+    DropoutChunked dropout;
+    benchmark_layer_chunked(&dropout, ivy, state, false);
+}
+BENCHMARK(BM_Layer_Dropout_Ivy_Chunked_Backward)->Arg(1 << 19);
+
 // PIPELINED --- PIPELINED --- PIPELINED
 
 static void BM_Layer_Dropout_Flickr_Pipelined_Forward(benchmark::State &state) {
@@ -120,3 +132,15 @@ static void BM_Layer_Dropout_Products_Pipelined_Backward(benchmark::State &state
     benchmark_layer_chunked(&dropout, products, state, false);
 }
 BENCHMARK(BM_Layer_Dropout_Products_Pipelined_Backward)->Range(1 << 16, 1 << 21);
+
+static void BM_Layer_Dropout_Ivy_Pipelined_Forward(benchmark::State &state) {
+    DropoutPipelined dropout;
+    benchmark_layer_chunked(&dropout, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Dropout_Ivy_Pipelined_Forward)->Arg(1 << 19);
+
+static void BM_Layer_Dropout_Ivy_Pipelined_Backward(benchmark::State &state) {
+    DropoutPipelined dropout;
+    benchmark_layer_chunked(&dropout, ivy, state, false);
+}
+BENCHMARK(BM_Layer_Dropout_Ivy_Pipelined_Backward)->Arg(1 << 19);

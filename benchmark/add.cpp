@@ -9,22 +9,11 @@
 
 #include <benchmark/benchmark.h>
 
-const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string flickr_dir_path = dir_path + "/flickr";
-const std::string reddit_dir_path = dir_path + "/reddit";
-const std::string products_dir_path = dir_path + "/products";
+const std::string dir_path = "/mnt/data";
 
 
 void benchmark_add(Dataset dataset, benchmark::State &state, bool forward) {
-    std::string dataset_path;
-    if (dataset == flickr) {
-        dataset_path = flickr_dir_path;
-    } else if (dataset == reddit) {
-        dataset_path = reddit_dir_path;
-    } else if (dataset == products) {
-        dataset_path = products_dir_path;
-    }
+    std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
     std::string path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
     to_column_major_inplace(&features);
@@ -65,14 +54,7 @@ void benchmark_add(Dataset dataset, benchmark::State &state, bool forward) {
 }
 
 void benchmark_add_chunked(AddChunked *add, Dataset dataset, benchmark::State &state, bool forward) {
-    std::string dataset_path;
-    if (dataset == flickr) {
-        dataset_path = flickr_dir_path;
-    } else if (dataset == reddit) {
-        dataset_path = reddit_dir_path;
-    } else if (dataset == products) {
-        dataset_path = products_dir_path;
-    }
+    std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
     std::string path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
     to_column_major_inplace(&features);
@@ -159,6 +141,12 @@ static void BM_Layer_Add_Products_Chunked_Forward(benchmark::State &state) {
 }
 BENCHMARK(BM_Layer_Add_Products_Chunked_Forward)->Range(1 << 16, 1 << 21);
 
+static void BM_Layer_Add_Ivy_Chunked_Forward(benchmark::State &state) {
+    AddChunked add;
+    benchmark_add_chunked(&add, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Add_Ivy_Chunked_Forward)->Arg(1 << 19);
+
 // PIPELINED --- PIPELINED --- PIPELINED
 
 static void BM_Layer_Add_Flickr_Pipelined_Forward(benchmark::State &state) {
@@ -178,3 +166,9 @@ static void BM_Layer_Add_Products_Pipelined_Forward(benchmark::State &state) {
     benchmark_add_chunked(&add, products, state, true);
 }
 BENCHMARK(BM_Layer_Add_Products_Pipelined_Forward)->Range(1 << 16, 1 << 21);
+
+static void BM_Layer_Add_Ivy_Pipelined_Forward(benchmark::State &state) {
+    AddPipelined add;
+    benchmark_add_chunked(&add, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Add_Ivy_Pipelined_Forward)->Arg(1 << 19);

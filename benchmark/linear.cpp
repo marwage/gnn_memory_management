@@ -9,24 +9,12 @@
 
 #include <benchmark/benchmark.h>
 
-const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string flickr_dir_path = dir_path + "/flickr";
-const std::string reddit_dir_path = dir_path + "/reddit";
-const std::string products_dir_path = dir_path + "/products";
-
+const std::string dir_path = "/mnt/data";
 const long num_out_features = 256;
 
 
 void benchmark_linear(Dataset dataset, benchmark::State &state, bool forward) {
-    std::string dataset_path;
-    if (dataset == flickr) {
-        dataset_path = flickr_dir_path;
-    } else if (dataset == reddit) {
-        dataset_path = reddit_dir_path;
-    } else if (dataset == products) {
-        dataset_path = products_dir_path;
-    }
+    std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
     std::string path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
     to_column_major_inplace(&features);
@@ -65,14 +53,7 @@ void benchmark_linear(Dataset dataset, benchmark::State &state, bool forward) {
 }
 
 void benchmark_linear_chunked(LinearChunked *linear, Dataset dataset, benchmark::State &state, bool forward) {
-    std::string dataset_path;
-    if (dataset == flickr) {
-        dataset_path = flickr_dir_path;
-    } else if (dataset == reddit) {
-        dataset_path = reddit_dir_path;
-    } else if (dataset == products) {
-        dataset_path = products_dir_path;
-    }
+    std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
     std::string path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
     to_column_major_inplace(&features);
@@ -187,6 +168,18 @@ static void BM_Layer_Linear_Products_Chunked_Backward(benchmark::State &state) {
 }
 BENCHMARK(BM_Layer_Linear_Products_Chunked_Backward)->Range(1 << 16, 1 << 21);
 
+static void BM_Layer_Linear_Ivy_Chunked_Forward(benchmark::State &state) {
+    LinearChunked linear;
+    benchmark_linear_chunked(&linear, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Linear_Ivy_Chunked_Forward)->Arg(1 << 19);
+
+static void BM_Layer_Linear_Ivy_Chunked_Backward(benchmark::State &state) {
+    LinearChunked linear;
+    benchmark_linear_chunked(&linear, ivy, state, false);
+}
+BENCHMARK(BM_Layer_Linear_Ivy_Chunked_Backward)->Arg(1 << 19);
+
 // PIPELINED --- PIPELINED --- PIPELINED
 
 static void BM_Layer_Linear_Flickr_Pipelined_Forward(benchmark::State &state) {
@@ -224,3 +217,15 @@ static void BM_Layer_Linear_Products_Pipelined_Backward(benchmark::State &state)
     benchmark_linear_chunked(&linear, products, state, false);
 }
 BENCHMARK(BM_Layer_Linear_Products_Pipelined_Backward)->Range(1 << 16, 1 << 21);
+
+static void BM_Layer_Linear_Ivy_Pipelined_Forward(benchmark::State &state) {
+    LinearPipelined linear;
+    benchmark_linear_chunked(&linear, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Linear_Ivy_Pipelined_Forward)->Arg(1 << 19);
+
+static void BM_Layer_Linear_Ivy_Pipelined_Backward(benchmark::State &state) {
+    LinearPipelined linear;
+    benchmark_linear_chunked(&linear, ivy, state, false);
+}
+BENCHMARK(BM_Layer_Linear_Ivy_Pipelined_Backward)->Arg(1 << 19);
