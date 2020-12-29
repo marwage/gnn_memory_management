@@ -5,10 +5,9 @@ find_package(Python3 REQUIRED
 set(BENCHMARK_FILES
         benchmark/alzheimer.cpp
         benchmark/dropout.cpp
-        benchmark/graph_convolution.cpp
+        benchmark/feature_aggregation.cpp
         benchmark/log_softmax.cpp
         benchmark/relu.cpp
-        benchmark/sage_linear.cpp
         benchmark/sparse_computation.cpp
         benchmark/layer.cpp
         benchmark/linear.cpp
