@@ -1,8 +1,8 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "graph_convolution.hpp"
 #include "cuda_helper.hpp"
 #include "divmv.h"
+#include "feature_aggregation.hpp"
 #include "sparse_computation.hpp"
 
 #include <cmath>
@@ -342,10 +342,10 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
             if (column % 2 == 0) {
                 // a in, b compute
                 if (column_a < num_chunks_ && adj_a->nnz_ > 0) {
-                        memcpy_sp_mat_async(&d_adj_.at(0), adj_a, cuda_helper_->stream_in_);
+                    memcpy_sp_mat_async(&d_adj_.at(0), adj_a, cuda_helper_->stream_in_);
 
-                        check_cuda(cudaMemcpyAsync(d_x_.at(0), x->at(column_a).values_, x->at(column_a).size_ * sizeof(float),
-                                                   cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+                    check_cuda(cudaMemcpyAsync(d_x_.at(0), x->at(column_a).values_, x->at(column_a).size_ * sizeof(float),
+                                               cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
                 }
 
                 if (column > 0 && adj_b->nnz_ > 0) {

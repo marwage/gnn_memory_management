@@ -1,6 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "graph_convolution.hpp"
+#include "feature_aggregation.hpp"
 #include "chunking.hpp"
 #include "cuda_helper.hpp"
 #include "dataset.hpp"
@@ -9,22 +9,11 @@
 
 #include <benchmark/benchmark.h>
 
-const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string flickr_dir_path = dir_path + "/flickr";
-const std::string reddit_dir_path = dir_path + "/reddit";
-const std::string products_dir_path = dir_path + "/products";
+const std::string dir_path = "/mnt/data";
 
 
 void benchmark_feature_aggregation(Dataset dataset, benchmark::State &state, bool forward) {
-    std::string dataset_path;
-    if (dataset == flickr) {
-        dataset_path = flickr_dir_path;
-    } else if (dataset == reddit) {
-        dataset_path = reddit_dir_path;
-    } else if (dataset == products) {
-        dataset_path = products_dir_path;
-    }
+    std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
     std::string path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
     to_column_major_inplace(&features);
@@ -65,14 +54,7 @@ void benchmark_feature_aggregation(Dataset dataset, benchmark::State &state, boo
 }
 
 void benchmark_feature_aggregation_chunked(GraphConvChunked *feature_aggr, Dataset dataset, benchmark::State &state, bool forward) {
-    std::string dataset_path;
-    if (dataset == flickr) {
-        dataset_path = flickr_dir_path;
-    } else if (dataset == reddit) {
-        dataset_path = reddit_dir_path;
-    } else if (dataset == products) {
-        dataset_path = products_dir_path;
-    }
+    std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
     std::string path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
     to_column_major_inplace(&features);
@@ -123,8 +105,7 @@ void benchmark_feature_aggregation_chunked(GraphConvChunked *feature_aggr, Datas
 }
 
 static void BM_Layer_Graph_Convolution_Chunked_Reddit_Constructor(benchmark::State &state) {
-    std::string path;
-    path = reddit_dir_path + "/adjacency.mtx";
+    std::string path = dir_path + "/reddit/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
     long num_nodes = adjacency.num_rows_;
     long num_features = 602;// reddit dataset
@@ -209,6 +190,18 @@ static void BM_Layer_Graph_Convolution_Products_Chunked_Backward(benchmark::Stat
 }
 BENCHMARK(BM_Layer_Graph_Convolution_Products_Chunked_Backward)->Range(1 << 16, 1 << 21);
 
+static void BM_Layer_Graph_Convolution_Ivy_Chunked_Forward(benchmark::State &state) {
+    GraphConvChunked feature_aggr;
+    benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Graph_Convolution_Ivy_Chunked_Forward)->Arg(1 << 19);
+
+static void BM_Layer_Graph_Convolution_Ivy_Chunked_Backward(benchmark::State &state) {
+    GraphConvChunked feature_aggr;
+    benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, false);
+}
+BENCHMARK(BM_Layer_Graph_Convolution_Ivy_Chunked_Backward)->Arg(1 << 19);
+
 // PIPELINED --- PIPELINED --- PIPELINED
 
 static void BM_Layer_Graph_Convolution_Flickr_Pipelined_Forward(benchmark::State &state) {
@@ -246,3 +239,15 @@ static void BM_Layer_Graph_Convolution_Products_Pipelined_Backward(benchmark::St
     benchmark_feature_aggregation_chunked(&feature_aggr, products, state, false);
 }
 BENCHMARK(BM_Layer_Graph_Convolution_Products_Pipelined_Backward)->Range(1 << 16, 1 << 21);
+
+static void BM_Layer_Graph_Convolution_Ivy_Pipelined_Forward(benchmark::State &state) {
+    GraphConvPipelined feature_aggr;
+    benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Graph_Convolution_Ivy_Pipelined_Forward)->Arg(1 << 19);
+
+static void BM_Layer_Graph_Convolution_Ivy_Pipelined_Backward(benchmark::State &state) {
+    GraphConvPipelined feature_aggr;
+    benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, false);
+}
+BENCHMARK(BM_Layer_Graph_Convolution_Ivy_Pipelined_Backward)->Arg(1 << 19);

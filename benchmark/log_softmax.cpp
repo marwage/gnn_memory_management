@@ -3,9 +3,9 @@
 #include "log_softmax.hpp"
 #include "chunking.hpp"
 #include "cuda_helper.hpp"
+#include "dataset.hpp"
 #include "gpu_memory_logger.hpp"
 #include "tensors.hpp"
-#include "dataset.hpp"
 
 #include <benchmark/benchmark.h>
 
@@ -87,6 +87,18 @@ static void BM_Layer_Logsoftmax_Products_Chunked_Backward(benchmark::State &stat
 }
 BENCHMARK(BM_Layer_Logsoftmax_Products_Chunked_Backward)->Range(1 << 16, 1 << 21);
 
+static void BM_Layer_Logsoftmax_Ivy_Chunked_Forward(benchmark::State &state) {
+    LogSoftmaxChunked logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Ivy_Chunked_Forward)->Arg(1 << 19);
+
+static void BM_Layer_Logsoftmax_Ivy_Chunked_Backward(benchmark::State &state) {
+    LogSoftmaxChunked logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, ivy, state, false);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Ivy_Chunked_Backward)->Arg(1 << 19);
+
 // PIPELINED --- PIPELINED --- PIPELINED
 
 static void BM_Layer_Logsoftmax_Pipelined_Flickr_Forward(benchmark::State &state) {
@@ -124,3 +136,15 @@ static void BM_Layer_Logsoftmax_Products_Pipelined_Backward(benchmark::State &st
     benchmark_layer_chunked(&logsoftmax, products, state, false);
 }
 BENCHMARK(BM_Layer_Logsoftmax_Products_Pipelined_Backward)->Range(1 << 16, 1 << 21);
+
+static void BM_Layer_Logsoftmax_Ivy_Pipelined_Forward(benchmark::State &state) {
+    LogSoftmaxPipelined logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Ivy_Pipelined_Forward)->Arg(1 << 19);
+
+static void BM_Layer_Logsoftmax_Ivy_Pipelined_Backward(benchmark::State &state) {
+    LogSoftmaxPipelined logsoftmax;
+    benchmark_layer_chunked(&logsoftmax, ivy, state, false);
+}
+BENCHMARK(BM_Layer_Logsoftmax_Ivy_Pipelined_Backward)->Arg(1 << 19);

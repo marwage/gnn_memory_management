@@ -1,8 +1,8 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "graph_convolution.hpp"
 #include "chunking.hpp"
 #include "cuda_helper.hpp"
+#include "feature_aggregation.hpp"
 #include "helper.hpp"
 #include "tensors.hpp"
 

@@ -160,6 +160,18 @@ static void BM_Layer_Relu_Products_Chunked_Backward(benchmark::State &state) {
 }
 BENCHMARK(BM_Layer_Relu_Products_Chunked_Backward)->Range(1 << 16, 1 << 21);
 
+static void BM_Layer_Relu_Ivy_Chunked_Forward(benchmark::State &state) {
+    ReluChunked relu;
+    benchmark_layer_chunked(&relu, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Relu_Ivy_Chunked_Forward)->Arg(1 << 19);
+
+static void BM_Layer_Relu_Ivy_Chunked_Backward(benchmark::State &state) {
+    ReluChunked relu;
+    benchmark_layer_chunked(&relu, ivy, state, false);
+}
+BENCHMARK(BM_Layer_Relu_Ivy_Chunked_Backward)->Arg(1 << 19);
+
 // PIPELINED --- PIPELINED --- PIPELINED
 
 static void BM_Layer_Relu_Pipelined_Flickr_Forward(benchmark::State &state) {
@@ -197,3 +209,15 @@ static void BM_Layer_Relu_Products_Pipelined_Backward(benchmark::State &state) {
     benchmark_layer_chunked(&relu, products, state, false);
 }
 BENCHMARK(BM_Layer_Relu_Products_Pipelined_Backward)->Range(1 << 16, 1 << 21);
+
+static void BM_Layer_Relu_Ivy_Pipelined_Forward(benchmark::State &state) {
+    ReluPipelined relu;
+    benchmark_layer_chunked(&relu, ivy, state, true);
+}
+BENCHMARK(BM_Layer_Relu_Ivy_Pipelined_Forward)->Arg(1 << 19);
+
+static void BM_Layer_Relu_Ivy_Pipelined_Backward(benchmark::State &state) {
+    ReluPipelined relu;
+    benchmark_layer_chunked(&relu, ivy, state, false);
+}
+BENCHMARK(BM_Layer_Relu_Ivy_Pipelined_Backward)->Arg(1 << 19);

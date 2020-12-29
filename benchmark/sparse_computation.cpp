@@ -9,7 +9,7 @@
 
 
 const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
+const std::string dir_path = home + "/mnt/data";
 const std::string flickr_dir_path = dir_path + "/flickr";
 const std::string reddit_dir_path = dir_path + "/reddit";
 const std::string products_dir_path = dir_path + "/products";

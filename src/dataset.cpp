@@ -9,6 +9,8 @@ std::string get_dataset_name(Dataset dataset) {
         return "reddit";
     } else if (dataset == products) {
         return "products";
+    } else if (dataset == ivy) {
+        return "ivy";
     } else {
         return "";
     }

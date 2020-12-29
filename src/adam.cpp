@@ -37,29 +37,37 @@ void Adam::step() {
         to_column_major_inplace(gradients_[i]);
     }
 
-    float *d_momentum_m;
-    float *d_momentum_v;
+    long max_size = 0;
+    for (long i = 0; i < num_parameters_; ++i) {
+        if (parameters_.at(i)->size_ > max_size) {
+            max_size = parameters_.at(i)->size_;
+        }
+    }
+
     float *d_gradients;
+    check_cuda(cudaMalloc(&d_gradients, max_size * sizeof(float)));
+    float *d_momentum_m;
+    check_cuda(cudaMalloc(&d_momentum_m, max_size * sizeof(float)));
+    float *d_momentum_v;
+    check_cuda(cudaMalloc(&d_momentum_v, max_size * sizeof(float)));
+    float *d_parameter;
+    check_cuda(cudaMalloc(&d_parameter, max_size * sizeof(float)));
 
     for (int i = 0; i < num_parameters_; ++i) {
         // momentum_ms_[i] = beta_1_ * momentum_ms_[i] + (1 - beta_1_) * gradients[i];
-        check_cuda(cudaMalloc(&d_gradients, gradients_[i]->num_rows_ * gradients_[i]->num_columns_ * sizeof(float)));
         check_cuda(cudaMemcpy(d_gradients, gradients_[i]->values_,
                               gradients_[i]->num_rows_ * gradients_[i]->num_columns_ * sizeof(float),
                               cudaMemcpyHostToDevice));
 
-        check_cuda(cudaMalloc(&d_momentum_m, momentum_ms_[i].num_rows_ * momentum_ms_[i].num_columns_ * sizeof(float)));
         check_cuda(cudaMemcpy(d_momentum_m, momentum_ms_[i].values_,
                               momentum_ms_[i].num_rows_ * momentum_ms_[i].num_columns_ * sizeof(float),
                               cudaMemcpyHostToDevice));
-
 
         xpy((1 - beta_1_), d_gradients, beta_1_, d_momentum_m, momentum_ms_[i].num_rows_ * momentum_ms_[i].num_columns_);
 
         // momentum_vs_[i] = beta_2_ * momentum_vs_[i] + (1 - beta_2_) * pow(gradients[i], 2);
         ele_squared(d_gradients, gradients_[i]->num_rows_ * gradients_[i]->num_columns_);
 
-        check_cuda(cudaMalloc(&d_momentum_v, momentum_vs_[i].num_rows_ * momentum_vs_[i].num_columns_ * sizeof(float)));
         check_cuda(cudaMemcpy(d_momentum_v, momentum_vs_[i].values_,
                               momentum_vs_[i].num_rows_ * momentum_vs_[i].num_columns_ * sizeof(float),
                               cudaMemcpyHostToDevice));
@@ -81,9 +89,6 @@ void Adam::step() {
 
         ax_dot_y(learning_rate_t, d_momentum_m, d_momentum_v, momentum_ms_[i].num_rows_ * momentum_ms_[i].num_columns_);
 
-        // COPIED FROM LINEAR UPDATE WEIGHTS
-        float *d_parameter;
-        check_cuda(cudaMalloc(&d_parameter, parameters_[i]->size_ * sizeof(float)));
         check_cuda(cudaMemcpy(d_parameter, parameters_[i]->values_,
                               parameters_[i]->size_ * sizeof(float),
                               cudaMemcpyHostToDevice));
@@ -97,13 +102,12 @@ void Adam::step() {
         check_cuda(cudaMemcpy(parameters_[i]->values_, d_parameter,
                               parameters_[i]->size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
-
-        // clean-up
-        check_cuda(cudaFree(d_parameter));
-        check_cuda(cudaFree(d_momentum_m));
-        check_cuda(cudaFree(d_gradients));
-        check_cuda(cudaFree(d_momentum_v));
     }
+
+    check_cuda(cudaFree(d_parameter));
+    check_cuda(cudaFree(d_momentum_m));
+    check_cuda(cudaFree(d_gradients));
+    check_cuda(cudaFree(d_momentum_v));
 
     t_ = t_ + 1;
 }

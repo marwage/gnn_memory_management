@@ -23,7 +23,8 @@ set(TEST_FILES
         tests/layer.cpp
         tests/sp_mat_mat_mult.cpp
         tests/pipeline.cpp
-        tests/add.cpp)
+        tests/add.cpp
+        tests/cuda_helper.cpp)
 
 set(HELPER_FILES
         tests/helper.cpp)
