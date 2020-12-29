@@ -23,7 +23,7 @@ set(SOURCE_FILES
         src/alzheimer.cpp
         src/tensors.cpp
         src/cuda_helper.cpp
-        src/graph_convolution.cpp
+        src/feature_aggregation.cpp
         src/dropout.cpp
         src/linear.cpp
         src/relu.cpp

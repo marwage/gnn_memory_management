@@ -40,7 +40,7 @@ int integration_test() {
     long num_classes = 7;
 
     // layers
-    GraphConvolution graph_convolution_layer(&cuda_helper, &adjacency, "mean", num_nodes, features.num_columns_);
+    FeatureAggregation graph_convolution_layer(&cuda_helper, &adjacency, "mean", num_nodes, features.num_columns_);
     Add add(&cuda_helper, num_nodes, features.num_columns_);
     SageLinear sage_linear_layer(&cuda_helper, features.num_columns_, num_classes, num_nodes);
     Relu relu_layer(&cuda_helper, num_nodes, num_classes);
@@ -159,7 +159,7 @@ int integration_test_chunked(long chunk_size) {
     int num_classes = 7;
 
     // layers
-    GraphConvChunked graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.num_columns_, chunk_size, num_nodes);
+    FeatureAggregationChunked graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.num_columns_, chunk_size, num_nodes);
     AddChunked add(&cuda_helper, chunk_size, num_nodes, features.num_columns_);
     SageLinearChunked sage_linear_layer(&cuda_helper, features.num_columns_, num_classes, chunk_size, num_nodes);
     ReluChunked relu_layer(&cuda_helper, chunk_size, num_nodes, num_classes);

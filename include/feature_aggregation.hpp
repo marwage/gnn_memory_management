@@ -9,7 +9,7 @@
 #include "tensors.hpp"
 
 
-class GraphConvolution {
+class FeatureAggregation {
 private:
     CudaHelper *cuda_helper_;
     SparseMatrix<float> *adjacency_;
@@ -22,8 +22,8 @@ private:
 public:
     std::string name_;
 
-    GraphConvolution();
-    GraphConvolution(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
+    FeatureAggregation();
+    FeatureAggregation(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                      long num_nodes, long num_features);
     void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
              long num_nodes, long num_features);
@@ -31,7 +31,7 @@ public:
     Matrix<float> *backward(Matrix<float> *in_gradients);
 };
 
-class GraphConvChunked {
+class FeatureAggregationChunked {
 protected:
     CudaHelper *cuda_helper_;
     long chunk_size_;
@@ -47,8 +47,8 @@ protected:
 public:
     std::string name_;
 
-    GraphConvChunked();
-    GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
+    FeatureAggregationChunked();
+    FeatureAggregationChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                      long num_features, long chunk_size, long num_nodes);
     virtual void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                      long num_features, long chunk_size, long num_nodes);
@@ -56,7 +56,7 @@ public:
     virtual std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
 };
 
-class GraphConvPipelined : public GraphConvChunked {
+class FeatureAggregationPipelined : public FeatureAggregationChunked {
 protected:
     long num_steps_;
     float *d_y_;
@@ -68,8 +68,8 @@ protected:
     std::vector<float *> d_sum_backward_;
 
 public:
-    GraphConvPipelined();
-    GraphConvPipelined(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
+    FeatureAggregationPipelined();
+    FeatureAggregationPipelined(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                        long num_features, long chunk_size, long num_nodes);
     void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
              long num_features, long chunk_size, long num_nodes) override;

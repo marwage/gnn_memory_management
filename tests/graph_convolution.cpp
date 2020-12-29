@@ -19,7 +19,7 @@ const std::string products_dir_path = dir_path + "/products";
 int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float> *in_gradients) {
     std::string path;
     CudaHelper cuda_helper;
-    GraphConvolution graph_conv(&cuda_helper, adj, "mean", input->num_rows_, input->num_columns_);
+    FeatureAggregation graph_conv(&cuda_helper, adj, "mean", input->num_rows_, input->num_columns_);
 
     Matrix<float> *activations = graph_conv.forward(input);
 
@@ -42,7 +42,7 @@ int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float
     return read_return_value(path);
 }
 
-int test_graph_conv_chunked(GraphConvChunked *graph_convolution, long chunk_size) {
+int test_graph_conv_chunked(FeatureAggregationChunked *graph_convolution, long chunk_size) {
     std::string path;
     path = flickr_dir_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
@@ -107,14 +107,14 @@ TEST_CASE("Graph convolution", "[graphconv]") {
 }
 
 TEST_CASE("Graph convolution, chunked", "[graphconv][chunked]") {
-    GraphConvChunked graph_convolution;
+    FeatureAggregationChunked graph_convolution;
     CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 15));
     CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14));
     CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13));
 }
 
 TEST_CASE("Graph convolution, pipelined", "[graphconv][pipelined]") {
-    GraphConvPipelined graph_convolution;
+    FeatureAggregationPipelined graph_convolution;
     CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 15));
     CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14));
     CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13));

@@ -26,7 +26,7 @@ void benchmark_feature_aggregation(Dataset dataset, benchmark::State &state, boo
     }
 
     CudaHelper cuda_helper;
-    GraphConvolution feature_aggr(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
+    FeatureAggregation feature_aggr(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
 
     if (!forward) {
         feature_aggr.forward(&features);
@@ -53,7 +53,7 @@ void benchmark_feature_aggregation(Dataset dataset, benchmark::State &state, boo
     memory_logger.stop();
 }
 
-void benchmark_feature_aggregation_chunked(GraphConvChunked *feature_aggr, Dataset dataset, benchmark::State &state, bool forward) {
+void benchmark_feature_aggregation_chunked(FeatureAggregationChunked *feature_aggr, Dataset dataset, benchmark::State &state, bool forward) {
     std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
     std::string path = dataset_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
@@ -104,7 +104,7 @@ void benchmark_feature_aggregation_chunked(GraphConvChunked *feature_aggr, Datas
     memory_logger.stop();
 }
 
-static void BM_Layer_Graph_Convolution_Chunked_Reddit_Constructor(benchmark::State &state) {
+static void BM_Layer_Feature_Aggregation_Chunked_Reddit_Constructor(benchmark::State &state) {
     std::string path = dir_path + "/reddit/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
     long num_nodes = adjacency.num_rows_;
@@ -115,139 +115,139 @@ static void BM_Layer_Graph_Convolution_Chunked_Reddit_Constructor(benchmark::Sta
     memory_logger.start();
 
     for (auto _ : state) {
-        GraphConvChunked graph_convolution(&cuda_helper, &adjacency, "mean", num_features, state.range(0), num_nodes);
+        FeatureAggregationChunked feature_aggr(&cuda_helper, &adjacency, "mean", num_features, state.range(0), num_nodes);
     }
 
     memory_logger.stop();
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Chunked_Reddit_Constructor)->Range(1 << 12, 1 << 17);
+BENCHMARK(BM_Layer_Feature_Aggregation_Chunked_Reddit_Constructor)->Range(1 << 12, 1 << 17);
 
-static void BM_Layer_Graph_Convolution_Flickr_Forward(benchmark::State &state) {
+static void BM_Layer_Feature_Aggregation_Flickr_Forward(benchmark::State &state) {
     benchmark_feature_aggregation(flickr, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Flickr_Forward);
+BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Forward);
 
-static void BM_Layer_Graph_Convolution_Flickr_Backward(benchmark::State &state) {
+static void BM_Layer_Feature_Aggregation_Flickr_Backward(benchmark::State &state) {
     benchmark_feature_aggregation(flickr, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Flickr_Backward);
+BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Backward);
 
-static void BM_Layer_Graph_Convolution_Reddit_Forward(benchmark::State &state) {
+static void BM_Layer_Feature_Aggregation_Reddit_Forward(benchmark::State &state) {
     benchmark_feature_aggregation(reddit, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Reddit_Forward);
+BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Forward);
 
-static void BM_Layer_Graph_Convolution_Reddit_Backward(benchmark::State &state) {
+static void BM_Layer_Feature_Aggregation_Reddit_Backward(benchmark::State &state) {
     benchmark_feature_aggregation(reddit, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Reddit_Backward);
+BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Backward);
 
-static void BM_Layer_Graph_Convolution_Products_Forward(benchmark::State &state) {
+static void BM_Layer_Feature_Aggregation_Products_Forward(benchmark::State &state) {
     benchmark_feature_aggregation(products, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Products_Forward);
+BENCHMARK(BM_Layer_Feature_Aggregation_Products_Forward);
 
-static void BM_Layer_Graph_Convolution_Products_Backward(benchmark::State &state) {
+static void BM_Layer_Feature_Aggregation_Products_Backward(benchmark::State &state) {
     benchmark_feature_aggregation(products, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Products_Backward);
+BENCHMARK(BM_Layer_Feature_Aggregation_Products_Backward);
 
 // CHUNKED --- CHUNKED --- CHUNKED
 
-static void BM_Layer_Graph_Convolution_Flickr_Chunked_Forward(benchmark::State &state) {
-    GraphConvChunked feature_aggr;
+static void BM_Layer_Feature_Aggregation_Flickr_Chunked_Forward(benchmark::State &state) {
+    FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, flickr, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Flickr_Chunked_Forward)->Range(1 << 10, 1 << 15);
+BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
 
-static void BM_Layer_Graph_Convolution_Flickr_Chunked_Backward(benchmark::State &state) {
-    GraphConvChunked feature_aggr;
+static void BM_Layer_Feature_Aggregation_Flickr_Chunked_Backward(benchmark::State &state) {
+    FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, flickr, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Flickr_Chunked_Backward)->Range(1 << 10, 1 << 15);
+BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
 
-static void BM_Layer_Graph_Convolution_Reddit_Chunked_Forward(benchmark::State &state) {
-    GraphConvChunked feature_aggr;
+static void BM_Layer_Feature_Aggregation_Reddit_Chunked_Forward(benchmark::State &state) {
+    FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, reddit, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Reddit_Chunked_Forward)->Range(1 << 12, 1 << 17);
+BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 17);
 
-static void BM_Layer_Graph_Convolution_Reddit_Chunked_Backward(benchmark::State &state) {
-    GraphConvChunked feature_aggr;
+static void BM_Layer_Feature_Aggregation_Reddit_Chunked_Backward(benchmark::State &state) {
+    FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, reddit, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Reddit_Chunked_Backward)->Range(1 << 12, 1 << 17);
+BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 17);
 
-static void BM_Layer_Graph_Convolution_Products_Chunked_Forward(benchmark::State &state) {
-    GraphConvChunked feature_aggr;
+static void BM_Layer_Feature_Aggregation_Products_Chunked_Forward(benchmark::State &state) {
+    FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, products, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Products_Chunked_Forward)->Range(1 << 16, 1 << 21);
+BENCHMARK(BM_Layer_Feature_Aggregation_Products_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 21);
 
-static void BM_Layer_Graph_Convolution_Products_Chunked_Backward(benchmark::State &state) {
-    GraphConvChunked feature_aggr;
+static void BM_Layer_Feature_Aggregation_Products_Chunked_Backward(benchmark::State &state) {
+    FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, products, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Products_Chunked_Backward)->Range(1 << 16, 1 << 21);
+BENCHMARK(BM_Layer_Feature_Aggregation_Products_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 21);
 
-static void BM_Layer_Graph_Convolution_Ivy_Chunked_Forward(benchmark::State &state) {
-    GraphConvChunked feature_aggr;
+static void BM_Layer_Feature_Aggregation_Ivy_Chunked_Forward(benchmark::State &state) {
+    FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Ivy_Chunked_Forward)->Arg(1 << 19);
+BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 19);
 
-static void BM_Layer_Graph_Convolution_Ivy_Chunked_Backward(benchmark::State &state) {
-    GraphConvChunked feature_aggr;
+static void BM_Layer_Feature_Aggregation_Ivy_Chunked_Backward(benchmark::State &state) {
+    FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Ivy_Chunked_Backward)->Arg(1 << 19);
+BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 19);
 
 // PIPELINED --- PIPELINED --- PIPELINED
 
-static void BM_Layer_Graph_Convolution_Flickr_Pipelined_Forward(benchmark::State &state) {
-    GraphConvPipelined feature_aggr;
+static void BM_Layer_Feature_Aggregation_Flickr_Pipelined_Forward(benchmark::State &state) {
+    FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, flickr, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Flickr_Pipelined_Forward)->Range(1 << 10, 1 << 15);
+BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
 
-static void BM_Layer_Graph_Convolution_Flickr_Pipelined_Backward(benchmark::State &state) {
-    GraphConvPipelined feature_aggr;
+static void BM_Layer_Feature_Aggregation_Flickr_Pipelined_Backward(benchmark::State &state) {
+    FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, flickr, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Flickr_Pipelined_Backward)->Range(1 << 10, 1 << 15);
+BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
 
-static void BM_Layer_Graph_Convolution_Reddit_Pipelined_Forward(benchmark::State &state) {
-    GraphConvPipelined feature_aggr;
+static void BM_Layer_Feature_Aggregation_Reddit_Pipelined_Forward(benchmark::State &state) {
+    FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, reddit, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Reddit_Pipelined_Forward)->Range(1 << 12, 1 << 17);
+BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 17);
 
-static void BM_Layer_Graph_Convolution_Reddit_Pipelined_Backward(benchmark::State &state) {
-    GraphConvPipelined feature_aggr;
+static void BM_Layer_Feature_Aggregation_Reddit_Pipelined_Backward(benchmark::State &state) {
+    FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, reddit, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Reddit_Pipelined_Backward)->Range(1 << 12, 1 << 17);
+BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 17);
 
-static void BM_Layer_Graph_Convolution_Products_Pipelined_Forward(benchmark::State &state) {
-    GraphConvPipelined feature_aggr;
+static void BM_Layer_Feature_Aggregation_Products_Pipelined_Forward(benchmark::State &state) {
+    FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, products, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Products_Pipelined_Forward)->Range(1 << 16, 1 << 21);
+BENCHMARK(BM_Layer_Feature_Aggregation_Products_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 21);
 
-static void BM_Layer_Graph_Convolution_Products_Pipelined_Backward(benchmark::State &state) {
-    GraphConvPipelined feature_aggr;
+static void BM_Layer_Feature_Aggregation_Products_Pipelined_Backward(benchmark::State &state) {
+    FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, products, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Products_Pipelined_Backward)->Range(1 << 16, 1 << 21);
+BENCHMARK(BM_Layer_Feature_Aggregation_Products_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 21);
 
-static void BM_Layer_Graph_Convolution_Ivy_Pipelined_Forward(benchmark::State &state) {
-    GraphConvPipelined feature_aggr;
+static void BM_Layer_Feature_Aggregation_Ivy_Pipelined_Forward(benchmark::State &state) {
+    FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, true);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Ivy_Pipelined_Forward)->Arg(1 << 19);
+BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 19);
 
-static void BM_Layer_Graph_Convolution_Ivy_Pipelined_Backward(benchmark::State &state) {
-    GraphConvPipelined feature_aggr;
+static void BM_Layer_Feature_Aggregation_Ivy_Pipelined_Backward(benchmark::State &state) {
+    FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, false);
 }
-BENCHMARK(BM_Layer_Graph_Convolution_Ivy_Pipelined_Backward)->Arg(1 << 19);
+BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 19);

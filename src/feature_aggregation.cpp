@@ -9,14 +9,14 @@
 #include <string>
 
 
-GraphConvolution::GraphConvolution() {}
+FeatureAggregation::FeatureAggregation() {}
 
-GraphConvolution::GraphConvolution(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
+FeatureAggregation::FeatureAggregation(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                                    long num_nodes, long num_features) {
     set(helper, adjacency, reduction, num_nodes, num_features);
 }
 
-void GraphConvolution::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
+void FeatureAggregation::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                            long num_nodes, long num_features) {
     name_ = "feature-aggregation";
     cuda_helper_ = helper;
@@ -39,7 +39,7 @@ void GraphConvolution::set(CudaHelper *helper, SparseMatrix<float> *adjacency, s
     }
 }
 
-Matrix<float> *GraphConvolution::forward(Matrix<float> *x) {
+Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
     to_column_major_inplace(x);
 
     sp_mat_mat_multi(cuda_helper_, adjacency_, x, &y_, false);
@@ -71,7 +71,7 @@ Matrix<float> *GraphConvolution::forward(Matrix<float> *x) {
     return &y_;
 }
 
-Matrix<float> *GraphConvolution::backward(Matrix<float> *in_gradients) {
+Matrix<float> *FeatureAggregation::backward(Matrix<float> *in_gradients) {
     to_column_major_inplace(in_gradients);
 
     if (mean_) {
@@ -102,14 +102,14 @@ Matrix<float> *GraphConvolution::backward(Matrix<float> *in_gradients) {
 
 // CHUNKED --- CHUNKED --- CHUNKED
 
-GraphConvChunked::GraphConvChunked() {}
+FeatureAggregationChunked::FeatureAggregationChunked() {}
 
-GraphConvChunked::GraphConvChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
+FeatureAggregationChunked::FeatureAggregationChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                                    long num_features, long chunk_size, long num_nodes) {
     set(helper, adjacency, reduction, num_features, chunk_size, num_nodes);
 }
 
-void GraphConvChunked::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
+void FeatureAggregationChunked::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
                            long num_features, long chunk_size, long num_nodes) {
     name_ = "feature-aggregation_chunked";
     cuda_helper_ = helper;
@@ -176,7 +176,7 @@ void GraphConvChunked::set(CudaHelper *helper, SparseMatrix<float> *adjacency, s
     }
 }
 
-std::vector<Matrix<float>> *GraphConvChunked::forward(std::vector<Matrix<float>> *x) {
+std::vector<Matrix<float>> *FeatureAggregationChunked::forward(std::vector<Matrix<float>> *x) {
     for (int i = 0; i < num_chunks_; ++i) {
         to_column_major_inplace(&x->at(i));
     }
@@ -230,7 +230,7 @@ std::vector<Matrix<float>> *GraphConvChunked::forward(std::vector<Matrix<float>>
     return &y_;
 }
 
-std::vector<Matrix<float>> *GraphConvChunked::backward(std::vector<Matrix<float>> *incoming_gradients) {
+std::vector<Matrix<float>> *FeatureAggregationChunked::backward(std::vector<Matrix<float>> *incoming_gradients) {
     for (int i = 0; i < num_chunks_; ++i) {
         to_column_major_inplace(&incoming_gradients->at(i));
     }
@@ -286,16 +286,16 @@ std::vector<Matrix<float>> *GraphConvChunked::backward(std::vector<Matrix<float>
 
 // PIPELINED --- PIPELINED --- PIPELINED
 
-GraphConvPipelined::GraphConvPipelined() {}
+FeatureAggregationPipelined::FeatureAggregationPipelined() {}
 
-GraphConvPipelined::GraphConvPipelined(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction, long num_features,
+FeatureAggregationPipelined::FeatureAggregationPipelined(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction, long num_features,
                                        long chunk_size, long num_nodes) {
     set(helper, adjacency, reduction, num_features, chunk_size, num_nodes);
 }
 
-void GraphConvPipelined::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction, long num_features,
+void FeatureAggregationPipelined::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction, long num_features,
                              long chunk_size, long num_nodes) {
-    GraphConvChunked::set(helper, adjacency, reduction, num_features, chunk_size, num_nodes);
+    FeatureAggregationChunked::set(helper, adjacency, reduction, num_features, chunk_size, num_nodes);
 
     name_ = "feature-aggregation_pipelined";
     num_steps_ = 2;
@@ -305,7 +305,7 @@ void GraphConvPipelined::set(CudaHelper *helper, SparseMatrix<float> *adjacency,
     d_sum_backward_ = std::vector<float *>(num_steps_);
 }
 
-std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float>> *x) {
+std::vector<Matrix<float>> *FeatureAggregationPipelined::forward(std::vector<Matrix<float>> *x) {
     for (int i = 0; i < num_chunks_; ++i) {
         to_column_major_inplace(&x->at(i));
     }
@@ -393,7 +393,7 @@ std::vector<Matrix<float>> *GraphConvPipelined::forward(std::vector<Matrix<float
     return &y_;
 }
 
-std::vector<Matrix<float>> *GraphConvPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
+std::vector<Matrix<float>> *FeatureAggregationPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
     for (long i = 0; i < num_chunks_; ++i) {
         to_column_major_inplace(&incoming_gradients->at(i));
     }
