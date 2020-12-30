@@ -128,49 +128,49 @@ static void BM_Layer_Relu_Chunked_Flickr_Forward(benchmark::State &state) {
     ReluChunked relu;
     benchmark_layer_chunked(&relu, flickr, state, true);
 }
-BENCHMARK(BM_Layer_Relu_Chunked_Flickr_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
+BENCHMARK(BM_Layer_Relu_Chunked_Flickr_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 16);
 
 static void BM_Layer_Relu_Flickr_Chunked_Backward(benchmark::State &state) {
     ReluChunked relu;
     benchmark_layer_chunked(&relu, flickr, state, false);
 }
-BENCHMARK(BM_Layer_Relu_Flickr_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
+BENCHMARK(BM_Layer_Relu_Flickr_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 16);
 
 static void BM_Layer_Relu_Reddit_Chunked_Forward(benchmark::State &state) {
     ReluChunked relu;
     benchmark_layer_chunked(&relu, reddit, state, true);
 }
-BENCHMARK(BM_Layer_Relu_Reddit_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 17);
+BENCHMARK(BM_Layer_Relu_Reddit_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 17);
 
 static void BM_Layer_Relu_Reddit_Chunked_Backward(benchmark::State &state) {
     ReluChunked relu;
     benchmark_layer_chunked(&relu, reddit, state, false);
 }
-BENCHMARK(BM_Layer_Relu_Reddit_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 17);
+BENCHMARK(BM_Layer_Relu_Reddit_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 17);
 
 static void BM_Layer_Relu_Products_Chunked_Forward(benchmark::State &state) {
     ReluChunked relu;
     benchmark_layer_chunked(&relu, products, state, true);
 }
-BENCHMARK(BM_Layer_Relu_Products_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 21);
+BENCHMARK(BM_Layer_Relu_Products_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 21);
 
 static void BM_Layer_Relu_Products_Chunked_Backward(benchmark::State &state) {
     ReluChunked relu;
     benchmark_layer_chunked(&relu, products, state, false);
 }
-BENCHMARK(BM_Layer_Relu_Products_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 21);
+BENCHMARK(BM_Layer_Relu_Products_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 21);
 
 static void BM_Layer_Relu_Ivy_Chunked_Forward(benchmark::State &state) {
     ReluChunked relu;
     benchmark_layer_chunked(&relu, ivy, state, true);
 }
-BENCHMARK(BM_Layer_Relu_Ivy_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 19);
+BENCHMARK(BM_Layer_Relu_Ivy_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 19);
 
 static void BM_Layer_Relu_Ivy_Chunked_Backward(benchmark::State &state) {
     ReluChunked relu;
     benchmark_layer_chunked(&relu, ivy, state, false);
 }
-BENCHMARK(BM_Layer_Relu_Ivy_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 19);
+BENCHMARK(BM_Layer_Relu_Ivy_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 19);
 
 // PIPELINED --- PIPELINED --- PIPELINED
 
@@ -178,46 +178,46 @@ static void BM_Layer_Relu_Pipelined_Flickr_Forward(benchmark::State &state) {
     ReluPipelined relu;
     benchmark_layer_chunked(&relu, flickr, state, true);
 }
-BENCHMARK(BM_Layer_Relu_Pipelined_Flickr_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
+BENCHMARK(BM_Layer_Relu_Pipelined_Flickr_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 16);
 
 static void BM_Layer_Relu_Flickr_Pipelined_Backward(benchmark::State &state) {
     ReluPipelined relu;
     benchmark_layer_chunked(&relu, flickr, state, false);
 }
-BENCHMARK(BM_Layer_Relu_Flickr_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
+BENCHMARK(BM_Layer_Relu_Flickr_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 16);
 
 static void BM_Layer_Relu_Reddit_Pipelined_Forward(benchmark::State &state) {
     ReluPipelined relu;
     benchmark_layer_chunked(&relu, reddit, state, true);
 }
-BENCHMARK(BM_Layer_Relu_Reddit_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 17);
+BENCHMARK(BM_Layer_Relu_Reddit_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 17);
 
 static void BM_Layer_Relu_Reddit_Pipelined_Backward(benchmark::State &state) {
     ReluPipelined relu;
     benchmark_layer_chunked(&relu, reddit, state, false);
 }
-BENCHMARK(BM_Layer_Relu_Reddit_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 17);
+BENCHMARK(BM_Layer_Relu_Reddit_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 17);
 
 static void BM_Layer_Relu_Products_Pipelined_Forward(benchmark::State &state) {
     ReluPipelined relu;
     benchmark_layer_chunked(&relu, products, state, true);
 }
-BENCHMARK(BM_Layer_Relu_Products_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 21);
+BENCHMARK(BM_Layer_Relu_Products_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 21);
 
 static void BM_Layer_Relu_Products_Pipelined_Backward(benchmark::State &state) {
     ReluPipelined relu;
     benchmark_layer_chunked(&relu, products, state, false);
 }
-BENCHMARK(BM_Layer_Relu_Products_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 21);
+BENCHMARK(BM_Layer_Relu_Products_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 21);
 
 static void BM_Layer_Relu_Ivy_Pipelined_Forward(benchmark::State &state) {
     ReluPipelined relu;
     benchmark_layer_chunked(&relu, ivy, state, true);
 }
-BENCHMARK(BM_Layer_Relu_Ivy_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 10, 1 << 19);
+BENCHMARK(BM_Layer_Relu_Ivy_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 19);
 
 static void BM_Layer_Relu_Ivy_Pipelined_Backward(benchmark::State &state) {
     ReluPipelined relu;
     benchmark_layer_chunked(&relu, ivy, state, false);
 }
-BENCHMARK(BM_Layer_Relu_Ivy_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 10, 1 << 19);
+BENCHMARK(BM_Layer_Relu_Ivy_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 19);
