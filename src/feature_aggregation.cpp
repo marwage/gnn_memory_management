@@ -114,7 +114,6 @@ void FeatureAggregationChunked::set(CudaHelper *helper, SparseMatrix<float> *adj
     name_ = "feature-aggregation_chunked";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
-    adjacency_ = adjacency;
     if (reduction.compare("mean") == 0) {
         mean_ = true;
     } else if (reduction.compare("sum") == 0) {
@@ -172,7 +171,7 @@ void FeatureAggregationChunked::set(CudaHelper *helper, SparseMatrix<float> *adj
 
     sum_.set(num_nodes, 1, true);
     if (mean_) {
-        sp_mat_sum_rows(adjacency_, &sum_);
+        sp_mat_sum_rows(adjacency, &sum_);
     }
 }
 

@@ -71,7 +71,13 @@ template<typename T>
 Matrix<T> load_npy_matrix(std::string path);
 
 template<typename T>
+void load_npy_matrix(std::string path, Matrix<T> *mat);
+
+template<typename T>
 SparseMatrix<T> load_mtx_matrix(std::string path);
+
+template<typename T>
+void load_mtx_matrix(std::string path, SparseMatrix<T> *sp_mat);
 
 template<typename T>
 void save_npy_matrix(Matrix<T> *mat, std::string path);

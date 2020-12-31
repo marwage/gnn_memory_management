@@ -291,6 +291,18 @@ template void one_to_zero_index<int>(int *a, int len);
 
 template<typename T>
 Matrix<T> load_npy_matrix(std::string path) {
+    Matrix<T> mat;
+
+    load_npy_matrix<T>(path, &mat);
+
+    return mat;
+}
+template Matrix<float> load_npy_matrix<float>(std::string path);
+template Matrix<int> load_npy_matrix<int>(std::string path);
+template Matrix<bool> load_npy_matrix<bool>(std::string path);
+
+template<typename T>
+void load_npy_matrix(std::string path, Matrix<T> *mat) {
     cnpy::NpyArray arr = cnpy::npy_load(path);
     if (arr.word_size != sizeof(T)) {
         std::cout << "Matrix has wrong data type" << std::endl;
@@ -302,19 +314,25 @@ Matrix<T> load_npy_matrix(std::string path) {
     } else {
         num_columns = arr.shape[1];
     }
-    Matrix<T> mat(arr.shape[0], num_columns, true);
-    std::memcpy(mat.values_, arr_data, mat.num_rows_ * mat.num_columns_ * sizeof(T));
-
-    return mat;
+    mat->set(arr.shape[0], num_columns, true);
+    std::memcpy(mat->values_, arr_data, mat->size_ * sizeof(T));
 }
-
-template Matrix<float> load_npy_matrix<float>(std::string path);
-template Matrix<int> load_npy_matrix<int>(std::string path);
-template Matrix<bool> load_npy_matrix<bool>(std::string path);
-
+template void load_npy_matrix<float>(std::string path, Matrix<float> *mat);
+template void load_npy_matrix<int>(std::string path, Matrix<int> *mat);
+template void load_npy_matrix<bool>(std::string path, Matrix<bool> *mat);
 
 template<typename T>
 SparseMatrix<T> load_mtx_matrix(std::string path) {
+    SparseMatrix<T> sp_mat;
+
+    load_mtx_matrix<T>(path, &sp_mat);
+
+    return sp_mat;
+}
+template SparseMatrix<float> load_mtx_matrix<float>(std::string path);
+
+template<typename T>
+void load_mtx_matrix(std::string path, SparseMatrix<T> *sp_mat) {
     char *path_char = &*path.begin();
     int num_rows;
     int num_columns;
@@ -332,15 +350,16 @@ SparseMatrix<T> load_mtx_matrix(std::string path) {
     one_to_zero_index(row_ptr, num_rows + 1);
     one_to_zero_index(col_ind, nnz);
 
-    SparseMatrix<T> sp_mat(num_rows, num_columns, nnz);
-    std::copy(col_ind, col_ind + nnz, sp_mat.csr_col_ind_);
-    std::copy(row_ptr, row_ptr + num_rows + 1, sp_mat.csr_row_ptr_);
-    std::copy(val, val + nnz, sp_mat.csr_val_);
+    sp_mat->set(num_rows, num_columns, nnz);
+    std::copy(col_ind, col_ind + nnz, sp_mat->csr_col_ind_);
+    std::copy(row_ptr, row_ptr + num_rows + 1, sp_mat->csr_row_ptr_);
+    std::copy(val, val + nnz, sp_mat->csr_val_);
 
-    return sp_mat;
+    free(val);
+    free(row_ptr);
+    free(col_ind);
 }
-
-template SparseMatrix<float> load_mtx_matrix<float>(std::string path);
+template void load_mtx_matrix<float>(std::string path, SparseMatrix<float> *sp_mat);
 
 template<typename T>
 void save_npy_matrix(Matrix<T> *mat, std::string path) {

@@ -38,7 +38,6 @@ protected:
     long last_chunk_size_;
     long num_chunks_;
     bool mean_;
-    SparseMatrix<float> *adjacency_;
     std::vector<SparseMatrix<float>> adjacencies_;
     Matrix<float> sum_;
     std::vector<Matrix<float>> y_;
