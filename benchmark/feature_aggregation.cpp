@@ -158,49 +158,49 @@ static void BM_Layer_Feature_Aggregation_Flickr_Chunked_Forward(benchmark::State
     FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, flickr, state, true);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 16);
+BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 16, 1 << 16);
 
 static void BM_Layer_Feature_Aggregation_Flickr_Chunked_Backward(benchmark::State &state) {
     FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, flickr, state, false);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 16);
+BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 16, 1 << 16);
 
 static void BM_Layer_Feature_Aggregation_Reddit_Chunked_Forward(benchmark::State &state) {
     FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, reddit, state, true);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 17);
+BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 16, 1 << 17);
 
 static void BM_Layer_Feature_Aggregation_Reddit_Chunked_Backward(benchmark::State &state) {
     FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, reddit, state, false);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 17);
+BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 16, 1 << 17);
 
 static void BM_Layer_Feature_Aggregation_Products_Chunked_Forward(benchmark::State &state) {
     FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, products, state, true);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Products_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 21);
+BENCHMARK(BM_Layer_Feature_Aggregation_Products_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 16, 1 << 21);
 
 static void BM_Layer_Feature_Aggregation_Products_Chunked_Backward(benchmark::State &state) {
     FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, products, state, false);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Products_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 21);
+BENCHMARK(BM_Layer_Feature_Aggregation_Products_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 16, 1 << 21);
 
 static void BM_Layer_Feature_Aggregation_Ivy_Chunked_Forward(benchmark::State &state) {
     FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, true);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 19);
+BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Chunked_Forward)->RangeMultiplier(2)->Range(1 << 16, 1 << 19);
 
 static void BM_Layer_Feature_Aggregation_Ivy_Chunked_Backward(benchmark::State &state) {
     FeatureAggregationChunked feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, false);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 19);
+BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Chunked_Backward)->RangeMultiplier(2)->Range(1 << 16, 1 << 19);
 
 // PIPELINED --- PIPELINED --- PIPELINED
 
@@ -208,46 +208,46 @@ static void BM_Layer_Feature_Aggregation_Flickr_Pipelined_Forward(benchmark::Sta
     FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, flickr, state, true);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 16);
+BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 16, 1 << 16);
 
 static void BM_Layer_Feature_Aggregation_Flickr_Pipelined_Backward(benchmark::State &state) {
     FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, flickr, state, false);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 16);
+BENCHMARK(BM_Layer_Feature_Aggregation_Flickr_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 16, 1 << 16);
 
 static void BM_Layer_Feature_Aggregation_Reddit_Pipelined_Forward(benchmark::State &state) {
     FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, reddit, state, true);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 17);
+BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 16, 1 << 17);
 
 static void BM_Layer_Feature_Aggregation_Reddit_Pipelined_Backward(benchmark::State &state) {
     FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, reddit, state, false);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 17);
+BENCHMARK(BM_Layer_Feature_Aggregation_Reddit_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 16, 1 << 17);
 
 static void BM_Layer_Feature_Aggregation_Products_Pipelined_Forward(benchmark::State &state) {
     FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, products, state, true);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Products_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 21);
+BENCHMARK(BM_Layer_Feature_Aggregation_Products_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 16, 1 << 21);
 
 static void BM_Layer_Feature_Aggregation_Products_Pipelined_Backward(benchmark::State &state) {
     FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, products, state, false);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Products_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 21);
+BENCHMARK(BM_Layer_Feature_Aggregation_Products_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 16, 1 << 21);
 
 static void BM_Layer_Feature_Aggregation_Ivy_Pipelined_Forward(benchmark::State &state) {
     FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, true);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 12, 1 << 19);
+BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 16, 1 << 19);
 
 static void BM_Layer_Feature_Aggregation_Ivy_Pipelined_Backward(benchmark::State &state) {
     FeatureAggregationPipelined feature_aggr;
     benchmark_feature_aggregation_chunked(&feature_aggr, ivy, state, false);
 }
-BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 12, 1 << 19);
+BENCHMARK(BM_Layer_Feature_Aggregation_Ivy_Pipelined_Backward)->RangeMultiplier(2)->Range(1 << 16, 1 << 19);
