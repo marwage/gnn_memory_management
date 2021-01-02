@@ -165,7 +165,7 @@ static void BM_Layer_Add_Products_Pipelined_Forward(benchmark::State &state) {
     AddPipelined add;
     benchmark_add_chunked(&add, products, state, true);
 }
-BENCHMARK(BM_Layer_Add_Products_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 1, 1 << 21);
+BENCHMARK(BM_Layer_Add_Products_Pipelined_Forward)->RangeMultiplier(2)->Range(1 << 14, 1 << 21);
 
 static void BM_Layer_Add_Ivy_Pipelined_Forward(benchmark::State &state) {
     AddPipelined add;
