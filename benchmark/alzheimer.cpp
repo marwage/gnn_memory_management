@@ -56,10 +56,10 @@ BENCHMARK(BM_Alzheimer_Products);
 
 // CHUNKED --- CHUNKED --- CHUNKED
 
-static void BM_Alzheimer_Flickr_Chunked(benchmark::State &state) {
+static void BM_Alzheimer_Chunked_Flickr(benchmark::State &state) {
     benchmark_alzheimer_chunked(flickr, state);
 }
-BENCHMARK(BM_Alzheimer_Flickr_Chunked)->RangeMultiplier(2)->Range(1 << 14, 1 << 16);
+BENCHMARK(BM_Alzheimer_Chunked_Flickr)->RangeMultiplier(2)->Range(1 << 14, 1 << 16);
 
 static void BM_Alzheimer_Chunked_Reddit(benchmark::State &state) {
     benchmark_alzheimer_chunked(reddit, state);
@@ -78,10 +78,10 @@ BENCHMARK(BM_Alzheimer_Chunked_Ivy)->RangeMultiplier(2)->Range(1 << 14, 1 << 21)
 
 // PIPELINED --- PIPELINED --- PIPELINED
 
-static void BM_Alzheimer_Flickr_Pipelined(benchmark::State &state) {
+static void BM_Alzheimer_Pipelined_Flickr(benchmark::State &state) {
     benchmark_alzheimer_pipelined(flickr, state);
 }
-BENCHMARK(BM_Alzheimer_Flickr_Pipelined)->RangeMultiplier(2)->Range(1 << 14, 1 << 16);
+BENCHMARK(BM_Alzheimer_Pipelined_Flickr)->RangeMultiplier(2)->Range(1 << 14, 1 << 16);
 
 static void BM_Alzheimer_Pipelined_Reddit(benchmark::State &state) {
     benchmark_alzheimer_pipelined(reddit, state);
