@@ -1,6 +1,7 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "chunking.hpp"
+#include "sparse_computation.hpp"
 
 #include <thread>
 
@@ -68,4 +69,45 @@ void stitch(std::vector<Matrix<float>> *x_chunked, Matrix<float> *x) {
                   x->values_ + (i * chunk_size * num_features));
     }
     x->is_row_major_ = true;
+}
+
+void double_chunk_up_sp(SparseMatrix<float> *sp_mat, std::vector<SparseMatrix<float>> *chunks, long chunk_size) {
+    long num_nodes = sp_mat->num_rows_;
+    long num_chunks = ceil((double) num_nodes / (double) chunk_size);
+    if ((long) chunks->size() != num_chunks * num_chunks) {
+        throw "Vector has wrong number of chunks.";
+    }
+
+    long last_chunk_size;
+    if (num_chunks * chunk_size > num_nodes) {
+        last_chunk_size = num_nodes - (num_chunks - 1) * chunk_size;
+    } else {
+        last_chunk_size = chunk_size;
+    }
+    long current_end_row;// end row is included [start_row, end_row] not [start_row, end_row)
+    for (int i = 0; i < num_chunks; ++i) {
+        if (i == num_chunks - 1) {
+            current_end_row = i * chunk_size + last_chunk_size - 1;
+        } else {
+            current_end_row = (i + 1) * chunk_size - 1;
+        }
+
+        // chunk by row
+        SparseMatrix<float> sp_mat_chunk;
+        get_rows(&sp_mat_chunk, sp_mat, i * chunk_size, current_end_row);
+        // transpose
+        transpose_csr_matrix_cpu(&sp_mat_chunk);
+        // chunk by row (would be by column without transpose
+        for (int j = 0; j < num_chunks; ++j) {
+            if (j == num_chunks - 1) {
+                current_end_row = j * chunk_size + last_chunk_size - 1;
+            } else {
+                current_end_row = (j + 1) * chunk_size - 1;
+            }
+
+            get_rows(&chunks->at(i * num_chunks + j), &sp_mat_chunk, j * chunk_size, current_end_row);
+            // transpose
+            transpose_csr_matrix_cpu(&chunks->at(i * num_chunks + j));
+        }
+    }
 }

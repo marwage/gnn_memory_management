@@ -5,6 +5,7 @@
 #include "cuda_helper.hpp"
 #include "dataset.hpp"
 #include "gpu_memory_logger.hpp"
+#include "sparse_computation.hpp"
 #include "tensors.hpp"
 
 #include <benchmark/benchmark.h>
@@ -75,9 +76,15 @@ void benchmark_feature_aggregation_chunked(FeatureAggregationChunked *feature_ag
         init_set_random_values(&incoming_gradients_chunked, num_nodes, num_features, chunk_size, false);
     }
 
-    CudaHelper cuda_helper;
-    feature_aggr->set(&cuda_helper, adjacency, "mean", num_features, chunk_size, num_nodes);
+    // chunk adjacency
+    std::vector<SparseMatrix<float>> adjacencies(num_chunks * num_chunks);
+    double_chunk_up_sp(adjacency, &adjacencies, chunk_size);
+    Matrix<float> adjacency_row_sum(num_nodes, 1, true);
+    sp_mat_sum_rows(adjacency, &adjacency_row_sum);
     delete adjacency;
+
+    CudaHelper cuda_helper;
+    feature_aggr->set(&cuda_helper, &adjacencies, &adjacency_row_sum, "mean", num_features, chunk_size, num_nodes);
 
     if (!forward) {
         feature_aggr->forward(&features_chunked);
@@ -103,24 +110,6 @@ void benchmark_feature_aggregation_chunked(FeatureAggregationChunked *feature_ag
 
     memory_logger.stop();
 }
-
-static void BM_Layer_FeatureAggregation_Chunked_Reddit_Constructor(benchmark::State &state) {
-    std::string path = dir_path + "/reddit/adjacency.mtx";
-    SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
-    long num_nodes = adjacency.num_rows_;
-    long num_features = 602;// reddit dataset
-    CudaHelper cuda_helper;
-
-    GPUMemoryLogger memory_logger("graphconv_reddit_constructor_" + std::to_string(state.range(0)));
-    memory_logger.start();
-
-    for (auto _ : state) {
-        FeatureAggregationChunked feature_aggr(&cuda_helper, &adjacency, "mean", num_features, state.range(0), num_nodes);
-    }
-
-    memory_logger.stop();
-}
-BENCHMARK(BM_Layer_FeatureAggregation_Chunked_Reddit_Constructor)->Range(1 << 12, 1 << 17);
 
 static void BM_Layer_FeatureAggregation_Flickr_Forward(benchmark::State &state) {
     benchmark_feature_aggregation(flickr, state, true);

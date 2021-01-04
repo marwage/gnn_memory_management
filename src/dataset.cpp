@@ -12,6 +12,20 @@ std::string get_dataset_name(Dataset dataset) {
     } else if (dataset == ivy) {
         return "ivy";
     } else {
-        return "";
+        throw "Unkown dataset";
+    }
+}
+
+long get_dataset_num_classes(Dataset dataset) {
+    if (dataset == flickr) {
+        return 7;
+    } else if (dataset == reddit) {
+        return 41;
+    } else if (dataset == products) {
+        return 47;
+    } else if (dataset == ivy) {
+        return 64;
+    } else {
+        throw "Unkown dataset";
     }
 }
