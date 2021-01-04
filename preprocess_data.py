@@ -74,9 +74,6 @@ def preprocess_reddit():
     np.save(path, features)
     
     classes = data["label"]
-    print("Classes min: {}".format(classes.min()))
-    print("Classes max: {}".format(classes.max()))
-    return
     classes = classes.astype(np.int32)
     path = reddit_path + "/classes.npy"
     np.save(path, classes)

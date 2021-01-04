@@ -10,7 +10,16 @@ def gen_data():
     print("n {}".format(n))
     f = 512
     print("f {}".format(f))
+    c = 64
+    print("c {}".format(c))
     density = 1e-5
+
+    classes = np.random.randint(0, c, n)
+    classes = classes.astype(np.int32)
+    path = dir_path + "/classes.npy"
+    np.save(path, classes)
+
+    return # delete again
 
     features = np.random.randn(n, f)
     features = features.astype(np.float32)
