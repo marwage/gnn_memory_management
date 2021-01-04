@@ -14,4 +14,6 @@ void chunk_up(Matrix<float> *x, std::vector<Matrix<float>> *x_chunked, long chun
 
 void stitch(std::vector<Matrix<float>> *x_chunked, Matrix<float> *x);
 
+void double_chunk_up_sp(SparseMatrix<float> *sp_mat, std::vector<SparseMatrix<float>> *chunks, long chunk_size);
+
 #endif//ALZHEIMER_CHUNK_H

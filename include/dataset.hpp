@@ -13,4 +13,6 @@ enum Dataset { flickr,
 
 std::string get_dataset_name(Dataset dataset);
 
+long get_dataset_num_classes(Dataset dataset);
+
 #endif//ALZHEIMER_DATASET_HPP

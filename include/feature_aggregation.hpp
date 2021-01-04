@@ -24,7 +24,7 @@ public:
 
     FeatureAggregation();
     FeatureAggregation(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                     long num_nodes, long num_features);
+                       long num_nodes, long num_features);
     void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
              long num_nodes, long num_features);
     Matrix<float> *forward(Matrix<float> *x);
@@ -38,8 +38,8 @@ protected:
     long last_chunk_size_;
     long num_chunks_;
     bool mean_;
-    std::vector<SparseMatrix<float>> adjacencies_;
-    Matrix<float> sum_;
+    std::vector<SparseMatrix<float>> *adjacencies_;
+    Matrix<float> *adjacency_row_sum_;
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
 
@@ -47,10 +47,10 @@ public:
     std::string name_;
 
     FeatureAggregationChunked();
-    FeatureAggregationChunked(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                     long num_features, long chunk_size, long num_nodes);
-    virtual void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                     long num_features, long chunk_size, long num_nodes);
+    FeatureAggregationChunked(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                              std::string reduction, long num_features, long chunk_size, long num_nodes);
+    virtual void set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                     std::string reduction, long num_features, long chunk_size, long num_nodes);
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
     virtual std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
 };
@@ -68,10 +68,10 @@ protected:
 
 public:
     FeatureAggregationPipelined();
-    FeatureAggregationPipelined(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                       long num_features, long chunk_size, long num_nodes);
-    void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-             long num_features, long chunk_size, long num_nodes) override;
+    FeatureAggregationPipelined(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                                std::string reduction, long num_features, long chunk_size, long num_nodes);
+    void set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+             std::string reduction, long num_features, long chunk_size, long num_nodes) override;
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };
