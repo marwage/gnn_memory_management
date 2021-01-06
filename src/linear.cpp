@@ -390,7 +390,7 @@ void LinearPipelined::set(CudaHelper *helper, long chunk_size, long num_nodes, l
     LinearChunked::set(helper, chunk_size, num_nodes, num_in_features, num_out_features);
 
     name_ = "linear_pipelined";
-    num_steps_ = 3;
+    num_steps_ = 2;
 
     d_x_ = std::vector<float *>(num_steps_);
     d_y_ = std::vector<float *>(num_steps_);

@@ -24,7 +24,7 @@ TEST_CASE("Dropout, chunked", "[dropout][chunked]") {
     CHECK(test_layer_chunked(&dropout, "dropout", 1 << 8));
 }
 
-TEST_CASE("Dropout, chunked, pipelined", "[dropout][chunked[pipelined]") {
+TEST_CASE("Dropout, pipelined", "[dropout][pipelined]") {
     DropoutPipelined dropout;
     CHECK(test_layer_chunked(&dropout, "dropout", 1 << 15));
     CHECK(test_layer_chunked(&dropout, "dropout", 1 << 12));

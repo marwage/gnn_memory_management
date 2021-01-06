@@ -42,6 +42,7 @@ public:
 
 class ReluPipelined : public LayerPipelined, public ReluChunked {
 protected:
+    long num_steps_;
     std::vector<cudnnTensorDescriptor_t> x_desc_;
     std::vector<cudnnTensorDescriptor_t> y_desc_;
     std::vector<cudnnTensorDescriptor_t> dx_desc_;

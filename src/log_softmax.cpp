@@ -268,15 +268,15 @@ void LogSoftmaxPipelined::set(CudaHelper *helper, long chunk_size, long num_node
     LogSoftmaxChunked::set(helper, chunk_size, num_nodes, num_features);
 
     name_ = "log-softmax_pipelined";
-    long num_steps = 3;
-    d_x_ = std::vector<float *>(num_steps);
-    x_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps);
-    d_y_ = std::vector<float *>(num_steps);
-    y_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps);
-    d_dx_ = std::vector<float *>(num_steps);
-    dx_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps);
-    d_dy_ = std::vector<float *>(num_steps);
-    dy_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps);
+    num_steps_ = 2;
+    d_x_ = std::vector<float *>(num_steps_);
+    x_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
+    d_y_ = std::vector<float *>(num_steps_);
+    y_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
+    d_dx_ = std::vector<float *>(num_steps_);
+    dx_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
+    d_dy_ = std::vector<float *>(num_steps_);
+    dy_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
 }
 
 void LogSoftmaxPipelined::forward_in(long chunk, long buffer) {
@@ -328,7 +328,6 @@ void LogSoftmaxPipelined::backward_compute(long chunk, long buffer) {
 }
 
 std::vector<Matrix<float>> *LogSoftmaxPipelined::forward(std::vector<Matrix<float>> *x) {
-    long num_steps = 3;
     x_ = x;
 
     if ((long) x->size() != num_chunks_) {
@@ -339,7 +338,7 @@ std::vector<Matrix<float>> *LogSoftmaxPipelined::forward(std::vector<Matrix<floa
     }
 
     // allocate
-    for (long j = 0; j < num_steps; ++j) {
+    for (long j = 0; j < num_steps_; ++j) {
         check_cuda(cudaMalloc(&d_x_.at(j), x->at(0).size_ * sizeof(float)));
         check_cudnn(cudnnCreateTensorDescriptor(&x_desc_.at(j)));
 
@@ -350,7 +349,7 @@ std::vector<Matrix<float>> *LogSoftmaxPipelined::forward(std::vector<Matrix<floa
     pipeline(true, num_chunks_);
 
     // free
-    for (long j = 0; j < num_steps; ++j) {
+    for (long j = 0; j < num_steps_; ++j) {
         check_cuda(cudaFree(d_x_.at(j)));
         check_cudnn(cudnnDestroyTensorDescriptor(x_desc_.at(j)));
 
@@ -363,7 +362,6 @@ std::vector<Matrix<float>> *LogSoftmaxPipelined::forward(std::vector<Matrix<floa
 
 std::vector<Matrix<float>> *LogSoftmaxPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
     incoming_gradients_ = incoming_gradients;
-    long num_steps = 3;
 
     if ((long) incoming_gradients->size() != num_chunks_) {
         throw "Incoming gradients has wrong number of chunks";
@@ -374,7 +372,7 @@ std::vector<Matrix<float>> *LogSoftmaxPipelined::backward(std::vector<Matrix<flo
     }
 
     // allocate
-    for (long j = 0; j < num_steps; ++j) {
+    for (long j = 0; j < num_steps_; ++j) {
         check_cuda(cudaMalloc(&d_y_.at(j), y_.at(0).size_ * sizeof(float)));
         check_cudnn(cudnnCreateTensorDescriptor(&y_desc_.at(j)));
 
@@ -388,7 +386,7 @@ std::vector<Matrix<float>> *LogSoftmaxPipelined::backward(std::vector<Matrix<flo
     pipeline(false, num_chunks_);
 
     // free
-    for (long j = 0; j < num_steps; ++j) {
+    for (long j = 0; j < num_steps_; ++j) {
         check_cuda(cudaFree(d_y_.at(j)));
         check_cudnn(cudnnDestroyTensorDescriptor(y_desc_.at(j)));
 

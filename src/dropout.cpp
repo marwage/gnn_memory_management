@@ -321,7 +321,7 @@ void DropoutPipelined::set(CudaHelper *helper, long chunk_size, long num_nodes, 
     DropoutChunked::set(helper, chunk_size, num_nodes, num_features);
 
     name_ = "dropout_pipelined";
-    num_steps_ = 3;
+    num_steps_ = 2;
     check_cudnn(cudnnDropoutGetStatesSize(cuda_helper_->cudnn_handle, &state_size_));
 
     d_states_ = std::vector<char *>(num_steps_);

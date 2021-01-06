@@ -29,7 +29,7 @@ TEST_CASE("ReLU, chunked", "[relu][chunked]") {
     CHECK(test_layer_chunked(&relu, "relu", 1 << 8));
 }
 
-TEST_CASE("ReLU, chunked, pipelined", "[relu][chunked][pipelined]") {
+TEST_CASE("ReLU, pipelined", "[relu][pipelined]") {
     ReluPipelined relu;
     CHECK(test_layer_chunked(&relu, "relu", 1 << 15));
     CHECK(test_layer_chunked(&relu, "relu", 1 << 12));

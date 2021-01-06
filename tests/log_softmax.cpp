@@ -22,7 +22,7 @@ TEST_CASE("Log-softmax, chunked", "[logsoftmax][chunked]") {
     CHECK(test_layer_chunked(&logsoftmax, "log_softmax", 1 << 8));
 }
 
-TEST_CASE("Log-softmax, chunked, piplined", "[logsoftmax][chunked][piplined]") {
+TEST_CASE("Log-softmax, piplined", "[logsoftmax][piplined]") {
     LogSoftmaxPipelined logsoftmax;
     CHECK(test_layer_chunked(&logsoftmax, "log_softmax", 1 << 15));
     CHECK(test_layer_chunked(&logsoftmax, "log_softmax", 1 << 12));

@@ -50,6 +50,7 @@ public:
 
 class LogSoftmaxPipelined : public LayerPipelined, public LogSoftmaxChunked {
 protected:
+    long num_steps_;
     std::vector<cudnnTensorDescriptor_t> x_desc_;
     std::vector<cudnnTensorDescriptor_t> y_desc_;
     std::vector<cudnnTensorDescriptor_t> dx_desc_;

@@ -297,15 +297,15 @@ void ReluPipelined::set(CudaHelper *helper, long chunk_size, long num_nodes, lon
     ReluChunked::set(helper, chunk_size, num_nodes, num_features);
 
     name_ = "relu_pipelined";
-    long num_steps = 3;
-    d_x_ = std::vector<float *>(num_steps);
-    x_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps);
-    d_y_ = std::vector<float *>(num_steps);
-    y_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps);
-    d_dx_ = std::vector<float *>(num_steps);
-    dx_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps);
-    d_dy_ = std::vector<float *>(num_steps);
-    dy_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps);
+    num_steps_ = 2;
+    d_x_ = std::vector<float *>(num_steps_);
+    x_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
+    d_y_ = std::vector<float *>(num_steps_);
+    y_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
+    d_dx_ = std::vector<float *>(num_steps_);
+    dx_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
+    d_dy_ = std::vector<float *>(num_steps_);
+    dy_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
 }
 
 void ReluPipelined::forward_in(long chunk, long buffer) {
@@ -366,7 +366,6 @@ void ReluPipelined::backward_compute(long chunk, long buffer) {
 
 std::vector<Matrix<float>> *ReluPipelined::forward(std::vector<Matrix<float>> *x) {
     x_ = x;
-    long num_steps = 3;
 
     if ((long) x->size() != num_chunks_) {
         throw "Input has wrong number of chunks";
@@ -376,7 +375,7 @@ std::vector<Matrix<float>> *ReluPipelined::forward(std::vector<Matrix<float>> *x
     }
 
     // allocate
-    for (long j = 0; j < num_steps; ++j) {
+    for (long j = 0; j < num_steps_; ++j) {
         check_cuda(cudaMalloc(&d_x_.at(j), x->at(0).size_ * sizeof(float)));
         check_cudnn(cudnnCreateTensorDescriptor(&x_desc_.at(j)));
 
@@ -387,7 +386,7 @@ std::vector<Matrix<float>> *ReluPipelined::forward(std::vector<Matrix<float>> *x
     pipeline(true, num_chunks_);
 
     // free
-    for (long j = 0; j < num_steps; ++j) {
+    for (long j = 0; j < num_steps_; ++j) {
         check_cuda(cudaFree(d_x_.at(j)));
         check_cudnn(cudnnDestroyTensorDescriptor(x_desc_.at(j)));
 
@@ -400,7 +399,6 @@ std::vector<Matrix<float>> *ReluPipelined::forward(std::vector<Matrix<float>> *x
 
 std::vector<Matrix<float>> *ReluPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
     incoming_gradients_ = incoming_gradients;
-    long num_steps = 3;
 
     if ((long) incoming_gradients->size() != num_chunks_) {
         throw "Incoming gradients has wrong number of chunks";
@@ -412,7 +410,7 @@ std::vector<Matrix<float>> *ReluPipelined::backward(std::vector<Matrix<float>> *
     }
 
     // allocate
-    for (long j = 0; j < num_steps; ++j) {
+    for (long j = 0; j < num_steps_; ++j) {
         check_cuda(cudaMalloc(&d_x_.at(j), x_->at(0).size_ * sizeof(float)));
         check_cudnn(cudnnCreateTensorDescriptor(&x_desc_.at(j)));
 
@@ -429,7 +427,7 @@ std::vector<Matrix<float>> *ReluPipelined::backward(std::vector<Matrix<float>> *
     pipeline(false, num_chunks_);
 
     // free
-    for (long j = 0; j < num_steps; ++j) {
+    for (long j = 0; j < num_steps_; ++j) {
         check_cuda(cudaFree(d_x_.at(j)));
         check_cudnn(cudnnDestroyTensorDescriptor(x_desc_.at(j)));
 
