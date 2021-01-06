@@ -56,6 +56,7 @@ protected:
     long num_steps_;
     std::vector<float *> d_a_;
     std::vector<float *> d_b_;
+    std::vector<float *> d_c_;
     std::vector<Matrix<float>> *a_;
     std::vector<Matrix<float>> *b_;
 

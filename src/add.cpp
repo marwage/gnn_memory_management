@@ -108,9 +108,10 @@ void AddPipelined::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes,
     AddChunked::set(cuda_helper, chunk_size, num_nodes, num_features);
 
     name_ = "add_pipelined";
-    num_steps_ = 3;
+    num_steps_ = 2;
     d_a_ = std::vector<float *>(num_steps_);
     d_b_ = std::vector<float *>(num_steps_);
+    d_c_ = std::vector<float *>(num_steps_);
 }
 
 void AddPipelined::forward_in(long chunk, long buffer) {
@@ -121,12 +122,14 @@ void AddPipelined::forward_in(long chunk, long buffer) {
 }
 
 void AddPipelined::forward_out(long chunk, long buffer) {
-    check_cuda(cudaMemcpyAsync(y_.at(chunk).values_, d_b_.at(buffer), y_.at(chunk).size_ * sizeof(float),
+    check_cuda(cudaMemcpyAsync(y_.at(chunk).values_, d_c_.at(buffer), y_.at(chunk).size_ * sizeof(float),
                                cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
 }
 
 void AddPipelined::forward_compute(long chunk, long buffer) {
-    mat_mat_add_cuda(cuda_helper_, d_a_.at(buffer), d_b_.at(buffer), a_->at(chunk).size_);
+    check_cuda(cudaMemcpy(d_c_.at(buffer), d_b_.at(buffer), y_.at(chunk).size_ * sizeof(float),
+                               cudaMemcpyDeviceToDevice));
+    mat_mat_add_cuda(cuda_helper_, d_a_.at(buffer), d_c_.at(buffer), a_->at(chunk).size_);
 }
 
 std::vector<Matrix<float>> *AddPipelined::forward(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b) {
@@ -147,6 +150,7 @@ std::vector<Matrix<float>> *AddPipelined::forward(std::vector<Matrix<float>> *a,
     for (long i = 0; i < num_steps_; ++i) {
         check_cuda(cudaMalloc(&d_a_.at(i), a->at(0).size_ * sizeof(float)));
         check_cuda(cudaMalloc(&d_b_.at(i), b->at(0).size_ * sizeof(float)));
+        check_cuda(cudaMalloc(&d_c_.at(i), b->at(0).size_ * sizeof(float)));
     }
 
     pipeline(true, num_chunks_);
@@ -154,6 +158,7 @@ std::vector<Matrix<float>> *AddPipelined::forward(std::vector<Matrix<float>> *a,
     for (long i = 0; i < num_steps_; ++i) {
         check_cuda(cudaFree(d_a_.at(i)));
         check_cuda(cudaFree(d_b_.at(i)));
+        check_cuda(cudaFree(d_c_.at(i)));
     }
 
     return &y_;

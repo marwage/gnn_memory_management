@@ -8,7 +8,7 @@ set(TEST_FILES
         tests/divmv.cpp
         tests/dropout.cpp
         tests/elesq.cpp
-        tests/graph_convolution.cpp
+        tests/feature_aggregation.cpp
         tests/integration.cpp
         tests/invsqrt.cpp
         tests/linear.cpp

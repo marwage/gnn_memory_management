@@ -11,6 +11,7 @@
 #include "relu.hpp"
 #include "sage_linear.hpp"
 #include "tensors.hpp"
+#include "sparse_computation.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -140,6 +141,9 @@ int integration_test_chunked(long chunk_size) {
     std::string path = flickr_dir_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);
 
+    long num_nodes = features.num_rows_;
+    long num_features = features.num_columns_;
+
     // read classes
     path = flickr_dir_path + "/classes.npy";
     Matrix<int> classes = load_npy_matrix<int>(path);
@@ -148,10 +152,14 @@ int integration_test_chunked(long chunk_size) {
     path = flickr_dir_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
-    long num_nodes = features.num_rows_;
     long num_chunks = ceil((float) num_nodes / (float) chunk_size);
     std::vector<Matrix<float>> features_chunked(num_chunks);
     chunk_up(&features, &features_chunked, chunk_size);
+
+    std::vector<SparseMatrix<float>> adjacencies(num_chunks * num_chunks);
+    double_chunk_up_sp(&adjacency, &adjacencies, chunk_size);
+    Matrix<float> adjacency_row_sum(num_nodes, 1, true);
+    sp_mat_sum_rows(&adjacency, &adjacency_row_sum);
 
     // FORWARD PASS
     CudaHelper cuda_helper;
@@ -159,7 +167,7 @@ int integration_test_chunked(long chunk_size) {
     int num_classes = 7;
 
     // layers
-    FeatureAggregationChunked graph_convolution_layer(&cuda_helper, &adjacency, "mean", features.num_columns_, chunk_size, num_nodes);
+    FeatureAggregationChunked feature_aggregation_layer(&cuda_helper, &adjacencies, &adjacency_row_sum, "mean", num_features, chunk_size, num_nodes);
     AddChunked add(&cuda_helper, chunk_size, num_nodes, features.num_columns_);
     SageLinearChunked sage_linear_layer(&cuda_helper, features.num_columns_, num_classes, chunk_size, num_nodes);
     ReluChunked relu_layer(&cuda_helper, chunk_size, num_nodes, num_classes);
@@ -170,7 +178,7 @@ int integration_test_chunked(long chunk_size) {
     Adam adam(&cuda_helper, learning_rate, sage_linear_layer.get_parameters(), sage_linear_layer.get_gradients());
 
     // graph convolution
-    std::vector<Matrix<float>> *graph_convolution_result = graph_convolution_layer.forward(&features_chunked);
+    std::vector<Matrix<float>> *graph_convolution_result = feature_aggregation_layer.forward(&features_chunked);
 
     Matrix<float> graph_convolution_result_one(num_nodes, graph_convolution_result->at(0).num_columns_, false);
     stitch(graph_convolution_result, &graph_convolution_result_one);
@@ -265,7 +273,7 @@ int integration_test_chunked(long chunk_size) {
     save_npy_matrix(gradients[3], path);
 
     // graph convolution
-    std::vector<Matrix<float>> *graph_convolution_grads = graph_convolution_layer.backward(linear_grads->neighbourhood_gradients);
+    std::vector<Matrix<float>> *graph_convolution_grads = feature_aggregation_layer.backward(linear_grads->neighbourhood_gradients);
 
     Matrix<float> graph_convolution_grads_one(num_nodes, graph_convolution_grads->at(0).num_columns_, false);
     stitch(graph_convolution_grads, &graph_convolution_grads_one);
