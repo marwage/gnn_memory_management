@@ -91,9 +91,9 @@ BENCHMARK(BM_Alzheimer_Pipelined_Reddit)->RangeMultiplier(2)->Range(1 << 14, 1 <
 static void BM_Alzheimer_Pipelined_Products(benchmark::State &state) {
     benchmark_alzheimer_pipelined(products, state);
 }
-BENCHMARK(BM_Alzheimer_Pipelined_Products)->RangeMultiplier(2)->Range(1 << 14, 1 << 21);
+BENCHMARK(BM_Alzheimer_Pipelined_Products)->RangeMultiplier(2)->Range(1 << 14, 1 << 20);
 
 static void BM_Alzheimer_Pipelined_Ivy(benchmark::State &state) {
     benchmark_alzheimer_pipelined(ivy, state);
 }
-BENCHMARK(BM_Alzheimer_Pipelined_Ivy)->RangeMultiplier(2)->Range(1 << 14, 1 << 21);
+BENCHMARK(BM_Alzheimer_Pipelined_Ivy)->RangeMultiplier(2)->Range(1 << 14, 1 << 19);
