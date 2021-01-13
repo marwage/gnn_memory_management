@@ -101,7 +101,7 @@ int test_graph_conv_chunked(FeatureAggregationChunked *feature_aggregation, long
     return read_return_value(path);
 }
 
-TEST_CASE("Graph convolution", "[graphconv]") {
+TEST_CASE("Feature aggregation", "[aggr]") {
     std::string path;
     path = flickr_dir_path + "/features.npy";
     Matrix<float> features = load_npy_matrix<float>(path);

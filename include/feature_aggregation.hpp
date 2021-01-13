@@ -13,6 +13,7 @@ class FeatureAggregation {
 private:
     CudaHelper *cuda_helper_;
     SparseMatrix<float> *adjacency_;
+    Matrix<float> adjacency_row_sum_;
     std::string reduction_;
     bool mean_;
     Matrix<float> sum_;

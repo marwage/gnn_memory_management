@@ -24,7 +24,8 @@ set(TEST_FILES
         tests/sp_mat_mat_mult.cpp
         tests/pipeline.cpp
         tests/add.cpp
-        tests/cuda_helper.cpp)
+        tests/cuda_helper.cpp
+        tests/cuda_version.cpp)
 
 set(HELPER_FILES
         tests/helper.cpp)

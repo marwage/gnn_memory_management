@@ -14,7 +14,7 @@
 #include "sparse_computation.hpp"
 #include "tensors.hpp"
 
-#include <iostream>
+#include <fstream>
 
 const std::string dir_path = "/mnt/data";
 
@@ -102,6 +102,11 @@ void alzheimer(Dataset dataset) {
     SageLinearGradients *sage_linear_gradients;
     float loss;
 
+    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + ".csv";
+    std::ofstream loss_file;
+    loss_file.open(path, std::ios::trunc);
+    loss_file << "epoch,loss\n";
+
     int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
 
@@ -143,7 +148,7 @@ void alzheimer(Dataset dataset) {
 
         // loss
         loss = loss_layer.forward(signals, &classes);
-        std::cout << "loss " << loss << std::endl;
+        loss_file << i << "," << loss << "\n";
 
         // BACKPROPAGATION
         //loss
@@ -190,6 +195,8 @@ void alzheimer(Dataset dataset) {
         // optimiser
         adam.step();
     }// end training loop
+
+    loss_file.close();
 }
 
 void alzheimer_chunked(Dataset dataset, long chunk_size) {
@@ -298,6 +305,11 @@ void alzheimer_chunked(Dataset dataset, long chunk_size) {
     std::vector<Matrix<float>> loss_gradients_chunked(num_chunks);
     float loss;
 
+    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_" + std::to_string(chunk_size)  + ".csv";
+    std::ofstream loss_file;
+    loss_file.open(path, std::ios::trunc);
+    loss_file << "epoch,loss\n";
+
     int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
 
@@ -339,7 +351,7 @@ void alzheimer_chunked(Dataset dataset, long chunk_size) {
 
         // loss
         loss = loss_layer.forward(signals, &classes);
-        std::cout << "loss " << loss << std::endl;
+        loss_file << i << "," << loss << "\n";
 
         // BACKPROPAGATION
         //loss
@@ -388,6 +400,8 @@ void alzheimer_chunked(Dataset dataset, long chunk_size) {
         // optimiser
         adam.step();
     }// end training loop
+
+    loss_file.close();
 }
 
 void alzheimer_pipelined(Dataset dataset, long chunk_size) {
@@ -496,6 +510,11 @@ void alzheimer_pipelined(Dataset dataset, long chunk_size) {
     std::vector<Matrix<float>> loss_gradients_chunked(num_chunks);
     float loss;
 
+    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_" + std::to_string(chunk_size)  + ".csv";
+    std::ofstream loss_file;
+    loss_file.open(path, std::ios::trunc);
+    loss_file << "epoch,loss\n";
+
     int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
 
@@ -537,7 +556,7 @@ void alzheimer_pipelined(Dataset dataset, long chunk_size) {
 
         // loss
         loss = loss_layer.forward(signals, &classes);
-        std::cout << "loss " << loss << std::endl;
+        loss_file << i << "," << loss << "\n";
 
         // BACKPROPAGATION
         //loss
@@ -586,4 +605,6 @@ void alzheimer_pipelined(Dataset dataset, long chunk_size) {
         // optimiser
         adam.step();
     }// end training loop
+
+    loss_file.close();
 }
