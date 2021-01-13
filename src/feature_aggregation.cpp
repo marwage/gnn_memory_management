@@ -12,12 +12,12 @@
 FeatureAggregation::FeatureAggregation() {}
 
 FeatureAggregation::FeatureAggregation(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                                       long num_nodes, long num_features) {
-    set(helper, adjacency, reduction, num_nodes, num_features);
+                                       long num_nodes, long num_features, Matrix<float> *sum) {
+    set(helper, adjacency, reduction, num_nodes, num_features, sum);
 }
 
 void FeatureAggregation::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                             long num_nodes, long num_features) {
+                             long num_nodes, long num_features, Matrix<float> *sum) {
     name_ = "feature-aggregation";
     cuda_helper_ = helper;
     adjacency_ = adjacency;
@@ -38,8 +38,7 @@ void FeatureAggregation::set(CudaHelper *helper, SparseMatrix<float> *adjacency,
         sp_mat_sum_rows(cuda_helper_, adjacency_, &sum_);
     }
 
-    adjacency_row_sum_.set(num_nodes, 1, true);
-    sp_mat_sum_rows(adjacency, &adjacency_row_sum_);
+    adjacency_row_sum_ = sum;
 }
 
 Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
@@ -64,7 +63,7 @@ Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
     sp_mat_mat_multi_cuda(cuda_helper_, &d_adj, d_x, d_y, x->num_columns_, false);
 
     if (mean_) {
-        check_cuda(cudaMemcpy(d_sum, adjacency_row_sum_.values_, y_.num_rows_ * sizeof(float),
+        check_cuda(cudaMemcpy(d_sum, adjacency_row_sum_->values_, y_.num_rows_ * sizeof(float),
                               cudaMemcpyHostToDevice));
 
         div_mat_vec(d_y, d_sum, y_.num_rows_, y_.num_columns_);
@@ -103,7 +102,7 @@ Matrix<float> *FeatureAggregation::backward(Matrix<float> *incoming_gradients) {
     check_cuda(cudaMemcpy(d_incoming_gradients, incoming_gradients->values_, incoming_gradients->size_ * sizeof(float), cudaMemcpyHostToDevice));
 
     if (mean_) {
-        check_cuda(cudaMemcpy(d_sum, adjacency_row_sum_.values_, incoming_gradients->num_rows_ * sizeof(float),
+        check_cuda(cudaMemcpy(d_sum, adjacency_row_sum_->values_, incoming_gradients->num_rows_ * sizeof(float),
                               cudaMemcpyHostToDevice));
 
         div_mat_vec(d_incoming_gradients, d_sum, incoming_gradients->num_rows_, incoming_gradients->num_columns_);

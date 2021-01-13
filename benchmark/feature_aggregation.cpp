@@ -20,6 +20,8 @@ void benchmark_feature_aggregation(Dataset dataset, benchmark::State &state, boo
     to_column_major_inplace(&features);
     path = dataset_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
+    Matrix<float> adjacency_row_sum(features.num_rows_, 1, true);
+    sp_mat_sum_rows(&adjacency, &adjacency_row_sum);
     Matrix<float> incoming_gradients;
     if (!forward) {
         incoming_gradients.set(features.num_rows_, features.num_columns_, true);
@@ -27,7 +29,7 @@ void benchmark_feature_aggregation(Dataset dataset, benchmark::State &state, boo
     }
 
     CudaHelper cuda_helper;
-    FeatureAggregation feature_aggr(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_);
+    FeatureAggregation feature_aggr(&cuda_helper, &adjacency, "mean", features.num_rows_, features.num_columns_, &adjacency_row_sum);
 
     if (!forward) {
         feature_aggr.forward(&features);
@@ -111,35 +113,35 @@ void benchmark_feature_aggregation_chunked(FeatureAggregationChunked *feature_ag
     memory_logger.stop();
 }
 
-static void BM_Layer_FeatureAggregation_Flickr_Forward(benchmark::State &state) {
+static void BM_Layer_FeatureAggregation_Layer_Flickr_Forward(benchmark::State &state) {
     benchmark_feature_aggregation(flickr, state, true);
 }
-BENCHMARK(BM_Layer_FeatureAggregation_Flickr_Forward);
+BENCHMARK(BM_Layer_FeatureAggregation_Layer_Flickr_Forward);
 
-static void BM_Layer_FeatureAggregation_Flickr_Backward(benchmark::State &state) {
+static void BM_Layer_FeatureAggregation_Layer_Flickr_Backward(benchmark::State &state) {
     benchmark_feature_aggregation(flickr, state, false);
 }
-BENCHMARK(BM_Layer_FeatureAggregation_Flickr_Backward);
+BENCHMARK(BM_Layer_FeatureAggregation_Layer_Flickr_Backward);
 
-static void BM_Layer_FeatureAggregation_Reddit_Forward(benchmark::State &state) {
+static void BM_Layer_FeatureAggregation_Layer_Reddit_Forward(benchmark::State &state) {
     benchmark_feature_aggregation(reddit, state, true);
 }
-BENCHMARK(BM_Layer_FeatureAggregation_Reddit_Forward);
+BENCHMARK(BM_Layer_FeatureAggregation_Layer_Reddit_Forward);
 
-static void BM_Layer_FeatureAggregation_Reddit_Backward(benchmark::State &state) {
+static void BM_Layer_FeatureAggregation_Layer_Reddit_Backward(benchmark::State &state) {
     benchmark_feature_aggregation(reddit, state, false);
 }
-BENCHMARK(BM_Layer_FeatureAggregation_Reddit_Backward);
+BENCHMARK(BM_Layer_FeatureAggregation_Layer_Reddit_Backward);
 
-static void BM_Layer_FeatureAggregation_Products_Forward(benchmark::State &state) {
+static void BM_Layer_FeatureAggregation_Layer_Products_Forward(benchmark::State &state) {
     benchmark_feature_aggregation(products, state, true);
 }
-BENCHMARK(BM_Layer_FeatureAggregation_Products_Forward);
+BENCHMARK(BM_Layer_FeatureAggregation_Layer_Products_Forward);
 
-static void BM_Layer_FeatureAggregation_Products_Backward(benchmark::State &state) {
+static void BM_Layer_FeatureAggregation_Layer_Products_Backward(benchmark::State &state) {
     benchmark_feature_aggregation(products, state, false);
 }
-BENCHMARK(BM_Layer_FeatureAggregation_Products_Backward);
+BENCHMARK(BM_Layer_FeatureAggregation_Layer_Products_Backward);
 
 // CHUNKED --- CHUNKED --- CHUNKED
 

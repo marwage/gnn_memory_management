@@ -34,6 +34,10 @@ int integration_test() {
     path = flickr_dir_path + "/adjacency.mtx";
     SparseMatrix<float> adjacency = load_mtx_matrix<float>(path);
 
+    // get sums of adjacency rows
+    Matrix<float> adjacency_row_sum(features.num_rows_, 1, true);
+    sp_mat_sum_rows(&adjacency, &adjacency_row_sum);
+
     // FORWARD PASS
     CudaHelper cuda_helper;
     float learning_rate = 0.003;
@@ -41,7 +45,7 @@ int integration_test() {
     long num_classes = 7;
 
     // layers
-    FeatureAggregation graph_convolution_layer(&cuda_helper, &adjacency, "mean", num_nodes, features.num_columns_);
+    FeatureAggregation graph_convolution_layer(&cuda_helper, &adjacency, "mean", num_nodes, features.num_columns_, &adjacency_row_sum);
     Add add(&cuda_helper, num_nodes, features.num_columns_);
     SageLinear sage_linear_layer(&cuda_helper, features.num_columns_, num_classes, num_nodes);
     Relu relu_layer(&cuda_helper, num_nodes, num_classes);

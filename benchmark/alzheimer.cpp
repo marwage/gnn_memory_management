@@ -100,7 +100,7 @@ static void BM_Alzheimer_Chunked_Ivy_Max(benchmark::State &state) {
 }
 BENCHMARK(BM_Alzheimer_Chunked_Ivy_Max)->Arg(1371507);
 
-// largest chunk size possible
+// some chunk size
 
 static void BM_Alzheimer_Chunked_Flickr_X(benchmark::State &state) {
     benchmark_alzheimer_chunked(flickr, state);
