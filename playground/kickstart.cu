@@ -25,7 +25,7 @@ void init_array(float *a, int N, float value) {
 
 int main() {
     float *a, *b;
-    
+
     cudaMallocManaged(&a, SIZE * sizeof(float));
     cudaMallocManaged(&b, SIZE * sizeof(float));
 

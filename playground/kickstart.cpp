@@ -25,8 +25,8 @@ void init_array(float *a, int N, float value) {
 
 
 int main() {
-    float *a = reinterpret_cast<float*>(malloc(SIZE * sizeof(float)));
-    float *b = reinterpret_cast<float*>(malloc(SIZE * sizeof(float)));
+    float *a = reinterpret_cast<float *>(malloc(SIZE * sizeof(float)));
+    float *b = reinterpret_cast<float *>(malloc(SIZE * sizeof(float)));
 
     init_array(a, SIZE, 1);
     init_array(b, SIZE, 2);
