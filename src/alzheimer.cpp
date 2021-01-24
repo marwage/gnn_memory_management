@@ -55,20 +55,24 @@ void alzheimer(Dataset dataset) {
     long num_hidden_channels = 256;
     long num_classes = get_dataset_num_classes(dataset);
 
+    // get sums of adjacency rows
+    Matrix<float> adjacency_row_sum(num_nodes, 1, true);
+    sp_mat_sum_rows(&adjacency, &adjacency_row_sum);
+
     // layers
     NLLLoss loss_layer(num_nodes, num_classes);
     Add add_1(&cuda_helper, num_nodes, num_hidden_channels);
     Add add_2(&cuda_helper, num_nodes, num_hidden_channels);
     Dropout dropout_0(&cuda_helper, num_nodes, features.num_columns_);
-    FeatureAggregation graph_convolution_0(&cuda_helper, &adjacency, "mean", num_nodes, features.num_columns_);
+    FeatureAggregation graph_convolution_0(&cuda_helper, &adjacency, "mean", num_nodes, features.num_columns_, &adjacency_row_sum);
     SageLinear linear_0(&cuda_helper, features.num_columns_, num_hidden_channels, num_nodes);
     Relu relu_0(&cuda_helper, num_nodes, num_hidden_channels);
     Dropout dropout_1(&cuda_helper, num_nodes, num_hidden_channels);
-    FeatureAggregation graph_convolution_1(&cuda_helper, &adjacency, "mean", num_nodes, num_hidden_channels);
+    FeatureAggregation graph_convolution_1(&cuda_helper, &adjacency, "mean", num_nodes, num_hidden_channels, &adjacency_row_sum);
     SageLinear linear_1(&cuda_helper, num_hidden_channels, num_hidden_channels, num_nodes);
     Relu relu_1(&cuda_helper, num_nodes, num_hidden_channels);
     Dropout dropout_2(&cuda_helper, num_nodes, num_hidden_channels);
-    FeatureAggregation graph_convolution_2(&cuda_helper, &adjacency, "mean", num_nodes, num_hidden_channels);
+    FeatureAggregation graph_convolution_2(&cuda_helper, &adjacency, "mean", num_nodes, num_hidden_channels, &adjacency_row_sum);
     SageLinear linear_2(&cuda_helper, num_hidden_channels, num_classes, num_nodes);
     LogSoftmax log_softmax(&cuda_helper, num_nodes, num_classes);
 

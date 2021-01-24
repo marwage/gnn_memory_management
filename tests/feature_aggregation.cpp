@@ -17,10 +17,13 @@ const std::string flickr_dir_path = dir_path + "/flickr";
 const std::string products_dir_path = dir_path + "/products";
 
 
-int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float> *in_gradients) {
+int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float> *in_gradients) {// get sums of adjacency rows
+    Matrix<float> adjacency_row_sum(input->num_rows_, 1, true);
+    sp_mat_sum_rows(adj, &adjacency_row_sum);
+
     std::string path;
     CudaHelper cuda_helper;
-    FeatureAggregation feature_aggregation(&cuda_helper, adj, "mean", input->num_rows_, input->num_columns_);
+    FeatureAggregation feature_aggregation(&cuda_helper, adj, "mean", input->num_rows_, input->num_columns_, &adjacency_row_sum);
 
     Matrix<float> *activations = feature_aggregation.forward(input);
 
