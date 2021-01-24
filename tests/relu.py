@@ -10,9 +10,8 @@ def test_relu():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     all_close = True
     home = os.getenv("HOME")
-    dir_path = home + "/gpu_memory_reduction/alzheimer/data"
-    flickr_dir_path = dir_path + "/flickr"
-    test_dir_path = dir_path + "/tests"
+    flickr_dir_path = "/mnt/data/flickr"
+    test_dir_path = home + "/gpu_memory_reduction/alzheimer/data/tests"
 
     path = flickr_dir_path + "/features.npy"
     features = np.load(path)
