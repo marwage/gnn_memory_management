@@ -135,12 +135,17 @@ LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long n
 }
 
 void LogSoftmaxChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
+    LogSoftmaxChunked::set(helper, chunk_size, num_nodes, num_features, false);
+}
+
+void LogSoftmaxChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
     name_ = "log-softmax_chunked";
     chunk_size_ = chunk_size;
     cuda_helper_ = helper;
     alpha_ = 1.0;
     beta_ = 0.0;
     num_chunks_ = ceil((float) num_nodes / (float) chunk_size_);
+    keep_allocation_ = keep_allocation;
 
     if (num_chunks_ * chunk_size_ > num_nodes) {
         last_chunk_size_ = num_nodes - (num_chunks_ - 1) * chunk_size_;

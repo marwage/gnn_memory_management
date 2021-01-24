@@ -40,10 +40,13 @@ protected:
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
 
+    bool keep_allocation_;
+
 public:
     LogSoftmaxChunked();
     LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
-    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
+    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) override;
+    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) override;
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
 };

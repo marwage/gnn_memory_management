@@ -136,12 +136,27 @@ ReluChunked::ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, lo
     set(helper, chunk_size, num_nodes, num_features);
 }
 
+ReluChunked::ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
+    set(helper, chunk_size, num_nodes, num_features, keep_allocation);
+}
+
+ReluChunked::~ReluChunked() {
+    if (keep_allocation_) {
+        free_gpu_memory();
+    }
+}
+
 void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
+    set(helper, chunk_size, num_nodes, num_features, false);
+}
+
+void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation){
     name_ = "relu_chunked";
     chunk_size_ = chunk_size;
     cuda_helper_ = helper;
     alpha_ = 1.0;
     beta_ = 0.0;
+    keep_allocation_ = keep_allocation;
 
     num_chunks_ = ceil((float) num_nodes / (float) chunk_size_);
     if (num_chunks_ * chunk_size_ > num_nodes) {
@@ -167,6 +182,35 @@ void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long 
                                              CUDNN_ACTIVATION_RELU,
                                              CUDNN_PROPAGATE_NAN,
                                              coef));
+
+    if (keep_allocation_) {
+        allocate_gpu_memory();
+    }
+}
+
+void ReluChunked::allocate_gpu_memory() {
+    check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
+    check_cudnn(cudnnCreateTensorDescriptor(&y_desc_));
+
+    check_cuda(cudaMalloc(&d_dy_, y_.at(0).size_ * sizeof(float)));
+    check_cudnn(cudnnCreateTensorDescriptor(&dy_desc_));
+
+    check_cuda(cudaMalloc(&d_x_, y_.at(0).size_ * sizeof(float)));
+    check_cudnn(cudnnCreateTensorDescriptor(&x_desc_));
+
+    check_cuda(cudaMalloc(&d_dx_, y_.at(0).size_ * sizeof(float)));
+    check_cudnn(cudnnCreateTensorDescriptor(&dx_desc_));
+}
+
+void ReluChunked::free_gpu_memory() {
+    check_cuda(cudaFree(d_x_));
+    check_cuda(cudaFree(d_y_));
+    check_cuda(cudaFree(d_dx_));
+    check_cuda(cudaFree(d_dy_));
+    check_cudnn(cudnnDestroyTensorDescriptor(x_desc_));
+    check_cudnn(cudnnDestroyTensorDescriptor(y_desc_));
+    check_cudnn(cudnnDestroyTensorDescriptor(dx_desc_));
+    check_cudnn(cudnnDestroyTensorDescriptor(dy_desc_));
 }
 
 std::vector<Matrix<float>> *ReluChunked::forward(std::vector<Matrix<float>> *x) {
@@ -177,43 +221,38 @@ std::vector<Matrix<float>> *ReluChunked::forward(std::vector<Matrix<float>> *x) 
         to_row_major_inplace(&x->at(i));
     }
 
-    float *d_x;
-    check_cuda(cudaMalloc(&d_x, x->at(0).size_ * sizeof(float)));
-    cudnnTensorDescriptor_t x_desc;
-    check_cudnn(cudnnCreateTensorDescriptor(&x_desc));
-
-    float *d_y;
-    check_cuda(cudaMalloc(&d_y, y_.at(0).size_ * sizeof(float)));
-    cudnnTensorDescriptor_t y_desc;
-    check_cudnn(cudnnCreateTensorDescriptor(&y_desc));
+    if (!keep_allocation_) {
+        allocate_gpu_memory();
+    }
 
     for (int i = 0; i < num_chunks_; ++i) {
         // in
-        check_cuda(cudaMemcpy(d_x, x->at(i).values_, x->at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(d_x_, x->at(i).values_, x->at(i).size_ * sizeof(float),
                               cudaMemcpyHostToDevice));
-        check_cudnn(cudnnSetTensor4dDescriptor(x_desc,
+        check_cudnn(cudnnSetTensor4dDescriptor(x_desc_,
                                                CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                                x->at(i).num_rows_, 1, 1, x->at(i).num_columns_));
-        check_cudnn(cudnnSetTensor4dDescriptor(y_desc,
+        check_cudnn(cudnnSetTensor4dDescriptor(y_desc_,
                                                CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                                y_.at(i).num_rows_, 1, 1, y_.at(i).num_columns_));
 
         // compute
         check_cudnn(cudnnActivationForward(cuda_helper_->cudnn_handle,
                                            relu_desc_,
-                                           &alpha_, x_desc, d_x,
-                                           &beta_, y_desc, d_y));
+                                           &alpha_, x_desc_, d_x_,
+                                           &beta_, y_desc_, d_y_));
 
         // out
-        check_cuda(cudaMemcpy(y_.at(i).values_, d_y,
+        check_cuda(cudaMemcpy(y_.at(i).values_, d_y_,
                               y_.at(i).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
         y_.at(i).is_row_major_ = true;
     }
 
     // free GPU memory
-    check_cuda(cudaFree(d_x));
-    check_cuda(cudaFree(d_y));
+    if (!keep_allocation_) {
+        free_gpu_memory();
+    }
 
     x_ = x;
 
@@ -230,57 +269,40 @@ std::vector<Matrix<float>> *ReluChunked::backward(std::vector<Matrix<float>> *in
         to_row_major_inplace((&y_.at(i)));
     }
 
-    float *d_y;
-    check_cuda(cudaMalloc(&d_y, y_.at(0).size_ * sizeof(float)));
-    cudnnTensorDescriptor_t y_desc;
-    check_cudnn(cudnnCreateTensorDescriptor(&y_desc));
-
-    float *d_dy;
-    check_cuda(cudaMalloc(&d_dy, incoming_gradients->at(0).size_ * sizeof(float)));
-    cudnnTensorDescriptor_t dy_desc;
-    check_cudnn(cudnnCreateTensorDescriptor(&dy_desc));
-
-    float *d_x;
-    check_cuda(cudaMalloc(&d_x, x_->at(0).size_ * sizeof(float)));
-    cudnnTensorDescriptor_t x_desc;
-    check_cudnn(cudnnCreateTensorDescriptor(&x_desc));
-
-    float *d_dx;
-    check_cuda(cudaMalloc(&d_dx, x_->at(0).size_ * sizeof(float)));
-    cudnnTensorDescriptor_t dx_desc;
-    check_cudnn(cudnnCreateTensorDescriptor(&dx_desc));
+    if (!keep_allocation_) {
+        ReluChunked::allocate_gpu_memory();
+    }
 
     for (int i = 0; i < num_chunks_; ++i) {
-        check_cuda(cudaMemcpy(d_y, y_.at(i).values_, y_.at(i).size_ * sizeof(float), cudaMemcpyHostToDevice));
-        check_cudnn(cudnnSetTensor4dDescriptor(y_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+        check_cuda(cudaMemcpy(d_y_, y_.at(i).values_, y_.at(i).size_ * sizeof(float), cudaMemcpyHostToDevice));
+        check_cudnn(cudnnSetTensor4dDescriptor(y_desc_, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                                y_.at(i).num_rows_, 1, 1, y_.at(i).num_columns_));
-        check_cuda(cudaMemcpy(d_dy, incoming_gradients->at(i).values_, incoming_gradients->at(i).size_ * sizeof(float), cudaMemcpyHostToDevice));
-        check_cudnn(cudnnSetTensor4dDescriptor(dy_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+        check_cuda(cudaMemcpy(d_dy_, incoming_gradients->at(i).values_, incoming_gradients->at(i).size_ * sizeof(float), cudaMemcpyHostToDevice));
+        check_cudnn(cudnnSetTensor4dDescriptor(dy_desc_, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                                incoming_gradients->at(i).num_rows_, 1, 1, incoming_gradients->at(i).num_columns_));
-        check_cuda(cudaMemcpy(d_x, x_->at(i).values_, x_->at(i).size_ * sizeof(float), cudaMemcpyHostToDevice));
-        check_cudnn(cudnnSetTensor4dDescriptor(x_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+        check_cuda(cudaMemcpy(d_x_, x_->at(i).values_, x_->at(i).size_ * sizeof(float), cudaMemcpyHostToDevice));
+        check_cudnn(cudnnSetTensor4dDescriptor(x_desc_, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                                x_->at(i).num_rows_, 1, 1, x_->at(i).num_columns_));
-        check_cudnn(cudnnSetTensor4dDescriptor(dx_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+        check_cudnn(cudnnSetTensor4dDescriptor(dx_desc_, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                                x_->at(i).num_rows_, 1, 1, x_->at(i).num_columns_));
 
         check_cudnn(cudnnActivationBackward(cuda_helper_->cudnn_handle,
                                             relu_desc_,
-                                            &alpha_, y_desc, d_y,
-                                            dy_desc, d_dy,
-                                            x_desc, d_x,
-                                            &beta_, dx_desc, d_dx));
+                                            &alpha_, y_desc_, d_y_,
+                                            dy_desc_, d_dy_,
+                                            x_desc_, d_x_,
+                                            &beta_, dx_desc_, d_dx_));
 
-        check_cuda(cudaMemcpy(gradients_.at(i).values_, d_dx,
+        check_cuda(cudaMemcpy(gradients_.at(i).values_, d_dx_,
                               gradients_.at(i).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
         gradients_.at(i).is_row_major_ = true;
     }
 
     // free
-    check_cuda(cudaFree(d_x));
-    check_cuda(cudaFree(d_dx));
-    check_cuda(cudaFree(d_y));
-    check_cuda(cudaFree(d_dy));
+    if (!keep_allocation_) {
+        free_gpu_memory();
+    }
 
     return &gradients_;
 }

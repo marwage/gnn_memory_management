@@ -1,6 +1,8 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "dropout.hpp"
+#include "chunking.hpp" // TEMPORARY COPY AND PASTE
+#include "helper.hpp" // TEMPORARY COPY AND PASTE
 
 #include "catch2/catch.hpp"
 #include <cudnn.h>
@@ -10,6 +12,7 @@
 
 int test_layer(Layer *layer, std::string py_name);
 int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size);
+int test_layer_chunked_keep(LayerChunked *layer, std::string py_name, long chunk_size);
 
 
 TEST_CASE("Dropout", "[dropout]") {
@@ -29,6 +32,13 @@ TEST_CASE("Dropout, pipelined", "[dropout][pipelined]") {
     CHECK(test_layer_chunked(&dropout, "dropout", 1 << 15));
     CHECK(test_layer_chunked(&dropout, "dropout", 1 << 12));
     CHECK(test_layer_chunked(&dropout, "dropout", 1 << 8));
+}
+
+TEST_CASE("Dropout, chunked, keep", "[dropout][chunked][keep]") {
+    DropoutChunked dropout;
+    CHECK(test_layer_chunked_keep(&dropout, "dropout", 1 << 15));
+    CHECK(test_layer_chunked_keep(&dropout, "dropout", 1 << 12));
+    CHECK(test_layer_chunked_keep(&dropout, "dropout", 1 << 8));
 }
 
 TEST_CASE("Dropout, memory", "[dropout][memory]") {

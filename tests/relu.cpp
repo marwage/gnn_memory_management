@@ -8,13 +8,9 @@
 #include "catch2/catch.hpp"
 #include <string>
 
-const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string flickr_dir_path = dir_path + "/flickr";
-const std::string test_dir_path = dir_path + "/tests";
-
 int test_layer(Layer *layer, std::string py_name);
 int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size);
+int test_layer_chunked_keep(LayerChunked *layer, std::string py_name, long chunk_size);
 
 
 TEST_CASE("ReLU", "[relu]") {
@@ -27,6 +23,13 @@ TEST_CASE("ReLU, chunked", "[relu][chunked]") {
     CHECK(test_layer_chunked(&relu, "relu", 1 << 15));
     CHECK(test_layer_chunked(&relu, "relu", 1 << 12));
     CHECK(test_layer_chunked(&relu, "relu", 1 << 8));
+}
+
+TEST_CASE("ReLU, chunked, keep", "[relu][chunked][keep]") {
+    ReluChunked relu;
+    CHECK(test_layer_chunked_keep(&relu, "relu", 1 << 15));
+    CHECK(test_layer_chunked_keep(&relu, "relu", 1 << 12));
+    CHECK(test_layer_chunked_keep(&relu, "relu", 1 << 8));
 }
 
 TEST_CASE("ReLU, pipelined", "[relu][pipelined]") {

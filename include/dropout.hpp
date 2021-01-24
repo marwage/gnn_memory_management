@@ -34,7 +34,7 @@ public:
 
 class DropoutChunked : public LayerChunked {
 protected:
-    CudaHelper *cuda_helper_ = NULL;
+    CudaHelper *cuda_helper_;
     float probability_;
     unsigned long long seed_;
     int chunk_size_;
@@ -46,11 +46,25 @@ protected:
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
 
+    bool keep_allocation_;
+    void *d_states_;
+    float *d_x_;
+    float *d_y_;
+    void *d_reserve_space_;
+    cudnnDropoutDescriptor_t dropout_desc_;
+    cudnnTensorDescriptor_t x_desc_;
+    cudnnTensorDescriptor_t y_desc_;
+
+    void allocate_gpu_memory();
+    void free_gpu_memory();
+
 public:
     DropoutChunked();
     DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes, long num_features);
+    DropoutChunked(CudaHelper *helper, int chunk_size, int num_nodes, long num_features, bool keep_allocation);
     ~DropoutChunked();
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) override;
+    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };
