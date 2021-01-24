@@ -7,9 +7,8 @@ from helper import (check_close_equal, print_close_equal, write_equal, count_nan
 def test_dropout():
     all_equal = 1.0
     home = os.getenv("HOME")
-    dir_path = home + "/gpu_memory_reduction/alzheimer/data"
-    flickr_dir_path = dir_path + "/flickr"
-    test_dir_path = dir_path + "/tests"
+    test_dir_path = home + "/gpu_memory_reduction/alzheimer/data/tests"
+    flickr_dir_path = "/mnt/data/flickr"
 
     path = flickr_dir_path + "/features.npy"
     features = np.load(path)
