@@ -41,12 +41,21 @@ protected:
     std::vector<Matrix<float>> y_;
     AddGradientsChunked gradients_;
 
+    bool keep_allocation_;
+    float *d_a_;
+    float *d_b_;
+
+    void allocate_gpu_memory();
+    void free_gpu_memory();
+
 public:
     std::string name_;
 
     AddChunked();
     AddChunked(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
+    ~AddChunked();
     virtual void set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
+    virtual void set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b);
     virtual AddGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients);
 };

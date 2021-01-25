@@ -6,7 +6,7 @@
 #include "catch2/catch.hpp"
 
 
-int test_add_chunked(AddChunked *add) {
+int test_add_chunked(AddChunked *add, bool keep_allocation) {
     long num_chunks = 64;
     long chunk_size = 32;
     long num_features = 16;
@@ -23,7 +23,7 @@ int test_add_chunked(AddChunked *add) {
     }
 
     CudaHelper cuda_helper;
-    add->set(&cuda_helper, chunk_size, chunk_size * num_chunks, num_features);
+    add->set(&cuda_helper, chunk_size, chunk_size * num_chunks, num_features, keep_allocation);
 
     std::vector<Matrix<float>> *y = add->forward(&a, &b);
 
@@ -40,10 +40,15 @@ int test_add_chunked(AddChunked *add) {
 
 TEST_CASE("Add, chunked", "[add][chunked]") {
     AddChunked add;
-    CHECK(test_add_chunked(&add));
+    CHECK(test_add_chunked(&add, false));
+}
+
+TEST_CASE("Add, chunked, keep", "[add][chunked][keep]") {
+    AddChunked add;
+    CHECK(test_add_chunked(&add, false));
 }
 
 TEST_CASE("Add, pipelined", "[add][pipelined]") {
     AddPipelined add;
-    CHECK(test_add_chunked(&add));
+    CHECK(test_add_chunked(&add, false));
 }

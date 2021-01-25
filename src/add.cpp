@@ -31,10 +31,21 @@ AddChunked::AddChunked(CudaHelper *cuda_helper, long chunk_size, long num_nodes,
     set(cuda_helper, chunk_size, num_nodes, num_features);
 }
 
+AddChunked::~AddChunked() {
+    if (keep_allocation_) {
+        free_gpu_memory();
+    }
+}
+
 void AddChunked::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features) {
+    set(cuda_helper, chunk_size, num_nodes, num_features, false);
+}
+
+void AddChunked::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
     name_ = "add_chunked";
     cuda_helper_ = cuda_helper;
     chunk_size_ = chunk_size;
+    keep_allocation_ = keep_allocation;
     num_chunks_ = ceil((float) num_nodes / (float) chunk_size);
     if (num_chunks_ * chunk_size_ > num_nodes) {
         last_chunk_size_ = num_nodes - (num_chunks_ - 1) * chunk_size_;
@@ -50,6 +61,21 @@ void AddChunked::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, l
         }
         y_.at(i).set(current_chunk_size, num_features, false);
     }
+
+    if (keep_allocation_) {
+        allocate_gpu_memory();
+    }
+
+}
+
+void AddChunked::allocate_gpu_memory() {
+    check_cuda(cudaMalloc(&d_a_, y_.at(0).size_ * sizeof(float)));
+    check_cuda(cudaMalloc(&d_b_, y_.at(0).size_ * sizeof(float)));
+}
+
+void AddChunked::free_gpu_memory() {
+    check_cuda(cudaFree(d_a_));
+    check_cuda(cudaFree(d_b_));
 }
 
 std::vector<Matrix<float>> *AddChunked::forward(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b) {
@@ -64,27 +90,28 @@ std::vector<Matrix<float>> *AddChunked::forward(std::vector<Matrix<float>> *a, s
         }
     }
 
-    float *d_a;
-    check_cuda(cudaMalloc(&d_a, a->at(0).size_ * sizeof(float)));
-    float *d_b;
-    check_cuda(cudaMalloc(&d_b, b->at(0).size_ * sizeof(float)));
+    if (!keep_allocation_) {
+        allocate_gpu_memory();
+    }
 
     for (long i = 0; i < num_chunks_; ++i) {
         // in
-        check_cuda(cudaMemcpy(d_a, a->at(i).values_, a->at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(d_a_, a->at(i).values_, a->at(i).size_ * sizeof(float),
                               cudaMemcpyHostToDevice));
-        check_cuda(cudaMemcpy(d_b, b->at(i).values_, b->at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(d_b_, b->at(i).values_, b->at(i).size_ * sizeof(float),
                               cudaMemcpyHostToDevice));
 
         // compute
-        mat_mat_add_cuda(cuda_helper_, d_a, d_b, a->at(i).size_);
+        mat_mat_add_cuda(cuda_helper_, d_a_, d_b_, a->at(i).size_);
 
         // out
-        check_cuda(cudaMemcpy(y_.at(i).values_, d_b, y_.at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(y_.at(i).values_, d_b_, y_.at(i).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
     }
-    check_cuda(cudaFree(d_a));
-    check_cuda(cudaFree(d_b));
+
+    if (!keep_allocation_) {
+        free_gpu_memory();
+    }
 
     return &y_;
 }
