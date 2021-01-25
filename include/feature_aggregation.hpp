@@ -44,14 +44,25 @@ protected:
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
 
+    bool keep_allocation_;
+    float *d_x_;
+    float *d_y_;
+    float *d_sum_;
+
+    void allocate_gpu_memory();
+    void free_gpu_memory();
+
 public:
     std::string name_;
 
     FeatureAggregationChunked();
     FeatureAggregationChunked(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
                               std::string reduction, long num_features, long chunk_size, long num_nodes);
+    ~FeatureAggregationChunked();
     virtual void set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
                      std::string reduction, long num_features, long chunk_size, long num_nodes);
+    virtual void set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                     std::string reduction, long num_features, long chunk_size, long num_nodes, bool keep_allocation);
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
     virtual std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
 };

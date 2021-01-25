@@ -9,12 +9,9 @@
 
 #include "catch2/catch.hpp"
 
-
 const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string test_dir_path = dir_path + "/tests";
-const std::string flickr_dir_path = dir_path + "/flickr";
-const std::string products_dir_path = dir_path + "/products";
+const std::string test_dir_path = home + "/gpu_memory_reduction/alzheimer/data/tests";
+const std::string flickr_dir_path = "/mnt/data/flickr";
 
 
 int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float> *in_gradients) {// get sums of adjacency rows
@@ -39,14 +36,14 @@ int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float
     path = test_dir_path + "/gradients.npy";
     save_npy_matrix(gradients, path);
 
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/graph_convolution.py";
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/feature_aggregation.py";
     system(command);
 
     path = test_dir_path + "/value.npy";
     return read_return_value(path);
 }
 
-int test_graph_conv_chunked(FeatureAggregationChunked *feature_aggregation, long chunk_size) {
+int test_graph_conv_chunked(FeatureAggregationChunked *feature_aggregation, long chunk_size, bool keep_allocation) {
     std::string path;
     path = flickr_dir_path + "/features.npy";
     Matrix<float> *features = new Matrix<float>();
@@ -79,7 +76,8 @@ int test_graph_conv_chunked(FeatureAggregationChunked *feature_aggregation, long
     chunk_up(&incoming_gradients, &incoming_gradients_chunked, chunk_size);
 
     CudaHelper cuda_helper;
-    feature_aggregation->set(&cuda_helper, &adjacencies, &adjacency_row_sum, "mean", num_features, chunk_size, num_nodes);
+    feature_aggregation->set(&cuda_helper, &adjacencies, &adjacency_row_sum,
+                             "mean", num_features, chunk_size, num_nodes, keep_allocation);
 
     std::vector<Matrix<float>> *activations = feature_aggregation->forward(&features_chunked);
 
@@ -97,7 +95,7 @@ int test_graph_conv_chunked(FeatureAggregationChunked *feature_aggregation, long
     path = test_dir_path + "/gradients.npy";
     save_npy_matrix(&gradients_one, path);
 
-    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/graph_convolution.py";
+    char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/feature_aggregation.py";
     system(command);
 
     path = test_dir_path + "/value.npy";
@@ -123,14 +121,21 @@ TEST_CASE("Feature aggregation", "[aggr]") {
 
 TEST_CASE("Feature aggregation, chunked", "[aggr][chunked]") {
     FeatureAggregationChunked graph_convolution;
-    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 15));
-    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14));
-    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 15, false));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14, false));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13, false));
+}
+
+TEST_CASE("Feature aggregation, chunked, keep", "[aggr][chunked][keep]") {
+    FeatureAggregationChunked graph_convolution;
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 15, true));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14, true));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13, true));
 }
 
 TEST_CASE("Feature aggregation, pipelined", "[aggr][pipelined]") {
     FeatureAggregationPipelined graph_convolution;
-    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 15));
-    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14));
-    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 15, false));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14, false));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13, false));
 }

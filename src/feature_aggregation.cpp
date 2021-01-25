@@ -133,10 +133,22 @@ FeatureAggregationChunked::FeatureAggregationChunked(CudaHelper *helper, std::ve
     set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes);
 }
 
+FeatureAggregationChunked::~FeatureAggregationChunked() {
+    if (keep_allocation_) {
+        free_gpu_memory();
+    }
+}
+
 void FeatureAggregationChunked::set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
                                     std::string reduction, long num_features, long chunk_size, long num_nodes) {
+    FeatureAggregationChunked::set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes, false);
+}
+
+void FeatureAggregationChunked::set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                                    std::string reduction, long num_features, long chunk_size, long num_nodes, bool keep_allocation) {
     name_ = "feature-aggregation_chunked";
     cuda_helper_ = helper;
+    keep_allocation_ = keep_allocation;
     chunk_size_ = chunk_size;
     if (reduction.compare("mean") == 0) {
         mean_ = true;
@@ -167,6 +179,26 @@ void FeatureAggregationChunked::set(CudaHelper *helper, std::vector<SparseMatrix
         y_.at(i).set(current_chunk_size, num_features, false);
         gradients_.at(i).set(current_chunk_size, num_features, false);
     }
+
+    if (keep_allocation) {
+        allocate_gpu_memory();
+    }
+}
+
+void FeatureAggregationChunked::allocate_gpu_memory() {
+    check_cuda(cudaMalloc(&d_x_, y_.at(0).size_ * sizeof(float)));
+    check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
+    if (mean_) {
+        check_cuda(cudaMalloc(&d_sum_, y_.at(0).num_rows_ * sizeof(float)));
+    }
+}
+
+void FeatureAggregationChunked::free_gpu_memory() {
+    check_cuda(cudaFree(d_x_));
+    check_cuda(cudaFree(d_y_));
+    if (mean_) {
+        check_cuda(cudaFree(d_sum_));
+    }
 }
 
 std::vector<Matrix<float>> *FeatureAggregationChunked::forward(std::vector<Matrix<float>> *x) {
@@ -174,21 +206,14 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::forward(std::vector<Matri
         to_column_major_inplace(&x->at(i));
     }
 
-    float *d_y;
-    check_cuda(cudaMalloc(&d_y, y_.at(0).size_ * sizeof(float)));
-
-    float *d_sum;
-    if (mean_) {
-        check_cuda(cudaMalloc(&d_sum, y_.at(0).num_rows_ * sizeof(float)));
+    if (!keep_allocation_) {
+        allocate_gpu_memory();
     }
-
-    float *d_x;
-    check_cuda(cudaMalloc(&d_x, x->at(0).size_ * sizeof(float)));
 
     // row chunk
     for (int i = 0; i < num_chunks_; ++i) {
         // column chunk of row chunk
-        check_cuda(cudaMemset(d_y, 0, y_.at(i).size_ * sizeof(float)));
+        check_cuda(cudaMemset(d_y_, 0, y_.at(i).size_ * sizeof(float)));
 
         for (int j = 0; j < num_chunks_; ++j) {
             SparseMatrixCuda<float> d_adj_i;
@@ -196,29 +221,26 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::forward(std::vector<Matri
             if (adj->nnz_ > 0) {
                 malloc_memcpy_sp_mat(&d_adj_i, adj);
 
-                check_cuda(cudaMemcpy(d_x, x->at(j).values_, x->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
+                check_cuda(cudaMemcpy(d_x_, x->at(j).values_, x->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
 
-                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_x, d_y, x->at(j).num_columns_, true);
+                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_x_, d_y_, x->at(j).num_columns_, true);
             }
         }
 
         if (mean_) {
-            check_cuda(cudaMemcpy(d_sum, &adjacency_row_sum_->values_[i * chunk_size_], y_.at(i).num_rows_ * sizeof(float),
+            check_cuda(cudaMemcpy(d_sum_, &adjacency_row_sum_->values_[i * chunk_size_], y_.at(i).num_rows_ * sizeof(float),
                                   cudaMemcpyHostToDevice));
 
-            div_mat_vec(d_y, d_sum, y_.at(i).num_rows_, y_.at(i).num_columns_);
+            div_mat_vec(d_y_, d_sum_, y_.at(i).num_rows_, y_.at(i).num_columns_);
         }
 
-        check_cuda(cudaMemcpy(y_.at(i).values_, d_y, y_.at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(y_.at(i).values_, d_y_, y_.at(i).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
     }
 
-    // free GPU memory
-    if (mean_) {
-        check_cuda(cudaFree(d_sum));
+    if (!keep_allocation_) {
+        free_gpu_memory();
     }
-    check_cuda(cudaFree(d_y));
-    check_cuda(cudaFree(d_x));
 
     return &y_;
 }
@@ -228,21 +250,14 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::backward(std::vector<Matr
         to_column_major_inplace(&incoming_gradients->at(i));
     }
 
-    float *d_gradients;
-    check_cuda(cudaMalloc(&d_gradients, gradients_.at(0).size_ * sizeof(float)));
-
-    float *d_sum;
-    if (mean_) {
-        check_cuda(cudaMalloc(&d_sum, incoming_gradients->at(0).num_rows_ * sizeof(float)));
+    if (!keep_allocation_) {
+        allocate_gpu_memory();
     }
-
-    float *d_incoming_gradients;
-    check_cuda(cudaMalloc(&d_incoming_gradients, incoming_gradients->at(0).size_ * sizeof(float)));
 
     // row chunk
     for (int i = 0; i < num_chunks_; ++i) {
         // column chunk of row chunk
-        check_cuda(cudaMemset(d_gradients, 0, gradients_.at(i).size_ * sizeof(float)));
+        check_cuda(cudaMemset(d_x_, 0, gradients_.at(i).size_ * sizeof(float)));
 
         for (int j = 0; j < num_chunks_; ++j) {
             SparseMatrixCuda<float> d_adj_i;
@@ -250,29 +265,26 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::backward(std::vector<Matr
             if (adj->nnz_ > 0) {
                 malloc_memcpy_sp_mat(&d_adj_i, &adjacencies_->at(i * num_chunks_ + j));
 
-                check_cuda(cudaMemcpy(d_incoming_gradients, incoming_gradients->at(j).values_, incoming_gradients->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
+                check_cuda(cudaMemcpy(d_y_, incoming_gradients->at(j).values_, incoming_gradients->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
 
                 if (mean_) {
-                    check_cuda(cudaMemcpy(d_sum, &adjacency_row_sum_->values_[j * chunk_size_], incoming_gradients->at(j).num_rows_ * sizeof(float),
+                    check_cuda(cudaMemcpy(d_sum_, &adjacency_row_sum_->values_[j * chunk_size_], incoming_gradients->at(j).num_rows_ * sizeof(float),
                                           cudaMemcpyHostToDevice));
 
-                    div_mat_vec(d_incoming_gradients, d_sum, incoming_gradients->at(j).num_rows_, incoming_gradients->at(j).num_columns_);
+                    div_mat_vec(d_y_, d_sum_, incoming_gradients->at(j).num_rows_, incoming_gradients->at(j).num_columns_);
                 }
 
-                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_incoming_gradients, d_gradients, incoming_gradients->at(j).num_columns_, true);
+                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_y_, d_x_, incoming_gradients->at(j).num_columns_, true);
             }
         }
 
-        check_cuda(cudaMemcpy(gradients_.at(i).values_, d_gradients, gradients_.at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(gradients_.at(i).values_, d_x_, gradients_.at(i).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
     }
 
-    // free GPU memory
-    if (mean_) {
-        check_cuda(cudaFree(d_sum));
+    if (!keep_allocation_) {
+        free_gpu_memory();
     }
-    check_cuda(cudaFree(d_incoming_gradients));
-    check_cuda(cudaFree(d_gradients));
 
     return &gradients_;
 }
