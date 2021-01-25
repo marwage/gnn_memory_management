@@ -4,13 +4,13 @@
 #include "chunking.hpp"
 #include "helper.hpp"
 #include "tensors.hpp"
+#include "dropout.hpp" // TEMPORARY
 
 #include <string>
 
 const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string flickr_dir_path = dir_path + "/flickr";
-const std::string test_dir_path = dir_path + "/tests";
+const std::string flickr_dir_path = "/mnt/data/flickr";
+const std::string test_dir_path = home + "/gpu_memory_reduction/alzheimer/data/tests";
 
 
 int test_layer(Layer *layer, std::string py_name) {
@@ -49,7 +49,7 @@ int test_layer(Layer *layer, std::string py_name) {
     return read_return_value(path);
 }
 
-int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size) {
+int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size, bool keep_allocation) {
     std::string path;
     CudaHelper cuda_helper;
 
@@ -69,7 +69,7 @@ int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size
     chunk_up(&incoming_gradients, &incoming_gradients_chunked, chunk_size);
 
     // layer
-    layer->set(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_);
+    layer->set(&cuda_helper, chunk_size, features.num_rows_, features.num_columns_, keep_allocation);
 
     // forward
     std::vector<Matrix<float>> *output = layer->forward(&features_chunked);

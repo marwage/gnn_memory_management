@@ -10,9 +10,8 @@
 #include <string>
 
 const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string flickr_dir_path = dir_path + "/flickr";
-const std::string test_dir_path = dir_path + "/tests";
+const std::string flickr_dir_path =  "/mnt/data/flickr";
+const std::string test_dir_path = home + "/gpu_memory_reduction/alzheimer/data/tests";
 
 
 int test_linear() {
@@ -61,7 +60,7 @@ int test_linear() {
     return read_return_value(path);
 }
 
-int test_linear_chunked(LinearChunked *linear, long chunk_size) {
+int test_linear_chunked(LinearChunked *linear, long chunk_size, bool keep_allocation) {
     std::string path;
 
     int rows = 1 << 17;
@@ -85,7 +84,7 @@ int test_linear_chunked(LinearChunked *linear, long chunk_size) {
     chunk_up(&incoming_gradients, &incoming_gradients_chunked, chunk_size);
 
     CudaHelper cuda_helper;
-    linear->set(&cuda_helper, chunk_size, rows, num_in_features, num_out_features);
+    linear->set(&cuda_helper, chunk_size, rows, num_in_features, num_out_features, keep_allocation);
 
     std::vector<Matrix<float>> *output = linear->forward(&input_chunked);
     std::vector<Matrix<float>> *input_gradients = linear->backward(&incoming_gradients_chunked);
@@ -124,14 +123,21 @@ TEST_CASE("Linear", "[linear]") {
 
 TEST_CASE("Linear, chunked", "[linear][chunked]") {
     LinearChunked linear;
-    CHECK(test_linear_chunked(&linear, 1 << 16));
-    CHECK(test_linear_chunked(&linear, 1 << 12));
-    CHECK(test_linear_chunked(&linear, 1 << 8));
+    CHECK(test_linear_chunked(&linear, 1 << 16, false));
+    CHECK(test_linear_chunked(&linear, 1 << 12, false));
+    CHECK(test_linear_chunked(&linear, 1 << 8, false));
+}
+
+TEST_CASE("Linear, chunked, keep", "[linear][chunked][keep]") {
+    LinearChunked linear;
+    CHECK(test_linear_chunked(&linear, 1 << 16, true));
+    CHECK(test_linear_chunked(&linear, 1 << 12, true));
+    CHECK(test_linear_chunked(&linear, 1 << 8, true));
 }
 
 TEST_CASE("Linear, pipelined", "[linear][pipelined]") {
     LinearPipelined linear;
-    CHECK(test_linear_chunked(&linear, 1 << 16));
-    CHECK(test_linear_chunked(&linear, 1 << 12));
-    CHECK(test_linear_chunked(&linear, 1 << 8));
+    CHECK(test_linear_chunked(&linear, 1 << 16, false));
+    CHECK(test_linear_chunked(&linear, 1 << 12, false));
+    CHECK(test_linear_chunked(&linear, 1 << 8, false));
 }

@@ -32,10 +32,31 @@ protected:
     cudnnActivationDescriptor_t relu_desc_;
     std::vector<Matrix<float>> *x_ = NULL;
 
+    bool keep_allocation_;
+    float *d_x_;
+    float *d_y_;
+    float *d_dx_;
+    float *d_dy_;
+    cudnnTensorDescriptor_t x_desc_;
+    cudnnTensorDescriptor_t y_desc_;
+    cudnnTensorDescriptor_t dx_desc_;
+    cudnnTensorDescriptor_t dy_desc_;
+
+
+    void allocate_gpu_memory_forward();
+    void free_gpu_memory_forward();
+    void allocate_gpu_memory_backward();
+    void free_gpu_memory_backward();
+    void allocate_gpu_memory();
+    void free_gpu_memory();
+
 public:
     ReluChunked();
     ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
-    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
+    ReluChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
+    ~ReluChunked();
+    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) override;
+    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) override;
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };

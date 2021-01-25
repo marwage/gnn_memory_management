@@ -37,6 +37,7 @@ public:
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) = 0;
     virtual std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) = 0;
     virtual void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) = 0;
+    virtual void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) = 0;
 };
 
 class LayerPipelined {
