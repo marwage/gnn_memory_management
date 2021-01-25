@@ -12,9 +12,8 @@ def test_linear():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     home = os.getenv("HOME")
-    dir_path = home + "/gpu_memory_reduction/alzheimer/data"
-    flickr_dir_path = dir_path + "/flickr"
-    test_dir_path = dir_path + "/tests"
+    flickr_dir_path = "/mnt/data/flickr"
+    test_dir_path = home + "/gpu_memory_reduction/alzheimer/data/tests"
 
     path = test_dir_path + "/input.npy"
     input_ = np.load(path)
