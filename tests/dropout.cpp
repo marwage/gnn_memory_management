@@ -11,8 +11,7 @@
 #include <string>
 
 int test_layer(Layer *layer, std::string py_name);
-int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size);
-int test_layer_chunked_keep(LayerChunked *layer, std::string py_name, long chunk_size);
+int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size, bool keep_allocation);
 
 
 TEST_CASE("Dropout", "[dropout]") {
@@ -22,23 +21,23 @@ TEST_CASE("Dropout", "[dropout]") {
 
 TEST_CASE("Dropout, chunked", "[dropout][chunked]") {
     DropoutChunked dropout;
-    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 15));
-    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 12));
-    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 8));
-}
-
-TEST_CASE("Dropout, pipelined", "[dropout][pipelined]") {
-    DropoutPipelined dropout;
-    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 15));
-    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 12));
-    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 8));
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 15, false));
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 12, false));
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 8, false));
 }
 
 TEST_CASE("Dropout, chunked, keep", "[dropout][chunked][keep]") {
     DropoutChunked dropout;
-    CHECK(test_layer_chunked_keep(&dropout, "dropout", 1 << 15));
-    CHECK(test_layer_chunked_keep(&dropout, "dropout", 1 << 12));
-    CHECK(test_layer_chunked_keep(&dropout, "dropout", 1 << 8));
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 15, true));
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 12, true));
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 8, true));
+}
+
+TEST_CASE("Dropout, pipelined", "[dropout][pipelined]") {
+    DropoutPipelined dropout;
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 15, false));
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 12, false));
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 8, false));
 }
 
 TEST_CASE("Dropout, memory", "[dropout][memory]") {

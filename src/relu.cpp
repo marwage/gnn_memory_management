@@ -188,28 +188,47 @@ void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long 
     }
 }
 
-void ReluChunked::allocate_gpu_memory() {
-    check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
-    check_cudnn(cudnnCreateTensorDescriptor(&y_desc_));
-
-    check_cuda(cudaMalloc(&d_dy_, y_.at(0).size_ * sizeof(float)));
-    check_cudnn(cudnnCreateTensorDescriptor(&dy_desc_));
-
+void ReluChunked::allocate_gpu_memory_forward() {
     check_cuda(cudaMalloc(&d_x_, y_.at(0).size_ * sizeof(float)));
     check_cudnn(cudnnCreateTensorDescriptor(&x_desc_));
 
+    check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
+    check_cudnn(cudnnCreateTensorDescriptor(&y_desc_));
+}
+
+void ReluChunked::allocate_gpu_memory_backward() {
+    ReluChunked::allocate_gpu_memory();
+}
+
+void ReluChunked::allocate_gpu_memory() {
+    ReluChunked::allocate_gpu_memory_forward();
+
     check_cuda(cudaMalloc(&d_dx_, y_.at(0).size_ * sizeof(float)));
     check_cudnn(cudnnCreateTensorDescriptor(&dx_desc_));
+
+    check_cuda(cudaMalloc(&d_dy_, y_.at(0).size_ * sizeof(float)));
+    check_cudnn(cudnnCreateTensorDescriptor(&dy_desc_));
+}
+
+void ReluChunked::free_gpu_memory_forward() {
+    check_cuda(cudaFree(d_x_));
+    check_cudnn(cudnnDestroyTensorDescriptor(x_desc_));
+
+    check_cuda(cudaFree(d_y_));
+    check_cudnn(cudnnDestroyTensorDescriptor(y_desc_));
+}
+
+void ReluChunked::free_gpu_memory_backward() {
+    ReluChunked::free_gpu_memory();
 }
 
 void ReluChunked::free_gpu_memory() {
-    check_cuda(cudaFree(d_x_));
-    check_cuda(cudaFree(d_y_));
+    ReluChunked::free_gpu_memory_forward();
+
     check_cuda(cudaFree(d_dx_));
-    check_cuda(cudaFree(d_dy_));
-    check_cudnn(cudnnDestroyTensorDescriptor(x_desc_));
-    check_cudnn(cudnnDestroyTensorDescriptor(y_desc_));
     check_cudnn(cudnnDestroyTensorDescriptor(dx_desc_));
+
+    check_cuda(cudaFree(d_dy_));
     check_cudnn(cudnnDestroyTensorDescriptor(dy_desc_));
 }
 
@@ -222,7 +241,7 @@ std::vector<Matrix<float>> *ReluChunked::forward(std::vector<Matrix<float>> *x) 
     }
 
     if (!keep_allocation_) {
-        allocate_gpu_memory();
+        allocate_gpu_memory_forward();
     }
 
     for (int i = 0; i < num_chunks_; ++i) {
@@ -251,7 +270,7 @@ std::vector<Matrix<float>> *ReluChunked::forward(std::vector<Matrix<float>> *x) 
 
     // free GPU memory
     if (!keep_allocation_) {
-        free_gpu_memory();
+        free_gpu_memory_forward();
     }
 
     x_ = x;
@@ -270,7 +289,7 @@ std::vector<Matrix<float>> *ReluChunked::backward(std::vector<Matrix<float>> *in
     }
 
     if (!keep_allocation_) {
-        ReluChunked::allocate_gpu_memory();
+        ReluChunked::allocate_gpu_memory_backward();
     }
 
     for (int i = 0; i < num_chunks_; ++i) {
@@ -301,7 +320,7 @@ std::vector<Matrix<float>> *ReluChunked::backward(std::vector<Matrix<float>> *in
 
     // free
     if (!keep_allocation_) {
-        free_gpu_memory();
+        free_gpu_memory_backward();
     }
 
     return &gradients_;

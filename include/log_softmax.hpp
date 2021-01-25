@@ -41,14 +41,28 @@ protected:
     std::vector<Matrix<float>> gradients_;
 
     bool keep_allocation_;
+    float *d_x_;
+    cudnnTensorDescriptor_t x_desc_;
+    float *d_y_;
+    cudnnTensorDescriptor_t y_desc_;
+    float *d_dy_;
+    cudnnTensorDescriptor_t dy_desc_;
+
+    void allocate_gpu_memory_forward();
+    void free_gpu_memory_forward();
+    void allocate_gpu_memory_backward();
+    void free_gpu_memory_backward();
+    void allocate_gpu_memory();
+    void free_gpu_memory();
 
 public:
     LogSoftmaxChunked();
     LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
+    ~LogSoftmaxChunked();
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) override;
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) override;
-    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
-    std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
+    std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
+    std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };
 
 class LogSoftmaxPipelined : public LayerPipelined, public LogSoftmaxChunked {

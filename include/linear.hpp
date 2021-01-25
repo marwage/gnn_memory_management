@@ -42,13 +42,16 @@ public:
     std::vector<Matrix<float> *> get_gradients();
     std::vector<float *> get_gradients_cuda();
     void set_gradients(Matrix<float> *weight_grads, Matrix<float> *bias_grads);
+    void allocate_gpu_memory_forward();
+    void free_gpu_memory_forward();
     void forward_init();
     void forward_compute(float *d_x, long num_rows, float *d_y);
-    void forward_free();
     Matrix<float> *forward(Matrix<float> *x);
+    void allocate_gpu_memory_backward();
+    void free_gpu_memory_backward();
     void backward_init();
     void backward_compute(float *d_dy, float *d_x, long num_rows, float *d_dx);
-    void backward_free();
+    void copy_gradients_to_cpu();
     Matrix<float> *backward(Matrix<float> *incoming_gradients);
 };
 
@@ -65,12 +68,26 @@ protected:
     long num_out_features_;
     std::vector<Matrix<float>> *x_;
 
+    bool keep_allocation_;
+    float *d_x_;
+    float *d_y_;
+    float *d_dx_;
+
+    void allocate_gpu_memory_forward();
+    void allocate_gpu_memory_backward();
+    void allocate_gpu_memory();
+    void free_gpu_memory_forward();
+    void free_gpu_memory_backward();
+    void free_gpu_memory();
+
 public:
     std::string name_;
 
     LinearChunked();
     LinearChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_in_features, long num_out_features);
+    ~LinearChunked();
     virtual void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_in_features, long num_out_features);
+    virtual void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_in_features, long num_out_features, bool keep_allocation);
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
     virtual std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
     std::vector<Matrix<float> *> get_parameters();

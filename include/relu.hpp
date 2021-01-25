@@ -42,6 +42,11 @@ protected:
     cudnnTensorDescriptor_t dx_desc_;
     cudnnTensorDescriptor_t dy_desc_;
 
+
+    void allocate_gpu_memory_forward();
+    void free_gpu_memory_forward();
+    void allocate_gpu_memory_backward();
+    void free_gpu_memory_backward();
     void allocate_gpu_memory();
     void free_gpu_memory();
 

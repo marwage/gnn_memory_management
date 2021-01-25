@@ -96,11 +96,18 @@ void Linear::expand_bias() {
     }
 }
 
+void Linear::allocate_gpu_memory_forward() {
+    check_cuda(cudaMalloc(&d_weight_, weight_.size_ * sizeof(float)));
+}
+
+void Linear::free_gpu_memory_forward() {
+    check_cuda(cudaFree(d_weight_));
+}
+
 void Linear::forward_init() {
     to_column_major_inplace(&weight_);
     to_column_major_inplace(&bias_);
 
-    check_cuda(cudaMalloc(&d_weight_, weight_.size_ * sizeof(float)));
     check_cuda(cudaMemcpy(d_weight_, weight_.values_, weight_.size_ * sizeof(float),
                           cudaMemcpyHostToDevice));
 }
@@ -122,15 +129,12 @@ void Linear::forward_compute(float *d_x, long num_rows, float *d_y) {
                              d_y, num_rows));
 }
 
-void Linear::forward_free() {
-    check_cuda(cudaFree(d_weight_));
-}
-
 Matrix<float> *Linear::forward(Matrix<float> *x) {
     to_column_major_inplace(x);
     x_ = x;
 
-    forward_init();
+    Linear::allocate_gpu_memory_forward();
+    Linear::forward_init();
 
     float *d_x;
     check_cuda(cudaMalloc(&d_x, x->size_ * sizeof(float)));
@@ -139,34 +143,38 @@ Matrix<float> *Linear::forward(Matrix<float> *x) {
     float *d_y;
     check_cuda(cudaMalloc(&d_y, bias_expanded_.size_ * sizeof(float)));
 
-    forward_compute(d_x, num_nodes_, d_y);
+    Linear::forward_compute(d_x, num_nodes_, d_y);
 
     // get result of linear
     check_cuda(cudaMemcpy(y_.values_, d_y, y_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
     y_.is_row_major_ = false;
 
-    // free
-    check_cuda(cudaFree(d_x));
-    check_cuda(cudaFree(d_y));
-    forward_free();
+    Linear::free_gpu_memory_forward();
 
     return &y_;
 }
 
-void Linear::backward_init() {
+void Linear::allocate_gpu_memory_backward() {
     check_cuda(cudaMalloc(&d_ones_, num_nodes_ * sizeof(float)));
+    check_cuda(cudaMalloc(&d_db_, bias_expanded_.num_columns_ * sizeof(float)));
+    check_cuda(cudaMalloc(&d_weight_, weight_.size_ * sizeof(float)));
+    check_cuda(cudaMalloc(&d_dweight_, grad_weight_.size_ * sizeof(float)));
+}
+
+void Linear::free_gpu_memory_backward() {
+    check_cuda(cudaFree(d_ones_));
+    check_cuda(cudaFree(d_db_));
+    check_cuda(cudaFree(d_weight_));
+    check_cuda(cudaFree(d_dweight_));
+}
+
+void Linear::backward_init() {
     check_cuda(cudaMemcpy(d_ones_, ones_.data(), num_nodes_ * sizeof(float),
                           cudaMemcpyHostToDevice));
-
-    check_cuda(cudaMalloc(&d_db_, bias_expanded_.num_columns_ * sizeof(float)));
     check_cuda(cudaMemset(d_db_, 0, bias_expanded_.num_columns_ * sizeof(float)));
-
-    check_cuda(cudaMalloc(&d_weight_, weight_.size_ * sizeof(float)));
     check_cuda(cudaMemcpy(d_weight_, weight_.values_, weight_.size_ * sizeof(float),
                           cudaMemcpyHostToDevice));
-
-    check_cuda(cudaMalloc(&d_dweight_, grad_weight_.size_ * sizeof(float)));
     check_cuda(cudaMemset(d_dweight_, 0, grad_weight_.size_ * sizeof(float)));
 }
 
@@ -204,18 +212,13 @@ void Linear::backward_compute(float *d_dy, float *d_x, long num_rows, float *d_d
                              d_dx, num_rows));
 }
 
-void Linear::backward_free() {
+void Linear::copy_gradients_to_cpu() {
     // gradients of bias
     check_cuda(cudaMemcpy(grad_bias_.values_, d_db_, grad_bias_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
     // gradients of weight
     check_cuda(cudaMemcpy(grad_weight_.values_, d_dweight_, grad_weight_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
-
-    check_cuda(cudaFree(d_ones_));
-    check_cuda(cudaFree(d_db_));
-    check_cuda(cudaFree(d_weight_));
-    check_cuda(cudaFree(d_dweight_));
 }
 
 Matrix<float> *Linear::backward(Matrix<float> *incoming_gradients) {
@@ -224,7 +227,8 @@ Matrix<float> *Linear::backward(Matrix<float> *incoming_gradients) {
     to_column_major_inplace(&weight_);
     to_column_major_inplace(&bias_);
 
-    backward_init();
+    Linear::allocate_gpu_memory_backward();
+    Linear::backward_init();
 
     float *d_dy;
     check_cuda(cudaMalloc(&d_dy, incoming_gradients->size_ * sizeof(float)));
@@ -239,15 +243,13 @@ Matrix<float> *Linear::backward(Matrix<float> *incoming_gradients) {
     float *d_dx;
     check_cuda(cudaMalloc(&d_dx, x_->size_ * sizeof(float)));
 
-    backward_compute(d_dy, d_x, num_nodes_, d_dx);
+    Linear::backward_compute(d_dy, d_x, num_nodes_, d_dx);
 
     check_cuda(cudaMemcpy(gradients_.values_, d_dx, gradients_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
-    backward_free();
-    check_cuda(cudaFree(d_dy));
-    check_cuda(cudaFree(d_x));
-    check_cuda(cudaFree(d_dx));
+    Linear::copy_gradients_to_cpu();
+    Linear::free_gpu_memory_backward();
 
     return &gradients_;
 }
@@ -260,12 +262,23 @@ LinearChunked::LinearChunked(CudaHelper *helper, long chunk_size, long num_nodes
     set(helper, chunk_size, num_nodes, num_in_features, num_out_features);
 }
 
+LinearChunked::~LinearChunked() {
+    if (keep_allocation_) {
+        free_gpu_memory();
+    }
+}
+
 void LinearChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_in_features, long num_out_features) {
+    LinearChunked::set(helper, chunk_size, num_nodes, num_in_features, num_out_features, false);
+}
+
+void LinearChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_in_features, long num_out_features, bool keep_allocation) {
     name_ = "linear_chunked";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
     num_in_features_ = num_in_features;
     num_out_features_ = num_out_features;
+    keep_allocation_ = keep_allocation;
 
     num_chunks_ = ceil((float) num_nodes / (float) chunk_size_);
     if (num_chunks_ * chunk_size_ > num_nodes) {
@@ -290,6 +303,10 @@ void LinearChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, lon
         y_.at(i).set(current_chunk_size, num_out_features, false);
         gradients_.at(i).set(current_chunk_size, num_in_features, false);
     }
+
+    if (keep_allocation_) {
+        allocate_gpu_memory();
+    }
 }
 
 std::vector<Matrix<float> *> LinearChunked::get_parameters() {
@@ -298,6 +315,45 @@ std::vector<Matrix<float> *> LinearChunked::get_parameters() {
 
 std::vector<Matrix<float> *> LinearChunked::get_gradients() {
     return linear_.get_gradients();
+}
+
+void LinearChunked::allocate_gpu_memory_forward() {
+    check_cuda(cudaMalloc(&d_x_, chunk_size_ * num_in_features_ * sizeof(float)));
+    check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
+
+    linear_.allocate_gpu_memory_forward();
+}
+
+void LinearChunked::allocate_gpu_memory_backward() {
+    LinearChunked::allocate_gpu_memory();
+}
+
+void LinearChunked::allocate_gpu_memory() {
+    long input_size = chunk_size_ * num_in_features_;
+    check_cuda(cudaMalloc(&d_x_, input_size * sizeof(float)));
+    check_cuda(cudaMalloc(&d_y_, chunk_size_ * num_out_features_ * sizeof(float)));
+    check_cuda(cudaMalloc(&d_dx_, input_size * sizeof(float)));
+
+    linear_.allocate_gpu_memory_backward();
+}
+
+void LinearChunked::free_gpu_memory_forward() {
+    check_cuda(cudaFree(d_x_));
+    check_cuda(cudaFree(d_y_));
+
+    linear_.free_gpu_memory_forward();
+}
+
+void LinearChunked::free_gpu_memory_backward() {
+    LinearChunked::free_gpu_memory();
+}
+
+void LinearChunked::free_gpu_memory() {
+    check_cuda(cudaFree(d_x_));
+    check_cuda(cudaFree(d_y_));
+    check_cuda(cudaFree(d_dx_));
+
+    linear_.free_gpu_memory_backward();
 }
 
 std::vector<Matrix<float>> *LinearChunked::forward(std::vector<Matrix<float>> *x) {
@@ -310,30 +366,29 @@ std::vector<Matrix<float>> *LinearChunked::forward(std::vector<Matrix<float>> *x
         to_column_major_inplace(&x->at(i));
     }
 
+    if (!keep_allocation_) {
+        allocate_gpu_memory_forward();
+    }
+
     linear_.forward_init();
-    float *d_x;
-    check_cuda(cudaMalloc(&d_x, x->at(0).size_ * sizeof(float)));
-    float *d_y;
-    check_cuda(cudaMalloc(&d_y, y_.at(0).size_ * sizeof(float)));
 
     for (int i = 0; i < num_chunks_; ++i) {
         // in
-        check_cuda(cudaMemcpy(d_x, x->at(i).values_, x->at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(d_x_, x->at(i).values_, x->at(i).size_ * sizeof(float),
                               cudaMemcpyHostToDevice));
 
         // compute
-        linear_.forward_compute(d_x, x->at(i).num_rows_, d_y);
+        linear_.forward_compute(d_x_, x->at(i).num_rows_, d_y_);
 
         // out
-        check_cuda(cudaMemcpy(y_.at(i).values_, d_y, y_.at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(y_.at(i).values_, d_y_, y_.at(i).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
         y_.at(i).is_row_major_ = false;
     }
 
-    // free
-    linear_.forward_free();
-    check_cuda(cudaFree(d_x));
-    check_cuda(cudaFree(d_y));
+    if (!keep_allocation_) {
+        free_gpu_memory_forward();
+    }
 
     return &y_;
 }
@@ -346,34 +401,32 @@ std::vector<Matrix<float>> *LinearChunked::backward(std::vector<Matrix<float>> *
         to_column_major_inplace(&incoming_gradients->at(i));
     }
 
-    float *d_dy;
-    check_cuda(cudaMalloc(&d_dy, incoming_gradients->at(0).size_ * sizeof(float)));
-    float *d_x;
-    check_cuda((cudaMalloc(&d_x, x_->at(0).size_ * sizeof(float))));
-    float *d_dx;
-    check_cuda(cudaMalloc(&d_dx, x_->at(0).size_ * sizeof(float)));
+    if (!keep_allocation_) {
+        allocate_gpu_memory_backward();
+    }
 
     linear_.backward_init();
+
     for (int i = 0; i < num_chunks_; ++i) {
         // in
-        check_cuda(cudaMemcpy(d_dy, incoming_gradients->at(i).values_, incoming_gradients->at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(d_y_, incoming_gradients->at(i).values_, incoming_gradients->at(i).size_ * sizeof(float),
                               cudaMemcpyHostToDevice));
-        check_cuda(cudaMemcpy(d_x, x_->at(i).values_, x_->at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(d_x_, x_->at(i).values_, x_->at(i).size_ * sizeof(float),
                               cudaMemcpyHostToDevice));
 
         // compute
-        linear_.backward_compute(d_dy, d_x, incoming_gradients->at(i).num_rows_, d_dx);
+        linear_.backward_compute(d_y_, d_x_, incoming_gradients->at(i).num_rows_, d_dx_);
 
         // out
-        check_cuda(cudaMemcpy(gradients_.at(i).values_, d_dx, gradients_.at(i).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(gradients_.at(i).values_, d_dx_, gradients_.at(i).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
     }
 
-    // free
-    linear_.backward_free();
-    check_cuda(cudaFree(d_dy));
-    check_cuda(cudaFree(d_x));
-    check_cuda(cudaFree(d_dx));
+    linear_.copy_gradients_to_cpu();
+
+    if (!keep_allocation_) {
+        free_gpu_memory_backward();
+    }
 
     return &gradients_;
 }
@@ -423,6 +476,7 @@ std::vector<Matrix<float>> *LinearPipelined::forward(std::vector<Matrix<float>> 
         to_column_major_inplace(&x->at(i));
     }
 
+    linear_.allocate_gpu_memory_forward();
     linear_.forward_init();
     for (long i = 0; i < num_steps_; ++i) {
         check_cuda(cudaMalloc(&d_x_.at(i), x->at(0).size_ * sizeof(float)));
@@ -432,7 +486,7 @@ std::vector<Matrix<float>> *LinearPipelined::forward(std::vector<Matrix<float>> 
     pipeline(true, num_chunks_);
 
     // free
-    linear_.forward_free();
+    linear_.free_gpu_memory_forward();
     for (long i = 0; i < num_steps_; ++i) {
         check_cuda(cudaFree(d_x_.at(i)));
         check_cuda(cudaFree(d_y_.at(i)));
@@ -473,11 +527,13 @@ std::vector<Matrix<float>> *LinearPipelined::backward(std::vector<Matrix<float>>
         check_cuda(cudaMalloc(&d_dx_.at(i), x_->at(0).size_ * sizeof(float)));
     }
 
+    linear_.allocate_gpu_memory_backward();
     linear_.backward_init();
 
     pipeline(false, num_chunks_);
 
-    linear_.backward_free();
+    linear_.copy_gradients_to_cpu();
+    linear_.free_gpu_memory_backward();
     for (long i = 0; i < num_steps_; ++i) {
         check_cuda(cudaFree(d_dy_.at(i)));
         check_cuda(cudaFree(d_x_.at(i)));
