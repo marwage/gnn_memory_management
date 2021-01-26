@@ -12,9 +12,8 @@ def check_graph_conv():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     all_close = 1.0
     home = os.getenv("HOME")
-    dir_path = home + "/gpu_memory_reduction/alzheimer/data"
-    flickr_dir_path = dir_path + "/flickr"
-    test_dir_path = dir_path + "/tests"
+    flickr_dir_path = "/mnt/data/flickr"
+    test_dir_path = home + "/gpu_memory_reduction/alzheimer/data/tests"
 
     path = flickr_dir_path + "/adjacency.mtx"
     adj = scipy.io.mmread(path)
