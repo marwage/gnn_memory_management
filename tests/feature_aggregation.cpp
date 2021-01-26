@@ -1,11 +1,11 @@
 // Copyright 2020 Marcel Wagenländer
 
+#include "feature_aggregation.hpp"
 #include "chunking.hpp"
 #include "cuda_helper.hpp"
-#include "feature_aggregation.hpp"
 #include "helper.hpp"
-#include "tensors.hpp"
 #include "sparse_computation.hpp"
+#include "tensors.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -20,7 +20,7 @@ int test_graph_conv(Matrix<float> *input, SparseMatrix<float> *adj, Matrix<float
 
     std::string path;
     CudaHelper cuda_helper;
-    FeatureAggregation feature_aggregation(&cuda_helper, adj, "mean", input->num_rows_, input->num_columns_, &adjacency_row_sum);
+    FeatureAggregation feature_aggregation(&cuda_helper, input->num_rows_, input->num_columns_, adj, mean, &adjacency_row_sum);
 
     Matrix<float> *activations = feature_aggregation.forward(input);
 

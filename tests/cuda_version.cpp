@@ -1,11 +1,11 @@
 // 2021 Copyright Marcel Wagenländer
 
 #include "cusparse.h"
+#include <catch2/catch.hpp>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cudnn.h>
 #include <iostream>
-#include <catch2/catch.hpp>
 
 
 int cuda_version() {

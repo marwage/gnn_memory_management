@@ -8,37 +8,24 @@
 #include <cmath>
 #include <string>
 
-
 FeatureAggregation::FeatureAggregation() {}
 
-FeatureAggregation::FeatureAggregation(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                                       long num_nodes, long num_features, Matrix<float> *sum) {
-    set(helper, adjacency, reduction, num_nodes, num_features, sum);
+FeatureAggregation::FeatureAggregation(CudaHelper *helper, long num_nodes, long num_features,
+                                       SparseMatrix<float> *adjacency, AggregationReduction reduction, Matrix<float> *adjacency_row_sum) {
+    set(helper, num_nodes, num_features, adjacency, reduction, adjacency_row_sum);
 }
 
-void FeatureAggregation::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                             long num_nodes, long num_features, Matrix<float> *sum) {
+void FeatureAggregation::set(CudaHelper *helper, long num_nodes, long num_features,
+                             SparseMatrix<float> *adjacency, AggregationReduction reduction, Matrix<float> *adjacency_row_sum) {
     name_ = "feature-aggregation";
     cuda_helper_ = helper;
     adjacency_ = adjacency;
     reduction_ = reduction;
-    if (reduction_.compare("mean") == 0) {
-        mean_ = true;
-    } else if (reduction_.compare("sum") == 0) {
-        mean_ = false;
-    } else {
-        throw "Reduction not supported";
-    }
 
     y_.set(num_nodes, num_features, false);
     gradients_.set(num_nodes, num_features, false);
 
-    if (mean_) {
-        sum_.set(num_nodes, 1, false);
-        sp_mat_sum_rows(cuda_helper_, adjacency_, &sum_);
-    }
-
-    adjacency_row_sum_ = sum;
+    adjacency_row_sum_ = adjacency_row_sum;
 }
 
 Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
@@ -48,7 +35,7 @@ Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
     check_cuda(cudaMalloc(&d_y, y_.size_ * sizeof(float)));
 
     float *d_sum;
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaMalloc(&d_sum, y_.num_rows_ * sizeof(float)));
     }
 
@@ -62,7 +49,7 @@ Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
 
     sp_mat_mat_multi_cuda(cuda_helper_, &d_adj, d_x, d_y, x->num_columns_, false);
 
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaMemcpy(d_sum, adjacency_row_sum_->values_, y_.num_rows_ * sizeof(float),
                               cudaMemcpyHostToDevice));
 
@@ -73,7 +60,7 @@ Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
                           cudaMemcpyDeviceToHost));
 
     // free GPU memory
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaFree(d_sum));
     }
     check_cuda(cudaFree(d_y));
@@ -83,13 +70,13 @@ Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
 }
 
 Matrix<float> *FeatureAggregation::backward(Matrix<float> *incoming_gradients) {
-        to_column_major_inplace(incoming_gradients);
+    to_column_major_inplace(incoming_gradients);
 
     float *d_gradients;
     check_cuda(cudaMalloc(&d_gradients, gradients_.size_ * sizeof(float)));
 
     float *d_sum;
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaMalloc(&d_sum, incoming_gradients->num_rows_ * sizeof(float)));
     }
 
@@ -101,7 +88,7 @@ Matrix<float> *FeatureAggregation::backward(Matrix<float> *incoming_gradients) {
 
     check_cuda(cudaMemcpy(d_incoming_gradients, incoming_gradients->values_, incoming_gradients->size_ * sizeof(float), cudaMemcpyHostToDevice));
 
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaMemcpy(d_sum, adjacency_row_sum_->values_, incoming_gradients->num_rows_ * sizeof(float),
                               cudaMemcpyHostToDevice));
 
@@ -114,7 +101,7 @@ Matrix<float> *FeatureAggregation::backward(Matrix<float> *incoming_gradients) {
                           cudaMemcpyDeviceToHost));
 
     // free GPU memory
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaFree(d_sum));
     }
     check_cuda(cudaFree(d_incoming_gradients));

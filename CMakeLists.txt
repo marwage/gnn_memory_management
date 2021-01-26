@@ -45,7 +45,9 @@ set(SOURCE_FILES
         src/dense_computation.cpp
         src/chunking.cpp
         src/pipeline.cpp
-        src/dataset.cpp)
+        src/dataset.cpp
+        src/sage_convolution.cpp
+        src/layer.cpp)
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})

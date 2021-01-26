@@ -150,7 +150,7 @@ void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long 
     set(helper, chunk_size, num_nodes, num_features, false);
 }
 
-void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation){
+void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
     name_ = "relu_chunked";
     chunk_size_ = chunk_size;
     cuda_helper_ = helper;

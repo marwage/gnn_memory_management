@@ -1,35 +1,34 @@
 // Copyright 2020 Marcel Wagenländer
 
-#ifndef GRAPH_CONVOLUTION_H
-#define GRAPH_CONVOLUTION_H
+#ifndef FEATURE_AGGREGATION_H
+#define FEATURE_AGGREGATION_H
+
+#include "cuda_helper.hpp"
+#include "layer.hpp"
+#include "tensors.hpp"
 
 #include <vector>
 
-#include "cuda_helper.hpp"
-#include "tensors.hpp"
+enum AggregationReduction { sum,
+                            mean };
 
-
-class FeatureAggregation {
+class FeatureAggregation : public Layer {
 private:
     CudaHelper *cuda_helper_;
     SparseMatrix<float> *adjacency_;
     Matrix<float> *adjacency_row_sum_;
-    std::string reduction_;
-    bool mean_;
-    Matrix<float> sum_;
+    AggregationReduction reduction_;
     Matrix<float> y_;
     Matrix<float> gradients_;
 
 public:
-    std::string name_;
-
     FeatureAggregation();
-    FeatureAggregation(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                       long num_nodes, long num_features, Matrix<float> *sum);
-    void set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-             long num_nodes, long num_features, Matrix<float> *sum);
-    Matrix<float> *forward(Matrix<float> *x);
-    Matrix<float> *backward(Matrix<float> *in_gradients);
+    FeatureAggregation(CudaHelper *helper, long num_nodes, long num_features,
+                       SparseMatrix<float> *adjacency, AggregationReduction reduction, Matrix<float> *adjacency_row_sum);
+    void set(CudaHelper *helper, long num_nodes, long num_features,
+             SparseMatrix<float> *adjacency, AggregationReduction reduction, Matrix<float> *adjacency_row_sum);
+    Matrix<float> *forward(Matrix<float> *x) override;
+    Matrix<float> *backward(Matrix<float> *incoming_gradients) override;
 };
 
 class FeatureAggregationChunked {
@@ -88,4 +87,4 @@ public:
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };
 
-#endif
+#endif//FEATURE_AGGREGATION_H

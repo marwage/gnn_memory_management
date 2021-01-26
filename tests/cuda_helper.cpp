@@ -4,8 +4,8 @@
 #include "gpu_memory_logger.hpp"
 
 #include <catch2/catch.hpp>
-#include <thread>
 #include <chrono>
+#include <thread>
 
 
 int measure_cuda_helper() {

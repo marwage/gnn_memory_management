@@ -10,7 +10,7 @@
 #include <string>
 
 const std::string home = std::getenv("HOME");
-const std::string flickr_dir_path =  "/mnt/data/flickr";
+const std::string flickr_dir_path = "/mnt/data/flickr";
 const std::string test_dir_path = home + "/gpu_memory_reduction/alzheimer/data/tests";
 
 

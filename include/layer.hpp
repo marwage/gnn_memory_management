@@ -10,16 +10,12 @@
 
 class Layer {
 protected:
-    CudaHelper *cuda_helper_;
-    Matrix<float> y_;
-    Matrix<float> gradients_;
-
-public:
     std::string name_;
 
+public:
+    std::string get_name();
     virtual Matrix<float> *forward(Matrix<float> *x) = 0;
     virtual Matrix<float> *backward(Matrix<float> *incoming_gradients) = 0;
-    virtual void set(CudaHelper *helper, long num_nodes, long num_features) = 0;
 };
 
 class LayerChunked {

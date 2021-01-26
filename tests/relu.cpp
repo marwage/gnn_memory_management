@@ -8,13 +8,17 @@
 #include "catch2/catch.hpp"
 #include <string>
 
-int test_layer(Layer *layer, std::string py_name);
+int test_layer(Layer *layer);
 int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size, bool keep_allocation);
 
 
 TEST_CASE("ReLU", "[relu]") {
-    Relu relu;
-    CHECK(test_layer(&relu, "relu"));
+    CudaHelper cuda_helper;
+    // Flickr
+    long num_nodes = 89250;
+    long num_features = 500;
+    Relu relu(&cuda_helper, num_nodes, num_features);
+    CHECK(test_layer(&relu));
 }
 
 TEST_CASE("ReLU, chunked", "[relu][chunked]") {

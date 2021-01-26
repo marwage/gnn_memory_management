@@ -177,7 +177,7 @@ void DropoutChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, lo
     set(helper, chunk_size, num_nodes, num_features, false);
 }
 
-void DropoutChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation){
+void DropoutChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
     name_ = "dropout_chunked";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;

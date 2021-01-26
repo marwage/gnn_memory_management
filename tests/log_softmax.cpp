@@ -6,13 +6,17 @@
 #include "catch2/catch.hpp"
 #include <stdlib.h>
 
-int test_layer(Layer *layer, std::string py_name);
+int test_layer(Layer *layer);
 int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size, bool keep_allocation);
 
 
 TEST_CASE("Log-softmax", "[logsoftmax]") {
-    LogSoftmax logsoftmax;
-    CHECK(test_layer(&logsoftmax, "log_softmax"));
+    CudaHelper cuda_helper;
+    // Flickr
+    long num_nodes = 89250;
+    long num_features = 500;
+    LogSoftmax logsoftmax(&cuda_helper, num_nodes, num_features);
+    CHECK(test_layer(&logsoftmax));
 }
 
 TEST_CASE("Log-softmax, chunked", "[logsoftmax][chunked]") {

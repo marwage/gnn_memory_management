@@ -12,17 +12,20 @@
 
 class Relu : public Layer {
 protected:
+    CudaHelper *cuda_helper_;
     float alpha_;
     float beta_;
     cudnnActivationDescriptor_t relu_desc_;
-    Matrix<float> *x_ = NULL;
+    Matrix<float> *x_;
+    Matrix<float> y_;
+    Matrix<float> gradients_;
 
 public:
     Relu();
     Relu(CudaHelper *helper, long num_nodes, long num_features);
-    void set(CudaHelper *helper, long num_nodes, long num_features) override;
-    Matrix<float> *forward(Matrix<float> *x) override;
-    Matrix<float> *backward(Matrix<float> *incoming_gradients) override;
+    void set(CudaHelper *helper, long num_nodes, long num_features);
+    Matrix<float> *forward(Matrix<float> *x);
+    Matrix<float> *backward(Matrix<float> *incoming_gradients);
 };
 
 class ReluChunked : public LayerChunked {

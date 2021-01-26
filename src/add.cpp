@@ -2,24 +2,29 @@
 
 #include "add.hpp"
 #include "dense_computation.hpp"
+#include "error_check.hpp"
 
+Add::Add() {}
 
 Add::Add(CudaHelper *cuda_helper, long num_nodes, long num_features) {
+    Add::set(cuda_helper, num_nodes, num_features);
+}
+
+void Add::set(CudaHelper *cuda_helper, long num_nodes, long num_features) {
     name_ = "add";
     cuda_helper_ = cuda_helper;
     y_.set(num_nodes, num_features, true);
+    gradients_ = std::vector<Matrix<float> *>(2);
 }
 
 Matrix<float> *Add::forward(Matrix<float> *a, Matrix<float> *b) {
     mat_mat_add(cuda_helper_, a, b, &y_);
-
     return &y_;
 }
 
-AddGradients *Add::backward(Matrix<float> *incoming_gradients) {
-    gradients_.a = incoming_gradients;
-    gradients_.b = incoming_gradients;
-
+std::vector<Matrix<float> *> *Add::backward(Matrix<float> *incoming_gradients) {
+    gradients_.at(0) = incoming_gradients;
+    gradients_.at(1) = incoming_gradients;
     return &gradients_;
 }
 
@@ -65,7 +70,6 @@ void AddChunked::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, l
     if (keep_allocation_) {
         allocate_gpu_memory();
     }
-
 }
 
 void AddChunked::allocate_gpu_memory() {
@@ -155,7 +159,7 @@ void AddPipelined::forward_out(long chunk, long buffer) {
 
 void AddPipelined::forward_compute(long chunk, long buffer) {
     check_cuda(cudaMemcpy(d_c_.at(buffer), d_b_.at(buffer), y_.at(chunk).size_ * sizeof(float),
-                               cudaMemcpyDeviceToDevice));
+                          cudaMemcpyDeviceToDevice));
     mat_mat_add_cuda(cuda_helper_, d_a_.at(buffer), d_c_.at(buffer), a_->at(chunk).size_);
 }
 

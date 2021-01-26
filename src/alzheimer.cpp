@@ -64,15 +64,15 @@ void alzheimer(Dataset dataset) {
     Add add_1(&cuda_helper, num_nodes, num_hidden_channels);
     Add add_2(&cuda_helper, num_nodes, num_hidden_channels);
     Dropout dropout_0(&cuda_helper, num_nodes, features.num_columns_);
-    FeatureAggregation graph_convolution_0(&cuda_helper, &adjacency, "mean", num_nodes, features.num_columns_, &adjacency_row_sum);
+    FeatureAggregation feature_aggregation_0(&cuda_helper, num_nodes, features.num_columns_, &adjacency, mean, &adjacency_row_sum);
     SageLinear linear_0(&cuda_helper, features.num_columns_, num_hidden_channels, num_nodes);
     Relu relu_0(&cuda_helper, num_nodes, num_hidden_channels);
     Dropout dropout_1(&cuda_helper, num_nodes, num_hidden_channels);
-    FeatureAggregation graph_convolution_1(&cuda_helper, &adjacency, "mean", num_nodes, num_hidden_channels, &adjacency_row_sum);
+    FeatureAggregation feature_aggregation_1(&cuda_helper, num_nodes, num_hidden_channels, &adjacency, mean, &adjacency_row_sum);
     SageLinear linear_1(&cuda_helper, num_hidden_channels, num_hidden_channels, num_nodes);
     Relu relu_1(&cuda_helper, num_nodes, num_hidden_channels);
     Dropout dropout_2(&cuda_helper, num_nodes, num_hidden_channels);
-    FeatureAggregation graph_convolution_2(&cuda_helper, &adjacency, "mean", num_nodes, num_hidden_channels, &adjacency_row_sum);
+    FeatureAggregation feature_aggregation_2(&cuda_helper, num_nodes, num_hidden_channels, &adjacency, mean, &adjacency_row_sum);
     SageLinear linear_2(&cuda_helper, num_hidden_channels, num_classes, num_nodes);
     LogSoftmax log_softmax(&cuda_helper, num_nodes, num_classes);
 
@@ -118,7 +118,7 @@ void alzheimer(Dataset dataset) {
         signals_dropout = dropout_0.forward(&features);
 
         // graph convolution 0
-        signals = graph_convolution_0.forward(signals_dropout);
+        signals = feature_aggregation_0.forward(signals_dropout);
 
         // linear layer 0
         signals = linear_0.forward(signals_dropout, signals);
@@ -130,7 +130,7 @@ void alzheimer(Dataset dataset) {
         signals_dropout = dropout_1.forward(signals);
 
         // graph convolution 1
-        signals = graph_convolution_1.forward(signals_dropout);
+        signals = feature_aggregation_1.forward(signals_dropout);
 
         // linear layer 1
         signals = linear_1.forward(signals_dropout, signals);
@@ -142,7 +142,7 @@ void alzheimer(Dataset dataset) {
         signals_dropout = dropout_2.forward(signals);
 
         // graph convolution 2
-        signals = graph_convolution_2.forward(signals_dropout);
+        signals = feature_aggregation_2.forward(signals_dropout);
 
         // linear layer 2
         signals = linear_2.forward(signals_dropout, signals);
@@ -165,7 +165,7 @@ void alzheimer(Dataset dataset) {
         sage_linear_gradients = linear_2.backward(gradients);
 
         // graph convolution 2
-        gradients = graph_convolution_2.backward(sage_linear_gradients->neighbourhood_gradients);
+        gradients = feature_aggregation_2.backward(sage_linear_gradients->neighbourhood_gradients);
 
         // add sage_linear_gradients.self_grads + gradients
         gradients = add_2.forward(sage_linear_gradients->self_gradients, gradients);
@@ -180,7 +180,7 @@ void alzheimer(Dataset dataset) {
         sage_linear_gradients = linear_1.backward(gradients);
 
         // graph convolution 1
-        gradients = graph_convolution_1.backward(gradients);
+        gradients = feature_aggregation_1.backward(gradients);
 
         // add sage_linear_gradients.self_grads + gradients
         gradients = add_1.forward(sage_linear_gradients->self_gradients, gradients);
@@ -309,7 +309,7 @@ void alzheimer_chunked(Dataset dataset, long chunk_size) {
     std::vector<Matrix<float>> loss_gradients_chunked(num_chunks);
     float loss;
 
-    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_" + std::to_string(chunk_size)  + ".csv";
+    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_" + std::to_string(chunk_size) + ".csv";
     std::ofstream loss_file;
     loss_file.open(path, std::ios::trunc);
     loss_file << "epoch,loss\n";
@@ -514,7 +514,7 @@ void alzheimer_pipelined(Dataset dataset, long chunk_size) {
     std::vector<Matrix<float>> loss_gradients_chunked(num_chunks);
     float loss;
 
-    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_" + std::to_string(chunk_size)  + ".csv";
+    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_" + std::to_string(chunk_size) + ".csv";
     std::ofstream loss_file;
     loss_file.open(path, std::ios::trunc);
     loss_file << "epoch,loss\n";

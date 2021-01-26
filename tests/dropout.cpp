@@ -1,8 +1,8 @@
 // Copyright 2020 Marcel Wagenländer
 
 #include "dropout.hpp"
-#include "chunking.hpp" // TEMPORARY COPY AND PASTE
-#include "helper.hpp" // TEMPORARY COPY AND PASTE
+#include "chunking.hpp"// TEMPORARY COPY AND PASTE
+#include "helper.hpp"  // TEMPORARY COPY AND PASTE
 
 #include "catch2/catch.hpp"
 #include <cudnn.h>
@@ -10,13 +10,16 @@
 #include <iostream>
 #include <string>
 
-int test_layer(Layer *layer, std::string py_name);
+int test_layer(Layer *layer);
 int test_layer_chunked(LayerChunked *layer, std::string py_name, long chunk_size, bool keep_allocation);
 
-
 TEST_CASE("Dropout", "[dropout]") {
-    Dropout dropout;
-    CHECK(test_layer(&dropout, "dropout"));
+    CudaHelper cuda_helper;
+    // Flickr
+    long num_nodes = 89250;
+    long num_features = 500;
+    Dropout dropout(&cuda_helper, num_nodes, num_features);
+    CHECK(test_layer(&dropout));
 }
 
 TEST_CASE("Dropout, chunked", "[dropout][chunked]") {
@@ -51,7 +54,7 @@ TEST_CASE("Dropout, memory", "[dropout][memory]") {
 
     std::cout << "State size: " << state_size << std::endl;
 
-    csvfile.open ("/tmp/reserve_space_size.csv");
+    csvfile.open("/tmp/reserve_space_size.csv");
     csvfile << "num_rows,num_cols,reserve_space_size\n";
     long max_row_col = 1 << 25;
     long max_size = 1;

@@ -10,8 +10,8 @@
 #include "loss.hpp"
 #include "relu.hpp"
 #include "sage_linear.hpp"
-#include "tensors.hpp"
 #include "sparse_computation.hpp"
+#include "tensors.hpp"
 
 #include "catch2/catch.hpp"
 
@@ -45,7 +45,7 @@ int integration_test() {
     long num_classes = 7;
 
     // layers
-    FeatureAggregation graph_convolution_layer(&cuda_helper, &adjacency, "mean", num_nodes, features.num_columns_, &adjacency_row_sum);
+    FeatureAggregation feature_aggregation_layer(&cuda_helper, num_nodes, features.num_columns_, &adjacency, mean, &adjacency_row_sum);
     Add add(&cuda_helper, num_nodes, features.num_columns_);
     SageLinear sage_linear_layer(&cuda_helper, features.num_columns_, num_classes, num_nodes);
     Relu relu_layer(&cuda_helper, num_nodes, num_classes);
@@ -56,7 +56,7 @@ int integration_test() {
     Adam adam(&cuda_helper, learning_rate, sage_linear_layer.get_parameters(), sage_linear_layer.get_gradients());
 
     // graph convolution
-    Matrix<float> *graph_convolution_result = graph_convolution_layer.forward(&features);
+    Matrix<float> *graph_convolution_result = feature_aggregation_layer.forward(&features);
     path = test_dir_path + "/graph_convolution_result.npy";
     save_npy_matrix(graph_convolution_result, path);
 
@@ -124,7 +124,7 @@ int integration_test() {
     save_npy_matrix(gradients[3], path);
 
     // graph convolution
-    Matrix<float> *graph_convolution_grads = graph_convolution_layer.backward(linear_grads->neighbourhood_gradients);
+    Matrix<float> *graph_convolution_grads = feature_aggregation_layer.backward(linear_grads->neighbourhood_gradients);
     path = test_dir_path + "/graph_convolution_grads.npy";
     save_npy_matrix(graph_convolution_grads, path);
 
