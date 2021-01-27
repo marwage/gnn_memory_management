@@ -39,7 +39,7 @@ void benchmark_add(Dataset dataset, benchmark::State &state, bool forward) {
         direction = "backward";
     }
 
-    GPUMemoryLogger memory_logger(add.name_ + "_" + get_dataset_name(dataset) + "_" + direction);
+    GPUMemoryLogger memory_logger(add.get_name() + "_" + get_dataset_name(dataset) + "_" + direction);
     memory_logger.start();
 
     for (auto _ : state) {

@@ -23,8 +23,9 @@ void benchmark_layer(Layer *layer, Dataset dataset, benchmark::State &state, boo
         incoming_gradients.set_random_values();
     }
 
-    CudaHelper cuda_helper;
-    layer->set(&cuda_helper, features.num_rows_, features.num_columns_);
+    // TODO create layer before benchmark_layer()
+//    CudaHelper cuda_helper;
+//    layer->set(&cuda_helper, features.num_rows_, features.num_columns_);
 
     if (!forward) {
         layer->forward(&features);
@@ -37,7 +38,7 @@ void benchmark_layer(Layer *layer, Dataset dataset, benchmark::State &state, boo
         direction = "backward";
     }
 
-    GPUMemoryLogger memory_logger(layer->name_ + "_" + get_dataset_name(dataset) + "_" + direction);
+    GPUMemoryLogger memory_logger(layer->get_name() + "_" + get_dataset_name(dataset) + "_" + direction);
     memory_logger.start();
 
     for (auto _ : state) {

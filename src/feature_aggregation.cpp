@@ -120,6 +120,11 @@ FeatureAggregationChunked::FeatureAggregationChunked(CudaHelper *helper, std::ve
     set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes);
 }
 
+FeatureAggregationChunked::FeatureAggregationChunked(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                                                     std::string reduction, long num_features, long chunk_size, long num_nodes, bool keep_allocation) {
+    set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes, keep_allocation);
+}
+
 FeatureAggregationChunked::~FeatureAggregationChunked() {
     if (keep_allocation_) {
         free_gpu_memory();

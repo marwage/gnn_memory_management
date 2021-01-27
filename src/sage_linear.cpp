@@ -72,7 +72,16 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, l
     set(helper, num_in_features, num_out_features, chunk_size, num_nodes);
 }
 
+SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, long num_out_features,
+                                     long chunk_size, long num_nodes, bool keep_allocation) {
+    SageLinearChunked::set(helper, num_in_features, num_out_features, chunk_size, num_nodes, keep_allocation);
+}
+
 void SageLinearChunked::set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) {
+    SageLinearChunked::set(helper, num_in_features, num_out_features, chunk_size, num_nodes, false);
+}
+
+void SageLinearChunked::set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes, bool keep_allocation) {
     name_ = "sage-linear_chunked";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
@@ -86,9 +95,9 @@ void SageLinearChunked::set(CudaHelper *helper, long num_in_features, long num_o
         last_chunk_size_ = chunk_size_;
     }
 
-    linear_self_.set(cuda_helper_, chunk_size, num_nodes, num_in_features_, num_out_features_);
-    linear_neigh_.set(cuda_helper_, chunk_size, num_nodes, num_in_features_, num_out_features_);
-    add_.set(cuda_helper_, chunk_size, num_nodes, num_out_features);
+    linear_self_.set(cuda_helper_, chunk_size, num_nodes, num_in_features_, num_out_features_, keep_allocation);
+    linear_neigh_.set(cuda_helper_, chunk_size, num_nodes, num_in_features_, num_out_features_, keep_allocation);
+    add_.set(cuda_helper_, chunk_size, num_nodes, num_out_features, keep_allocation);
 }
 
 std::vector<Matrix<float> *> SageLinearChunked::get_parameters() {

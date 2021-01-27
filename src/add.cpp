@@ -17,6 +17,10 @@ void Add::set(CudaHelper *cuda_helper, long num_nodes, long num_features) {
     gradients_ = std::vector<Matrix<float> *>(2);
 }
 
+std::string Add::get_name() {
+    return name_;
+}
+
 Matrix<float> *Add::forward(Matrix<float> *a, Matrix<float> *b) {
     mat_mat_add(cuda_helper_, a, b, &y_);
     return &y_;
@@ -33,7 +37,11 @@ std::vector<Matrix<float> *> *Add::backward(Matrix<float> *incoming_gradients) {
 AddChunked::AddChunked() {}
 
 AddChunked::AddChunked(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features) {
-    set(cuda_helper, chunk_size, num_nodes, num_features);
+    AddChunked::set(cuda_helper, chunk_size, num_nodes, num_features);
+}
+
+AddChunked::AddChunked(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
+    AddChunked::set(cuda_helper, chunk_size, num_nodes, num_features, keep_allocation);
 }
 
 AddChunked::~AddChunked() {

@@ -131,7 +131,11 @@ Matrix<float> *LogSoftmax::backward(Matrix<float> *incoming_gradients) {
 LogSoftmaxChunked::LogSoftmaxChunked() {}
 
 LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
-    set(helper, chunk_size, num_nodes, num_features);
+    LogSoftmaxChunked::set(helper, chunk_size, num_nodes, num_features);
+}
+
+LogSoftmaxChunked::LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
+    LogSoftmaxChunked::set(helper, chunk_size, num_nodes, num_features, keep_allocation);
 }
 
 LogSoftmaxChunked::~LogSoftmaxChunked() {

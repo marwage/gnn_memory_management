@@ -57,6 +57,8 @@ public:
     FeatureAggregationChunked();
     FeatureAggregationChunked(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
                               std::string reduction, long num_features, long chunk_size, long num_nodes);
+    FeatureAggregationChunked(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                              std::string reduction, long num_features, long chunk_size, long num_nodes, bool keep_allocation);
     ~FeatureAggregationChunked();
     virtual void set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
                      std::string reduction, long num_features, long chunk_size, long num_nodes);

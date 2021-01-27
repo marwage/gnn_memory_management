@@ -203,7 +203,7 @@ void alzheimer(Dataset dataset) {
     loss_file.close();
 }
 
-void alzheimer_chunked(Dataset dataset, long chunk_size) {
+void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
     // read tensors
     // set path to directory
     std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
@@ -261,21 +261,25 @@ void alzheimer_chunked(Dataset dataset, long chunk_size) {
     long num_classes = get_dataset_num_classes(dataset);
 
     // layers
+    DropoutChunked dropout_0(&cuda_helper, chunk_size, num_nodes, num_features, keep_allocation);
+    FeatureAggregationChunked graph_convolution_0(&cuda_helper, &adjacencies, &adjacency_row_sum, "mean", num_features, chunk_size, num_nodes, keep_allocation);
+    SageLinearChunked linear_0(&cuda_helper, num_features, num_hidden_channels, chunk_size, num_nodes, keep_allocation);
+    ReluChunked relu_0(&cuda_helper, chunk_size, num_nodes, num_hidden_channels, keep_allocation);
+    DropoutChunked dropout_1(&cuda_helper, chunk_size, num_nodes, num_hidden_channels, keep_allocation);
+    FeatureAggregationChunked graph_convolution_1(&cuda_helper, &adjacencies, &adjacency_row_sum, "mean", num_hidden_channels, chunk_size, num_nodes, keep_allocation);
+    SageLinearChunked linear_1(&cuda_helper, num_hidden_channels, num_hidden_channels, chunk_size, num_nodes, keep_allocation);
+    ReluChunked relu_1(&cuda_helper, chunk_size, num_nodes, num_hidden_channels, keep_allocation);
+    DropoutChunked dropout_2(&cuda_helper, chunk_size, num_nodes, num_hidden_channels, keep_allocation);
+    FeatureAggregationChunked graph_convolution_2(&cuda_helper, &adjacencies, &adjacency_row_sum, "mean", num_hidden_channels, chunk_size, num_nodes, keep_allocation);
+    SageLinearChunked linear_2(&cuda_helper, num_hidden_channels, num_classes, chunk_size, num_nodes, keep_allocation);
+    LogSoftmaxChunked log_softmax(&cuda_helper, chunk_size, num_nodes, num_classes, keep_allocation);
+
+    //helper
+    AddChunked add_1(&cuda_helper, chunk_size, num_nodes, num_hidden_channels, keep_allocation);
+    AddChunked add_2(&cuda_helper, chunk_size, num_nodes, num_hidden_channels, keep_allocation);
+
     NLLLoss loss_layer(num_nodes, num_classes);
-    AddChunked add_1(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
-    AddChunked add_2(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
-    DropoutChunked dropout_0(&cuda_helper, chunk_size, num_nodes, num_features);
-    FeatureAggregationChunked graph_convolution_0(&cuda_helper, &adjacencies, &adjacency_row_sum, "mean", num_features, chunk_size, num_nodes);
-    SageLinearChunked linear_0(&cuda_helper, num_features, num_hidden_channels, chunk_size, num_nodes);
-    ReluChunked relu_0(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
-    DropoutChunked dropout_1(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
-    FeatureAggregationChunked graph_convolution_1(&cuda_helper, &adjacencies, &adjacency_row_sum, "mean", num_hidden_channels, chunk_size, num_nodes);
-    SageLinearChunked linear_1(&cuda_helper, num_hidden_channels, num_hidden_channels, chunk_size, num_nodes);
-    ReluChunked relu_1(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
-    DropoutChunked dropout_2(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
-    FeatureAggregationChunked graph_convolution_2(&cuda_helper, &adjacencies, &adjacency_row_sum, "mean", num_hidden_channels, chunk_size, num_nodes);
-    SageLinearChunked linear_2(&cuda_helper, num_hidden_channels, num_classes, chunk_size, num_nodes);
-    LogSoftmaxChunked log_softmax(&cuda_helper, chunk_size, num_nodes, num_classes);
+
 
     // optimizer
     long num_parameters = 6;

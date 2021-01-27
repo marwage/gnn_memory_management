@@ -58,6 +58,7 @@ protected:
 public:
     LogSoftmaxChunked();
     LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
+    LogSoftmaxChunked(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
     ~LogSoftmaxChunked();
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) override;
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) override;
