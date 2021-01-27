@@ -25,7 +25,8 @@ set(TEST_FILES
         tests/pipeline.cpp
         tests/add.cpp
         tests/cuda_helper.cpp
-        tests/cuda_version.cpp)
+        tests/cuda_version.cpp
+        tests/memory_model.cpp)
 
 set(HELPER_FILES
         tests/helper.cpp)

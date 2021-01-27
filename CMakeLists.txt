@@ -47,7 +47,8 @@ set(SOURCE_FILES
         src/pipeline.cpp
         src/dataset.cpp
         src/sage_convolution.cpp
-        src/layer.cpp)
+        src/layer.cpp
+        src/memory_model.cpp)
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
