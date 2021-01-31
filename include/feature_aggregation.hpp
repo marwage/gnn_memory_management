@@ -47,6 +47,7 @@ protected:
     float *d_x_;
     float *d_y_;
     float *d_sum_;
+    SparseMatrixCuda<float> d_adj_;
 
     void allocate_gpu_memory();
     void free_gpu_memory();

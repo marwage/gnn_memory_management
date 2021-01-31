@@ -180,6 +180,8 @@ void FeatureAggregationChunked::set(CudaHelper *helper, std::vector<SparseMatrix
 void FeatureAggregationChunked::allocate_gpu_memory() {
     check_cuda(cudaMalloc(&d_x_, y_.at(0).size_ * sizeof(float)));
     check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
+    long adj_max_nnz = max_nnz(adjacencies_);
+    d_adj_.set(chunk_size_, chunk_size_, adj_max_nnz);
     if (mean_) {
         check_cuda(cudaMalloc(&d_sum_, y_.at(0).num_rows_ * sizeof(float)));
     }
@@ -188,6 +190,7 @@ void FeatureAggregationChunked::allocate_gpu_memory() {
 void FeatureAggregationChunked::free_gpu_memory() {
     check_cuda(cudaFree(d_x_));
     check_cuda(cudaFree(d_y_));
+    d_adj_.free();
     if (mean_) {
         check_cuda(cudaFree(d_sum_));
     }
@@ -208,14 +211,13 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::forward(std::vector<Matri
         check_cuda(cudaMemset(d_y_, 0, y_.at(i).size_ * sizeof(float)));
 
         for (int j = 0; j < num_chunks_; ++j) {
-            SparseMatrixCuda<float> d_adj_i;
             SparseMatrix<float> *adj = &adjacencies_->at(i * num_chunks_ + j);
             if (adj->nnz_ > 0) {
-                malloc_memcpy_sp_mat(&d_adj_i, adj);
+                memcpy_sp_mat(&d_adj_, adj);
 
                 check_cuda(cudaMemcpy(d_x_, x->at(j).values_, x->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
 
-                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_x_, d_y_, x->at(j).num_columns_, true);
+                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_, d_x_, d_y_, x->at(j).num_columns_, true);
             }
         }
 
@@ -252,10 +254,9 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::backward(std::vector<Matr
         check_cuda(cudaMemset(d_x_, 0, gradients_.at(i).size_ * sizeof(float)));
 
         for (int j = 0; j < num_chunks_; ++j) {
-            SparseMatrixCuda<float> d_adj_i;
             SparseMatrix<float> *adj = &adjacencies_->at(i * num_chunks_ + j);
             if (adj->nnz_ > 0) {
-                malloc_memcpy_sp_mat(&d_adj_i, &adjacencies_->at(i * num_chunks_ + j));
+                memcpy_sp_mat(&d_adj_, adj);
 
                 check_cuda(cudaMemcpy(d_y_, incoming_gradients->at(j).values_, incoming_gradients->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
 
@@ -266,7 +267,7 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::backward(std::vector<Matr
                     div_mat_vec(d_y_, d_sum_, incoming_gradients->at(j).num_rows_, incoming_gradients->at(j).num_columns_);
                 }
 
-                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_y_, d_x_, incoming_gradients->at(j).num_columns_, true);
+                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_, d_y_, d_x_, incoming_gradients->at(j).num_columns_, true);
             }
         }
 
