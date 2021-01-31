@@ -4,6 +4,7 @@
 #define ALZHEIMER_MEMORY_MODEL_H
 
 #include <vector>
+#include <string>
 
 class ChunkSizeEquation {
     // a * chunk_size + b = max_num_elements_
@@ -21,10 +22,40 @@ public:
 };
 
 class MemoryModel {
+protected:
+    std::string name_;
+    long memory_usage_;
+    long a_;
+    long b_;
+
 public:
     virtual ~MemoryModel();
-    virtual long get_memory_usage() = 0;
-    virtual std::vector<long> get_chunk_size_coefficients() = 0;
+    std::string get_name();
+    virtual long get_memory_usage();
+    virtual std::vector<long> get_chunk_size_coefficients();
+    virtual long get_max_chunk_size(long max_num_elements);
+};
+
+struct ChunkSizeLayer {
+    MemoryModel *layer;
+    long chunk_size;
+};
+
+struct MemoryUsageLayer {
+    MemoryModel *layer;
+    long memory_usage;
+};
+
+class CompositionMemoryModel : public MemoryModel {
+protected:
+    std::vector<MemoryModel *> layers_;
+public:
+    ~CompositionMemoryModel();
+    long get_memory_usage() override;
+    MemoryUsageLayer get_memory_usage_layer();
+    std::vector<long> get_chunk_size_coefficients() override;
+    long get_max_chunk_size(long max_num_elements) override;
+    ChunkSizeLayer get_max_chunk_size_layer(long max_num_elements);
 };
 
 class DropoutMemoryModel : public MemoryModel {
@@ -34,8 +65,6 @@ private:
 
 public:
     DropoutMemoryModel(long num_nodes, long num_features);
-    long get_memory_usage() override;
-    std::vector<long> get_chunk_size_coefficients() override;
 };
 
 class ReluMemoryModel : public MemoryModel {
@@ -45,8 +74,6 @@ private:
 
 public:
     ReluMemoryModel(long num_nodes, long num_features);
-    long get_memory_usage() override;
-    std::vector<long> get_chunk_size_coefficients() override;
 };
 
 class LogSoftmaxMemoryModel : public MemoryModel {
@@ -56,8 +83,6 @@ private:
 
 public:
     LogSoftmaxMemoryModel(long num_nodes, long num_features);
-    long get_memory_usage() override;
-    std::vector<long> get_chunk_size_coefficients() override;
 };
 
 class LinearMemoryModel : public MemoryModel {
@@ -68,8 +93,6 @@ private:
 
 public:
     LinearMemoryModel(long num_nodes, long num_in_features, long num_out_features);
-    long get_memory_usage() override;
-    std::vector<long> get_chunk_size_coefficients() override;
 };
 
 class FeatureAggregationMemoryModel : public MemoryModel {
@@ -80,8 +103,6 @@ private:
 
 public:
     FeatureAggregationMemoryModel(long num_nodes, long num_features, long num_edges);
-    long get_memory_usage() override;
-    std::vector<long> get_chunk_size_coefficients() override;
 };
 
 class AddMemoryModel : public MemoryModel {
@@ -91,33 +112,17 @@ private:
 
 public:
     AddMemoryModel(long num_nodes, long num_features);
-    long get_memory_usage() override;
-    std::vector<long> get_chunk_size_coefficients() override;
 };
 
-class SAGEConvolutionMemoryModel : public MemoryModel {
-private:
-    std::vector<MemoryModel *> layers_;
-
+class SAGEConvolutionMemoryModel : public CompositionMemoryModel {
 public:
     SAGEConvolutionMemoryModel(long num_nodes, long num_in_features, long num_out_features, long num_edges);
-    ~SAGEConvolutionMemoryModel() override;
-    long get_memory_usage() override;
-    std::vector<long> get_chunk_size_coefficients() override;
 };
 
-class GraphSAGEMemoryModel : public MemoryModel {
-private:
-    std::vector<MemoryModel *> layers_;
-
+class GraphSAGEMemoryModel : public CompositionMemoryModel {
 public:
     GraphSAGEMemoryModel(long num_layers, long num_nodes, long num_edges,
                          long num_features, long num_hidden_channels, long num_classes);
-    ~GraphSAGEMemoryModel() override;
-    long get_memory_usage() override;
-    std::vector<long> get_chunk_size_coefficients() override;
-    long get_max_chunk_size(long max_num_elements);
 };
-
 
 #endif//ALZHEIMER_MEMORY_MODEL_H
