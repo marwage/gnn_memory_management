@@ -1,8 +1,7 @@
-// 2020 Marcel Wagenländer
+// Copyright 2020 Marcel Wagenländer
 
 #include "add.hpp"
 #include "dense_computation.hpp"
-#include "error_check.hpp"
 
 Add::Add() {}
 
