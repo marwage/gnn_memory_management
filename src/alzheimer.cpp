@@ -105,11 +105,7 @@ void alzheimer(Dataset dataset) {
     Matrix<float> *gradients;
     SageLinearGradients *sage_linear_gradients;
     float loss;
-
-    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + ".csv";
-    std::ofstream loss_file;
-    loss_file.open(path, std::ios::trunc);
-    loss_file << "epoch,loss\n";
+    std::string loss_file_string = "epoch,loss\n";
 
     int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
@@ -152,7 +148,7 @@ void alzheimer(Dataset dataset) {
 
         // loss
         loss = loss_layer.forward(signals, &classes);
-        loss_file << i << "," << loss << "\n";
+        loss_file_string.append(std::to_string(i) + "," + std::to_string(loss) + "\n");
 
         // BACKPROPAGATION
         //loss
@@ -200,6 +196,10 @@ void alzheimer(Dataset dataset) {
         adam.step();
     }// end training loop
 
+    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + ".csv";
+    std::ofstream loss_file;
+    loss_file.open(path, std::ios::trunc);
+    loss_file << loss_file_string;
     loss_file.close();
 }
 
@@ -312,11 +312,7 @@ void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
     Matrix<float> *loss_gradients;
     std::vector<Matrix<float>> loss_gradients_chunked(num_chunks);
     float loss;
-
-    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_" + std::to_string(chunk_size) + ".csv";
-    std::ofstream loss_file;
-    loss_file.open(path, std::ios::trunc);
-    loss_file << "epoch,loss\n";
+    std::string loss_file_string = "epoch,loss\n";
 
     int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
@@ -359,7 +355,7 @@ void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
 
         // loss
         loss = loss_layer.forward(signals, &classes);
-        loss_file << i << "," << loss << "\n";
+        loss_file_string.append(std::to_string(i) + "," + std::to_string(loss) + "\n");
 
         // BACKPROPAGATION
         //loss
@@ -409,6 +405,10 @@ void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
         adam.step();
     }// end training loop
 
+    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_chunking_" + std::to_string(chunk_size) + ".csv";
+    std::ofstream loss_file;
+    loss_file.open(path, std::ios::trunc);
+    loss_file << loss_file_string;
     loss_file.close();
 }
 
@@ -517,11 +517,7 @@ void alzheimer_pipelined(Dataset dataset, long chunk_size) {
     Matrix<float> *loss_gradients;
     std::vector<Matrix<float>> loss_gradients_chunked(num_chunks);
     float loss;
-
-    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_" + std::to_string(chunk_size) + ".csv";
-    std::ofstream loss_file;
-    loss_file.open(path, std::ios::trunc);
-    loss_file << "epoch,loss\n";
+    std::string loss_file_string = "epoch,loss\n";
 
     int num_epochs = 10;
     for (int i = 0; i < num_epochs; ++i) {
@@ -564,7 +560,7 @@ void alzheimer_pipelined(Dataset dataset, long chunk_size) {
 
         // loss
         loss = loss_layer.forward(signals, &classes);
-        loss_file << i << "," << loss << "\n";
+        loss_file_string.append(std::to_string(i) + "," + std::to_string(loss) + "\n");
 
         // BACKPROPAGATION
         //loss
@@ -614,5 +610,9 @@ void alzheimer_pipelined(Dataset dataset, long chunk_size) {
         adam.step();
     }// end training loop
 
+    path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_pipelining_" + std::to_string(chunk_size) + ".csv";
+    std::ofstream loss_file;
+    loss_file.open(path, std::ios::trunc);
+    loss_file << loss_file_string;
     loss_file.close();
 }

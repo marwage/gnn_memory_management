@@ -105,6 +105,16 @@ public:
     FeatureAggregationMemoryModel(long num_nodes, long num_features, long num_edges);
 };
 
+class FeatureAggregationMeanMemoryModel : public MemoryModel {
+private:
+    long num_nodes_;
+    long num_features_;
+    long num_edges_;
+
+public:
+    FeatureAggregationMeanMemoryModel(long num_nodes, long num_features, long num_edges);
+};
+
 class AddMemoryModel : public MemoryModel {
 private:
     long num_nodes_;
@@ -119,9 +129,20 @@ public:
     SAGEConvolutionMemoryModel(long num_nodes, long num_in_features, long num_out_features, long num_edges);
 };
 
+class SAGEConvolutionMeanMemoryModel : public CompositionMemoryModel {
+public:
+    SAGEConvolutionMeanMemoryModel(long num_nodes, long num_in_features, long num_out_features, long num_edges);
+};
+
 class GraphSAGEMemoryModel : public CompositionMemoryModel {
 public:
     GraphSAGEMemoryModel(long num_layers, long num_nodes, long num_edges,
+                         long num_features, long num_hidden_channels, long num_classes);
+};
+
+class GraphSAGEMeanMemoryModel : public CompositionMemoryModel {
+public:
+    GraphSAGEMeanMemoryModel(long num_layers, long num_nodes, long num_edges,
                          long num_features, long num_hidden_channels, long num_classes);
 };
 

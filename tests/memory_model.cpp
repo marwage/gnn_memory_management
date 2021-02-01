@@ -96,6 +96,22 @@ TEST_CASE("Memory model, GraphSAGE", "[model][graphsage]") {
     }
 }
 
+TEST_CASE("Memory model, GraphSAGE, mean", "[model][graphsage][aggrmean]") {
+    // Model parameters
+    long num_layers = 3;
+    long num_hidden_channels = 256;
+
+    std::vector<Dataset> datasets = {flickr, reddit, products, ivy};
+
+    for (Dataset &dataset: datasets) {
+        DatasetStats dataset_stats = get_dataset_stats(dataset);
+        GraphSAGEMeanMemoryModel model(num_layers, dataset_stats.num_nodes, dataset_stats.num_edges, dataset_stats.num_features,
+                                   num_hidden_channels, dataset_stats.num_classes);
+
+        CHECK(test_composition_memory_model(&model, dataset));
+    }
+}
+
 TEST_CASE("Memory model, Dropout", "[model][dropout]") {
     std::vector<Dataset> datasets = {flickr, reddit, products, ivy};
 

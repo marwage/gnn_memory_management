@@ -192,6 +192,18 @@ FeatureAggregationMemoryModel::FeatureAggregationMemoryModel(long num_nodes, lon
     b_ = 2 * num_edges + 1;
 }
 
+FeatureAggregationMeanMemoryModel::FeatureAggregationMeanMemoryModel(long num_nodes, long num_features, long num_edges) {
+    name_ = "Feature aggregation";
+    num_nodes_ = num_nodes;
+    num_features_ = num_features;
+    num_edges_ = num_edges;
+    // 2 * E + (C + 1) + 2 * C * I + C
+    memory_usage_ = 2 * num_edges + num_nodes + 1;
+    memory_usage_ = memory_usage_ + 2 * num_nodes * num_features + num_nodes;
+    a_ = 2 * (num_edges / num_nodes) + + 2 * num_features + 2;
+    b_ = 1;
+}
+
 AddMemoryModel::AddMemoryModel(long num_nodes, long num_features) {
     name_ = "Add";
     num_nodes_ = num_nodes;
@@ -208,6 +220,16 @@ SAGEConvolutionMemoryModel::SAGEConvolutionMemoryModel(long num_nodes, long num_
 
     layers_ = {new LinearMemoryModel(num_nodes, num_in_features, num_out_features), // self
                new FeatureAggregationMemoryModel(num_nodes, num_in_features, num_edges),
+               new LinearMemoryModel(num_nodes, num_in_features, num_out_features), // neighbourhood
+               new AddMemoryModel(num_nodes, num_out_features), // self + neighbourhood
+               new AddMemoryModel(num_nodes, num_in_features)}; // self + neighbourhood gradients
+}
+
+SAGEConvolutionMeanMemoryModel::SAGEConvolutionMeanMemoryModel(long num_nodes, long num_in_features, long num_out_features, long num_edges) {
+    name_ = "SAGE-Convolution";
+
+    layers_ = {new LinearMemoryModel(num_nodes, num_in_features, num_out_features), // self
+               new FeatureAggregationMeanMemoryModel(num_nodes, num_in_features, num_edges),
                new LinearMemoryModel(num_nodes, num_in_features, num_out_features), // neighbourhood
                new AddMemoryModel(num_nodes, num_out_features), // self + neighbourhood
                new AddMemoryModel(num_nodes, num_in_features)}; // self + neighbourhood gradients
@@ -231,6 +253,27 @@ GraphSAGEMemoryModel::GraphSAGEMemoryModel(long num_layers, long num_nodes, long
         } else {
             layers_.push_back(new DropoutMemoryModel(num_nodes, num_hidden_channels));
             layers_.push_back(new SAGEConvolutionMemoryModel(num_nodes, num_hidden_channels, num_hidden_channels, num_edges));
+            layers_.push_back(new ReluMemoryModel(num_nodes, num_hidden_channels));
+        }
+    }
+}
+
+GraphSAGEMeanMemoryModel::GraphSAGEMeanMemoryModel(long num_layers, long num_nodes, long num_edges,
+                                           long num_features, long num_hidden_channels, long num_classes) {
+    name_ = "GraphSAGE";
+
+    for (long i = 0; i < num_layers; ++i) {
+        if (i == 0) {
+            layers_.push_back(new DropoutMemoryModel(num_nodes, num_features));
+            layers_.push_back(new SAGEConvolutionMeanMemoryModel(num_nodes, num_features, num_hidden_channels, num_edges));
+            layers_.push_back(new ReluMemoryModel(num_nodes, num_hidden_channels));
+        } else if (i == num_layers - 1) {
+            layers_.push_back(new DropoutMemoryModel(num_nodes, num_hidden_channels));
+            layers_.push_back(new SAGEConvolutionMeanMemoryModel(num_nodes, num_hidden_channels, num_classes, num_edges));
+            layers_.push_back(new LogSoftmaxMemoryModel(num_nodes, num_classes));
+        } else {
+            layers_.push_back(new DropoutMemoryModel(num_nodes, num_hidden_channels));
+            layers_.push_back(new SAGEConvolutionMeanMemoryModel(num_nodes, num_hidden_channels, num_hidden_channels, num_edges));
             layers_.push_back(new ReluMemoryModel(num_nodes, num_hidden_channels));
         }
     }
