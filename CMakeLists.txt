@@ -48,7 +48,8 @@ set(SOURCE_FILES
         src/dataset.cpp
         src/sage_convolution.cpp
         src/layer.cpp
-        src/memory_model.cpp)
+        src/memory_model.cpp
+        src/transpose.cu)
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})

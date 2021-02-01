@@ -6,6 +6,7 @@
 
 #include <benchmark/benchmark.h>
 #include <string>
+#include <iostream>
 
 
 void benchmark_alzheimer(Dataset dataset, benchmark::State &state) {
@@ -102,23 +103,27 @@ BENCHMARK(BM_Alzheimer_Chunked_Keep_Ivy)->RangeMultiplier(2)->Range(1 << 14, 1 <
 
 // some chunk size
 
-static void BM_Alzheimer_Chunked_Ivy_X(benchmark::State &state) {
-    benchmark_alzheimer_chunked(ivy, false, state);
-}
-BENCHMARK(BM_Alzheimer_Chunked_Ivy_X)->Arg(3132221);
+//static void BM_Alzheimer_Chunked_Ivy_X(benchmark::State &state) {
+//    std::cout << "Start BM_Alzheimer_Chunked_Ivy_X" << std::endl;
+//    benchmark_alzheimer_chunked(ivy, false, state);
+//}
+//BENCHMARK(BM_Alzheimer_Chunked_Ivy_X)->Arg(3132221);
 
 static void BM_Alzheimer_Chunked_Reddit_X_Keep(benchmark::State &state) {
-    benchmark_alzheimer_chunked(reddit, false, state);
+    std::cout << "Start BM_Alzheimer_Chunked_Reddit_X_Keep" << std::endl;
+    benchmark_alzheimer_chunked(reddit, true, state);
 }
 BENCHMARK(BM_Alzheimer_Chunked_Reddit_X_Keep)->Arg(217072);
 
 static void BM_Alzheimer_Chunked_Products_X_Keep(benchmark::State &state) {
+    std::cout << "Start BM_Alzheimer_Chunked_Products_X_Keep" << std::endl;
     benchmark_alzheimer_chunked(products, true, state);
 }
 BENCHMARK(BM_Alzheimer_Chunked_Products_X_Keep)->Arg(374729);
 
 static void BM_Alzheimer_Chunked_Ivy_X_Keep(benchmark::State &state) {
-    benchmark_alzheimer_chunked(ivy, false, state);
+    std::cout << "Start BM_Alzheimer_Chunked_Ivy_X_Keep" << std::endl;
+    benchmark_alzheimer_chunked(ivy, true, state);
 }
 BENCHMARK(BM_Alzheimer_Chunked_Ivy_X_Keep)->Arg(262311);
 

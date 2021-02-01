@@ -15,6 +15,7 @@
 #include "tensors.hpp"
 
 #include <fstream>
+#include <chrono>
 
 const std::string dir_path = "/mnt/data";
 
@@ -204,6 +205,12 @@ void alzheimer(Dataset dataset) {
 }
 
 void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
+    // logging
+    std::string logging_string = "event,time\n";
+    std::chrono::duration<double, std::milli> time_span;
+    std::chrono::high_resolution_clock::time_point tp_now;
+    std::chrono::high_resolution_clock::time_point tp_start = std::chrono::high_resolution_clock::now();
+
     // read tensors
     // set path to directory
     std::string dataset_path = dir_path + "/" + get_dataset_name(dataset);
@@ -254,11 +261,16 @@ void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
 
     delete adjacency;
 
+    tp_now = std::chrono::high_resolution_clock::now();
+    time_span = tp_now - tp_start;
+    logging_string.append("loading_data," + std::to_string(time_span.count()) + "\n");
+
     // FORWARD PASS
     CudaHelper cuda_helper;
     float learning_rate = 0.0003;
     long num_hidden_channels = 256;
     long num_classes = get_dataset_num_classes(dataset);
+    long num_epochs = 10;
 
     // layers
     DropoutChunked dropout_0(&cuda_helper, chunk_size, num_nodes, num_features, keep_allocation);
@@ -305,6 +317,10 @@ void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
     parameter_gradients[5] = grads[1];
     Adam adam(&cuda_helper, learning_rate, parameters, parameter_gradients);
 
+    tp_now = std::chrono::high_resolution_clock::now();
+    time_span = tp_now - tp_start;
+    logging_string.append("initialisation," + std::to_string(time_span.count()) + "\n");
+
     std::vector<Matrix<float>> *signals;
     std::vector<Matrix<float>> *signals_dropout;
     std::vector<Matrix<float>> *gradients;
@@ -314,9 +330,7 @@ void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
     float loss;
     std::string loss_file_string = "epoch,loss\n";
 
-    int num_epochs = 10;
-    for (int i = 0; i < num_epochs; ++i) {
-
+    for (long i = 0; i < num_epochs; ++i) {
         // dropout 0
         signals_dropout = dropout_0.forward(&features_chunked);
 
@@ -403,8 +417,21 @@ void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
 
         // optimiser
         adam.step();
+
+        // measure duration of one epoch
+        tp_now = std::chrono::high_resolution_clock::now();
+        time_span = tp_now - tp_start;
+        logging_string.append("epoch_" + std::to_string(i) + "," + std::to_string(time_span.count()) + "\n");
     }// end training loop
 
+    // write logging file
+    path = "/tmp/benchmark/log_" + get_dataset_name(dataset) + "_chunking_" + std::to_string(chunk_size) + ".csv";
+    std::ofstream logging_file;
+    logging_file.open(path, std::ios::trunc);
+    logging_file << logging_string;
+    logging_file.close();
+
+    // epoch, loss
     path = "/tmp/benchmark/loss_" + get_dataset_name(dataset) + "_chunking_" + std::to_string(chunk_size) + ".csv";
     std::ofstream loss_file;
     loss_file.open(path, std::ios::trunc);
