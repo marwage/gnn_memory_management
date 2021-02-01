@@ -102,30 +102,25 @@ BENCHMARK(BM_Alzheimer_Chunked_Keep_Ivy)->RangeMultiplier(2)->Range(1 << 14, 1 <
 
 // some chunk size
 
-static void BM_Alzheimer_Chunked_Flickr_X(benchmark::State &state) {
-    benchmark_alzheimer_chunked(flickr, false, state);
+static void BM_Alzheimer_Chunked_Ivy_X(benchmark::State &state) {
+    benchmark_alzheimer_chunked(ivy, false, state);
 }
-BENCHMARK(BM_Alzheimer_Chunked_Flickr_X)->Arg(655981);
+BENCHMARK(BM_Alzheimer_Chunked_Ivy_X)->Arg(3132221);
 
-static void BM_Alzheimer_Chunked_Reddit_X(benchmark::State &state) {
+static void BM_Alzheimer_Chunked_Reddit_X_Keep(benchmark::State &state) {
     benchmark_alzheimer_chunked(reddit, false, state);
 }
-BENCHMARK(BM_Alzheimer_Chunked_Reddit_X)->Arg(232965);
-
-static void BM_Alzheimer_Chunked_Products_X(benchmark::State &state) {
-    benchmark_alzheimer_chunked(products, false, state);
-}
-BENCHMARK(BM_Alzheimer_Chunked_Products_X)->Arg(2097152); // memory model: 3918592
+BENCHMARK(BM_Alzheimer_Chunked_Reddit_X_Keep)->Arg(217072);
 
 static void BM_Alzheimer_Chunked_Products_X_Keep(benchmark::State &state) {
     benchmark_alzheimer_chunked(products, true, state);
 }
-BENCHMARK(BM_Alzheimer_Chunked_Products_X_Keep)->Arg(344896);
+BENCHMARK(BM_Alzheimer_Chunked_Products_X_Keep)->Arg(374729);
 
-static void BM_Alzheimer_Chunked_Ivy_X(benchmark::State &state) {
+static void BM_Alzheimer_Chunked_Ivy_X_Keep(benchmark::State &state) {
     benchmark_alzheimer_chunked(ivy, false, state);
 }
-BENCHMARK(BM_Alzheimer_Chunked_Ivy_X)->Arg(330989);
+BENCHMARK(BM_Alzheimer_Chunked_Ivy_X_Keep)->Arg(262311);
 
 // PIPELINED --- PIPELINED --- PIPELINED
 

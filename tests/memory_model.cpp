@@ -5,6 +5,7 @@
 
 #include <catch2/catch.hpp>
 #include <iostream>
+#include <math.h>
 
 long test_composition_memory_model(CompositionMemoryModel *model, Dataset dataset) {
     long mib = 1 << 20;
@@ -22,6 +23,10 @@ long test_composition_memory_model(CompositionMemoryModel *model, Dataset datase
     long max_num_elements = (16160 - 853) * mib / 4;
     long chunk_size = model->get_max_chunk_size(max_num_elements);
     std::cout << "Max chunk size: " << std::to_string(chunk_size) << " elements" << std::endl;
+    long min_num_chunks = ceil((double) dataset_stats.num_nodes / (double) chunk_size);
+    std::cout << "Min number of chunks: " << std::to_string(min_num_chunks) << std::endl;
+    long chunk_size_min_chunks = ceil((double) dataset_stats.num_nodes / (double) min_num_chunks);
+    std::cout << "Chunk size with min number of chunks: " << std::to_string(chunk_size_min_chunks) << " elements" << std::endl;
 
     MemoryUsageLayer memory_usage_layer = model->get_memory_usage_layer();
     long memory_usage_layer_mib = memory_usage_layer.memory_usage * 4 / mib;
@@ -55,31 +60,6 @@ long test_non_composition_memory_model(MemoryModel *model, Dataset dataset) {
     return 1;
 }
 
-class TwoLayerMemoryModel : public CompositionMemoryModel {
-public:
-    TwoLayerMemoryModel(long num_nodes, long num_in_features, long num_out_features, long num_edge);
-};
-
-TwoLayerMemoryModel::TwoLayerMemoryModel(long num_nodes, long num_in_features, long num_out_features, long num_edges) {
-    name_ = "Two-Layer";
-
-    layers_ = {new LinearMemoryModel(num_nodes, num_in_features, num_out_features),
-               new FeatureAggregationMemoryModel(num_nodes, num_in_features, num_edges)};
-}
-
-TEST_CASE("Memory model, TwoLayer", "[model][twolayer]") {
-    long num_hidden_channels = 256;
-
-    std::vector<Dataset> datasets = {flickr, reddit, products, ivy};
-
-    for (Dataset &dataset: datasets) {
-        DatasetStats dataset_stats = get_dataset_stats(dataset);
-        TwoLayerMemoryModel model(dataset_stats.num_nodes, dataset_stats.num_features, num_hidden_channels, dataset_stats.num_edges);
-
-        CHECK(test_composition_memory_model(&model, dataset));
-    }
-}
-
 TEST_CASE("Memory model, GraphSAGE", "[model][graphsage]") {
     // Model parameters
     long num_layers = 3;
@@ -90,22 +70,6 @@ TEST_CASE("Memory model, GraphSAGE", "[model][graphsage]") {
     for (Dataset &dataset: datasets) {
         DatasetStats dataset_stats = get_dataset_stats(dataset);
         GraphSAGEMemoryModel model(num_layers, dataset_stats.num_nodes, dataset_stats.num_edges, dataset_stats.num_features,
-                                   num_hidden_channels, dataset_stats.num_classes);
-
-        CHECK(test_composition_memory_model(&model, dataset));
-    }
-}
-
-TEST_CASE("Memory model, GraphSAGE, mean", "[model][graphsage][aggrmean]") {
-    // Model parameters
-    long num_layers = 3;
-    long num_hidden_channels = 256;
-
-    std::vector<Dataset> datasets = {flickr, reddit, products, ivy};
-
-    for (Dataset &dataset: datasets) {
-        DatasetStats dataset_stats = get_dataset_stats(dataset);
-        GraphSAGEMeanMemoryModel model(num_layers, dataset_stats.num_nodes, dataset_stats.num_edges, dataset_stats.num_features,
                                    num_hidden_channels, dataset_stats.num_classes);
 
         CHECK(test_composition_memory_model(&model, dataset));
