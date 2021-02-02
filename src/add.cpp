@@ -96,8 +96,8 @@ std::vector<Matrix<float>> *AddChunked::forward(std::vector<Matrix<float>> *a, s
 
     if (a->at(0).is_row_major_ != b->at(0).is_row_major_) {
         for (long i = 0; i < num_chunks_; ++i) {
-            to_row_major_inplace(&a->at(i));
-            to_row_major_inplace(&b->at(i));
+            to_column_major_inplace(&a->at(i));
+            to_column_major_inplace(&b->at(i));
         }
     }
 
@@ -180,8 +180,8 @@ std::vector<Matrix<float>> *AddPipelined::forward(std::vector<Matrix<float>> *a,
 
     if (a->at(0).is_row_major_ != b->at(0).is_row_major_) {
         for (long i = 0; i < num_chunks_; ++i) {
-            to_row_major_inplace(&a->at(i));
-            to_row_major_inplace(&b->at(i));
+            to_column_major_inplace(&a->at(i));
+            to_column_major_inplace(&b->at(i));
         }
     }
 

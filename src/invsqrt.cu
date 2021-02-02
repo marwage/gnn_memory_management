@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#include "elesq.h"
+#include "elesq.cuh"
 
 
 __global__ void invsqrt(float *x, float epsilon, int num_elements) {

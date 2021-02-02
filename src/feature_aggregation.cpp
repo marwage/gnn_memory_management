@@ -2,7 +2,7 @@
 
 #include "feature_aggregation.hpp"
 #include "cuda_helper.hpp"
-#include "divmv.h"
+#include "divmv.cuh"
 #include "sparse_computation.hpp"
 
 #include <cmath>
@@ -197,8 +197,10 @@ void FeatureAggregationChunked::free_gpu_memory() {
 }
 
 std::vector<Matrix<float>> *FeatureAggregationChunked::forward(std::vector<Matrix<float>> *x) {
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&x->at(i));
+    if (x->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&x->at(i));
+        }
     }
 
     if (!keep_allocation_) {
@@ -240,8 +242,10 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::forward(std::vector<Matri
 }
 
 std::vector<Matrix<float>> *FeatureAggregationChunked::backward(std::vector<Matrix<float>> *incoming_gradients) {
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&incoming_gradients->at(i));
+    if (incoming_gradients->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&incoming_gradients->at(i));
+        }
     }
 
     if (!keep_allocation_) {
@@ -305,8 +309,10 @@ void FeatureAggregationPipelined::set(CudaHelper *helper, std::vector<SparseMatr
 }
 
 std::vector<Matrix<float>> *FeatureAggregationPipelined::forward(std::vector<Matrix<float>> *x) {
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&x->at(i));
+    if (x->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&x->at(i));
+        }
     }
 
     check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
@@ -393,8 +399,10 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::forward(std::vector<Mat
 }
 
 std::vector<Matrix<float>> *FeatureAggregationPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
-    for (long i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&incoming_gradients->at(i));
+    if (incoming_gradients->at(0).is_row_major_) {
+        for (long i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&incoming_gradients->at(i));
+        }
     }
 
     check_cuda(cudaMalloc(&d_gradients_, gradients_.at(0).size_ * sizeof(float)));

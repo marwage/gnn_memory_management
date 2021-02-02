@@ -8,15 +8,33 @@
 
 class NLLLoss {
 private:
+    double loss_;
     long num_nodes_;
-    Matrix<int> *labels_ = NULL;
+    bool is_row_major_;
+    Matrix<int> *labels_;
     Matrix<float> gradients_;
 
 public:
     NLLLoss(long num_nodes, long num_features);
     float forward(Matrix<float> *x, Matrix<int> *labels);
-    float forward(std::vector<Matrix<float>> *x, Matrix<int> *labels);
     Matrix<float> *backward();
+};
+
+class NLLLossChunking {
+private:
+    double loss_;
+    long num_nodes_;
+    long num_chunks_;
+    long chunk_size_;
+    long last_chunk_size_;
+    bool is_row_major_;
+    Matrix<int> *labels_;
+    std::vector<Matrix<float>> gradients_;
+
+public:
+    NLLLossChunking(long num_nodes, long num_features, long chunk_size);
+    float forward(std::vector<Matrix<float>> *x, Matrix<int> *labels);
+    std::vector<Matrix<float>> *backward();
 };
 
 #endif

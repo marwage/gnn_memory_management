@@ -14,8 +14,8 @@
 #include "sparse_computation.hpp"
 #include "tensors.hpp"
 
-#include <fstream>
 #include <chrono>
+#include <fstream>
 
 const std::string dir_path = "/mnt/data";
 
@@ -290,8 +290,7 @@ void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
     AddChunked add_1(&cuda_helper, chunk_size, num_nodes, num_hidden_channels, keep_allocation);
     AddChunked add_2(&cuda_helper, chunk_size, num_nodes, num_hidden_channels, keep_allocation);
 
-    NLLLoss loss_layer(num_nodes, num_classes);
-
+    NLLLossChunking loss_layer(num_nodes, num_classes, chunk_size);
 
     // optimizer
     long num_parameters = 6;
@@ -325,8 +324,6 @@ void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
     std::vector<Matrix<float>> *signals_dropout;
     std::vector<Matrix<float>> *gradients;
     SageLinearGradientsChunked *sage_linear_gradients;
-    Matrix<float> *loss_gradients;
-    std::vector<Matrix<float>> loss_gradients_chunked(num_chunks);
     float loss;
     std::string loss_file_string = "epoch,loss\n";
 
@@ -373,12 +370,10 @@ void alzheimer_chunked(Dataset dataset, long chunk_size, bool keep_allocation) {
 
         // BACKPROPAGATION
         //loss
-        loss_gradients = loss_layer.backward();
-
-        chunk_up(loss_gradients, &loss_gradients_chunked, chunk_size);
+        gradients = loss_layer.backward();
 
         // log-softmax
-        gradients = log_softmax.backward(&loss_gradients_chunked);
+        gradients = log_softmax.backward(gradients);
 
         // linear layer 2
         sage_linear_gradients = linear_2.backward(gradients);
@@ -497,7 +492,7 @@ void alzheimer_pipelined(Dataset dataset, long chunk_size) {
     long num_classes = get_dataset_num_classes(dataset);
 
     // layers
-    NLLLoss loss_layer(num_nodes, num_classes);
+    NLLLossChunking loss_layer(num_nodes, num_classes, chunk_size);
     AddPipelined add_1(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
     AddPipelined add_2(&cuda_helper, chunk_size, num_nodes, num_hidden_channels);
     DropoutPipelined dropout_0(&cuda_helper, chunk_size, num_nodes, num_features);
@@ -541,8 +536,6 @@ void alzheimer_pipelined(Dataset dataset, long chunk_size) {
     std::vector<Matrix<float>> *signals_dropout;
     std::vector<Matrix<float>> *gradients;
     SageLinearGradientsChunked *sage_linear_gradients;
-    Matrix<float> *loss_gradients;
-    std::vector<Matrix<float>> loss_gradients_chunked(num_chunks);
     float loss;
     std::string loss_file_string = "epoch,loss\n";
 
@@ -591,12 +584,10 @@ void alzheimer_pipelined(Dataset dataset, long chunk_size) {
 
         // BACKPROPAGATION
         //loss
-        loss_gradients = loss_layer.backward();
-
-        chunk_up(loss_gradients, &loss_gradients_chunked, chunk_size);
+        gradients = loss_layer.backward();
 
         // log-softmax
-        gradients = log_softmax.backward(&loss_gradients_chunked);
+        gradients = log_softmax.backward(gradients);
 
         // linear layer 2
         sage_linear_gradients = linear_2.backward(gradients);

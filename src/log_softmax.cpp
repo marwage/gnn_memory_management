@@ -221,8 +221,10 @@ std::vector<Matrix<float>> *LogSoftmaxChunked::forward(std::vector<Matrix<float>
     if ((long) x->size() != num_chunks_) {
         throw "Input has wrong number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_row_major_inplace(&x->at(i));
+    if (!x->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_row_major_inplace(&x->at(i));
+        }
     }
 
     if (!keep_allocation_) {
@@ -257,9 +259,11 @@ std::vector<Matrix<float>> *LogSoftmaxChunked::backward(std::vector<Matrix<float
     if ((long) incoming_gradients->size() != num_chunks_) {
         throw "Incoming gradients has wrong number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_row_major_inplace(&incoming_gradients->at(i));
-        to_row_major_inplace(&y_.at(i));
+    if (!incoming_gradients->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_row_major_inplace(&incoming_gradients->at(i));
+            to_row_major_inplace(&y_.at(i));
+        }
     }
 
     if (!keep_allocation_) {
@@ -366,14 +370,15 @@ void LogSoftmaxPipelined::backward_compute(long chunk, long buffer) {
 }
 
 std::vector<Matrix<float>> *LogSoftmaxPipelined::forward(std::vector<Matrix<float>> *x) {
-    x_ = x;
-
     if ((long) x->size() != num_chunks_) {
         throw "Input has wrong number of chunks";
     }
-    for (long i = 0; i < num_chunks_; ++i) {
-        to_row_major_inplace(&x->at(i));
+    if (!x->at(0).is_row_major_) {
+        for (long i = 0; i < num_chunks_; ++i) {
+            to_row_major_inplace(&x->at(i));
+        }
     }
+    x_ = x;
 
     // allocate
     for (long j = 0; j < num_steps_; ++j) {
@@ -399,15 +404,16 @@ std::vector<Matrix<float>> *LogSoftmaxPipelined::forward(std::vector<Matrix<floa
 }
 
 std::vector<Matrix<float>> *LogSoftmaxPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
-    incoming_gradients_ = incoming_gradients;
-
     if ((long) incoming_gradients->size() != num_chunks_) {
         throw "Incoming gradients has wrong number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_row_major_inplace(&incoming_gradients->at(i));
-        to_row_major_inplace((&y_.at(i)));
+    if (!incoming_gradients->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_row_major_inplace(&incoming_gradients->at(i));
+            to_row_major_inplace((&y_.at(i)));
+        }
     }
+    incoming_gradients_ = incoming_gradients;
 
     // allocate
     for (long j = 0; j < num_steps_; ++j) {

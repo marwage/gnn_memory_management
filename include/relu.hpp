@@ -15,6 +15,7 @@ protected:
     CudaHelper *cuda_helper_;
     float alpha_;
     float beta_;
+    bool is_row_major_;
     cudnnActivationDescriptor_t relu_desc_;
     Matrix<float> *x_;
     Matrix<float> y_;
@@ -32,6 +33,7 @@ class ReluChunked : public LayerChunked {
 protected:
     float alpha_;
     float beta_;
+    bool is_row_major_;
     cudnnActivationDescriptor_t relu_desc_;
     std::vector<Matrix<float>> *x_ = NULL;
 
@@ -67,6 +69,7 @@ public:
 class ReluPipelined : public LayerPipelined, public ReluChunked {
 protected:
     long num_steps_;
+    bool is_row_major_;
     std::vector<cudnnTensorDescriptor_t> x_desc_;
     std::vector<cudnnTensorDescriptor_t> y_desc_;
     std::vector<cudnnTensorDescriptor_t> dx_desc_;

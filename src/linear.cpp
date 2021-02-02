@@ -150,6 +150,8 @@ Matrix<float> *Linear::forward(Matrix<float> *x) {
                           cudaMemcpyDeviceToHost));
     y_.is_row_major_ = false;
 
+    check_cuda(cudaFree(d_x));
+    check_cuda(cudaFree(d_y));
     Linear::free_gpu_memory_forward();
 
     return &y_;
@@ -248,6 +250,9 @@ Matrix<float> *Linear::backward(Matrix<float> *incoming_gradients) {
     check_cuda(cudaMemcpy(gradients_.values_, d_dx, gradients_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
+    check_cuda(cudaFree(d_dy));
+    check_cuda(cudaFree(d_x));
+    check_cuda(cudaFree(d_dx));
     Linear::copy_gradients_to_cpu();
     Linear::free_gpu_memory_backward();
 
@@ -357,14 +362,15 @@ void LinearChunked::free_gpu_memory() {
 }
 
 std::vector<Matrix<float>> *LinearChunked::forward(std::vector<Matrix<float>> *x) {
-    x_ = x;
-
     if ((long) x->size() != num_chunks_) {
         throw "Input has wrong number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&x->at(i));
+    if (x->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&x->at(i));
+        }
     }
+    x_ = x;
 
     if (!keep_allocation_) {
         allocate_gpu_memory_forward();
@@ -397,8 +403,10 @@ std::vector<Matrix<float>> *LinearChunked::backward(std::vector<Matrix<float>> *
     if (y_.size() != incoming_gradients->size()) {
         throw "Output and incoming gradients have a different number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&incoming_gradients->at(i));
+    if (incoming_gradients->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&incoming_gradients->at(i));
+        }
     }
 
     if (!keep_allocation_) {
@@ -467,14 +475,15 @@ void LinearPipelined::forward_compute(long chunk, long buffer) {
 }
 
 std::vector<Matrix<float>> *LinearPipelined::forward(std::vector<Matrix<float>> *x) {
-    x_ = x;
-
     if ((long) x->size() != num_chunks_) {
         throw "Input has wrong number of chunks";
     }
-    for (long i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&x->at(i));
+    if (x->at(0).is_row_major_) {
+        for (long i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&x->at(i));
+        }
     }
+    x_ = x;
 
     linear_.allocate_gpu_memory_forward();
     linear_.forward_init();
@@ -512,14 +521,15 @@ void LinearPipelined::backward_compute(long chunk, long buffer) {
 }
 
 std::vector<Matrix<float>> *LinearPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
-    incoming_gradients_ = incoming_gradients;
-
     if (y_.size() != incoming_gradients->size()) {
         throw "Output and incoming gradients have a different number of chunks";
     }
-    for (long i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&incoming_gradients->at(i));
+    if (incoming_gradients->at(0).is_row_major_) {
+        for (long i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&incoming_gradients->at(i));
+        }
     }
+    incoming_gradients_ = incoming_gradients;
 
     for (long i = 0; i < num_steps_; ++i) {
         check_cuda(cudaMalloc(&d_dy_.at(i), incoming_gradients->at(0).size_ * sizeof(float)));

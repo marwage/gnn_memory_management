@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#include "elesq.h"
+#include "elesq.cuh"
 
 
 __global__ void elesq(float *x, int num_elements) {

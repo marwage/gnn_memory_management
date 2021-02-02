@@ -3,8 +3,8 @@
 #ifndef ALZHEIMER_MEMORY_MODEL_H
 #define ALZHEIMER_MEMORY_MODEL_H
 
-#include <vector>
 #include <string>
+#include <vector>
 
 class ChunkSizeEquation {
     // a * chunk_size + b = max_num_elements_
@@ -49,6 +49,7 @@ struct MemoryUsageLayer {
 class CompositionMemoryModel : public MemoryModel {
 protected:
     std::vector<MemoryModel *> layers_;
+
 public:
     ~CompositionMemoryModel();
     long get_memory_usage() override;

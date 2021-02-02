@@ -67,7 +67,7 @@ TEST_CASE("Memory model, GraphSAGE", "[model][graphsage]") {
 
     std::vector<Dataset> datasets = {flickr, reddit, products, ivy};
 
-    for (Dataset &dataset: datasets) {
+    for (Dataset &dataset : datasets) {
         DatasetStats dataset_stats = get_dataset_stats(dataset);
         GraphSAGEMemoryModel model(num_layers, dataset_stats.num_nodes, dataset_stats.num_edges, dataset_stats.num_features,
                                    num_hidden_channels, dataset_stats.num_classes);
@@ -79,7 +79,7 @@ TEST_CASE("Memory model, GraphSAGE", "[model][graphsage]") {
 TEST_CASE("Memory model, Dropout", "[model][dropout]") {
     std::vector<Dataset> datasets = {flickr, reddit, products, ivy};
 
-    for (Dataset &dataset: datasets) {
+    for (Dataset &dataset : datasets) {
         DatasetStats dataset_stats = get_dataset_stats(dataset);
         DropoutMemoryModel model(dataset_stats.num_nodes, dataset_stats.num_features);
 

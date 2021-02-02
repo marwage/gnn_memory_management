@@ -24,8 +24,8 @@ void benchmark_layer(Layer *layer, Dataset dataset, benchmark::State &state, boo
     }
 
     // TODO create layer before benchmark_layer()
-//    CudaHelper cuda_helper;
-//    layer->set(&cuda_helper, features.num_rows_, features.num_columns_);
+    //    CudaHelper cuda_helper;
+    //    layer->set(&cuda_helper, features.num_rows_, features.num_columns_);
 
     if (!forward) {
         layer->forward(&features);

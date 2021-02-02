@@ -97,6 +97,9 @@ void to_column_major_inplace(Matrix<T> *mat);
 template<typename T>
 void to_row_major_inplace(Matrix<T> *mat);
 
+template<typename T>
+void to_major_inplace(Matrix<T> *mat, bool to_row);
+
 void get_rows(SparseMatrix<float> *reduced_mat, SparseMatrix<float> *mat, int start_row, int end_row);
 
 void print_sparse_matrix(SparseMatrix<float> *mat);

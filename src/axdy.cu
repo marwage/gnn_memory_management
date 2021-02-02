@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#include "axdy.h"
+#include "axdy.cuh"
 
 
 __global__ void axdy(float alpha, float *x, float *y, int num_elements) {

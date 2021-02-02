@@ -128,10 +128,6 @@ std::vector<Matrix<float>> *SageLinearChunked::forward(std::vector<Matrix<float>
     if (features->size() != aggr->size()) {
         throw "Features and aggregated features have a different number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&features->at(i));
-        to_column_major_inplace(&aggr->at(i));
-    }
 
     std::vector<Matrix<float>> *y_self = linear_self_.forward(features);
     std::vector<Matrix<float>> *y_neigh = linear_neigh_.forward(aggr);
@@ -144,10 +140,6 @@ SageLinearGradientsChunked *SageLinearChunked::backward(std::vector<Matrix<float
     if (y_->size() != incoming_gradients->size()) {
         throw "Output and incoming gradients have a different number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&incoming_gradients->at(i));
-    }
-
     input_gradients_.self_gradients = linear_self_.backward(incoming_gradients);
     input_gradients_.neighbourhood_gradients = linear_neigh_.backward(incoming_gradients);
 
@@ -209,10 +201,6 @@ std::vector<Matrix<float>> *SageLinearPipelined::forward(std::vector<Matrix<floa
     if (features->size() != aggr->size()) {
         throw "Features and aggregated features have a different number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&features->at(i));
-        to_column_major_inplace(&aggr->at(i));
-    }
 
     std::vector<Matrix<float>> *y_self = linear_self_.forward(features);
     std::vector<Matrix<float>> *y_neigh = linear_neigh_.forward(aggr);
@@ -224,9 +212,6 @@ std::vector<Matrix<float>> *SageLinearPipelined::forward(std::vector<Matrix<floa
 SageLinearGradientsChunked *SageLinearPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
     if (y_->size() != incoming_gradients->size()) {
         throw "Output and incoming gradients have a different number of chunks";
-    }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&incoming_gradients->at(i));
     }
 
     input_gradients_.self_gradients = linear_self_.backward(incoming_gradients);

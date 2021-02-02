@@ -1,6 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "invsqrt.h"
+#include "invsqrt.cuh"
 #include "cuda_helper.hpp"
 
 #include "catch2/catch.hpp"

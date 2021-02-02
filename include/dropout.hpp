@@ -20,6 +20,7 @@ protected:
     size_t reserve_space_size_;
     Matrix<float> y_;
     Matrix<float> gradients_;
+    bool is_row_major_;
 
 public:
     Dropout();
@@ -37,9 +38,10 @@ protected:
     CudaHelper *cuda_helper_;
     float probability_;
     unsigned long long seed_;
-    int chunk_size_;
-    int last_chunk_size_;
-    int num_chunks_;
+    long chunk_size_;
+    long last_chunk_size_;
+    long num_chunks_;
+    bool is_row_major_;
     size_t state_size_;
     std::vector<char *> reserve_space_;
     size_t reserve_space_size_;
@@ -72,6 +74,7 @@ public:
 class DropoutPipelined : public LayerPipelined, public DropoutChunked {
 protected:
     long num_steps_;
+    bool is_row_major_;
     std::vector<cudnnDropoutDescriptor_t> dropout_desc_;
     std::vector<cudnnTensorDescriptor_t> x_desc_;
     std::vector<cudnnTensorDescriptor_t> y_desc_;

@@ -5,8 +5,8 @@
 #include "gpu_memory_logger.hpp"
 
 #include <benchmark/benchmark.h>
-#include <string>
 #include <iostream>
+#include <string>
 
 
 void benchmark_alzheimer(Dataset dataset, benchmark::State &state) {

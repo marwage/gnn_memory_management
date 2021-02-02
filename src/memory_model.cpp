@@ -91,7 +91,7 @@ ChunkSizeLayer CompositionMemoryModel::get_max_chunk_size_layer(long max_num_ele
     MemoryModel *max_layer;
 
     for (MemoryModel *layer : layers_) {
-        CompositionMemoryModel* composition_layer = dynamic_cast<CompositionMemoryModel *>(layer);
+        CompositionMemoryModel *composition_layer = dynamic_cast<CompositionMemoryModel *>(layer);
         if (composition_layer != NULL) {
             ChunkSizeLayer chunk_size_layer = composition_layer->get_max_chunk_size_layer(max_num_elements);
             if (chunk_size_layer.chunk_size < max_chunk_size) {
@@ -118,7 +118,7 @@ MemoryUsageLayer CompositionMemoryModel::get_memory_usage_layer() {
     MemoryModel *max_layer;
 
     for (MemoryModel *layer : layers_) {
-        CompositionMemoryModel* composition_layer = dynamic_cast<CompositionMemoryModel *>(layer);
+        CompositionMemoryModel *composition_layer = dynamic_cast<CompositionMemoryModel *>(layer);
         if (composition_layer != NULL) {
             MemoryUsageLayer composition_layer_memory = composition_layer->get_memory_usage_layer();
             if (composition_layer_memory.memory_usage > max_memory_usage) {
@@ -201,7 +201,7 @@ FeatureAggregationScaledEMemoryModel::FeatureAggregationScaledEMemoryModel(long 
     // replace E with E / (N / C), divide E by number of chunks
     memory_usage_ = 2 * num_edges + num_nodes + 1;
     memory_usage_ = memory_usage_ + 2 * num_nodes * num_features + num_nodes;
-    a_ = 2 * (num_edges / num_nodes) + + 2 * num_features + 2;
+    a_ = 2 * (num_edges / num_nodes) + +2 * num_features + 2;
     b_ = 1;
 }
 
@@ -219,12 +219,12 @@ AddMemoryModel::AddMemoryModel(long num_nodes, long num_features) {
 SAGEConvolutionMemoryModel::SAGEConvolutionMemoryModel(long num_nodes, long num_in_features, long num_out_features, long num_edges) {
     name_ = "SAGE-Convolution";
 
-    layers_ = {new LinearMemoryModel(num_nodes, num_in_features, num_out_features), // self
-//               new FeatureAggregationMemoryModel(num_nodes, num_in_features, num_edges),
+    layers_ = {new LinearMemoryModel(num_nodes, num_in_features, num_out_features),// self
+                                                                                   //               new FeatureAggregationMemoryModel(num_nodes, num_in_features, num_edges),
                new FeatureAggregationScaledEMemoryModel(num_nodes, num_in_features, num_edges),
-               new LinearMemoryModel(num_nodes, num_in_features, num_out_features), // neighbourhood
-               new AddMemoryModel(num_nodes, num_out_features), // self + neighbourhood
-               new AddMemoryModel(num_nodes, num_in_features)}; // self + neighbourhood gradients
+               new LinearMemoryModel(num_nodes, num_in_features, num_out_features),// neighbourhood
+               new AddMemoryModel(num_nodes, num_out_features),                    // self + neighbourhood
+               new AddMemoryModel(num_nodes, num_in_features)};                    // self + neighbourhood gradients
 }
 
 // GNN MODEL

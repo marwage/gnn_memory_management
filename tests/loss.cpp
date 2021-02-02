@@ -6,14 +6,11 @@
 #include "tensors.hpp"
 
 #include "catch2/catch.hpp"
-#include <iostream>
 #include <string>
 
 const std::string home = std::getenv("HOME");
-const std::string dir_path = home + "/gpu_memory_reduction/alzheimer/data";
-const std::string flickr_dir_path = dir_path + "/flickr";
-const std::string test_dir_path = dir_path + "/tests";
-
+const std::string flickr_dir_path = "/mnt/data/flickr";
+const std::string test_dir_path = home + "/gpu_memory_reduction/alzheimer/data/tests";
 
 int test_loss() {
     int num_classes = 7;
@@ -25,13 +22,13 @@ int test_loss() {
     path = test_dir_path + "/input.npy";
     save_npy_matrix(&input, path);
 
+    // DEBUGGING
+    to_row_major_inplace(&input);
+
     NLLLoss loss_layer(input.num_rows_, input.num_columns_);
 
     float loss = loss_layer.forward(&input, &classes);
-    Matrix<float> loss_mat;
-    loss_mat.num_rows_ = 1;
-    loss_mat.num_columns_ = 1;
-    loss_mat.values_ = new float[1];
+    Matrix<float> loss_mat(1, 1, true);
     loss_mat.values_[0] = loss;
     path = test_dir_path + "/loss.npy";
     save_npy_matrix(&loss_mat, path);
@@ -61,21 +58,19 @@ int test_loss_chunked(long chunk_size) {
     std::vector<Matrix<float>> input_chunked(num_chunks);
     chunk_up(&input, &input_chunked, chunk_size);
 
-    NLLLoss loss_layer(input.num_rows_, input.num_columns_);
+    NLLLossChunking loss_layer(input.num_rows_, input.num_columns_, chunk_size);
 
     float loss = loss_layer.forward(&input_chunked, &classes);
-    std::cout << "Loss: " << loss << std::endl;
-    Matrix<float> loss_mat;
-    loss_mat.num_rows_ = 1;
-    loss_mat.num_columns_ = 1;
-    loss_mat.values_ = new float[1];
+    Matrix<float> loss_mat(1, 1, true);
     loss_mat.values_[0] = loss;
     path = test_dir_path + "/loss.npy";
     save_npy_matrix(&loss_mat, path);
 
-    Matrix<float> *gradients = loss_layer.backward();
+    std::vector<Matrix<float>> *gradients = loss_layer.backward();
+    Matrix<float> gradients_one(input.num_rows_, input.num_columns_, gradients->at(0).is_row_major_);
+    stitch(gradients, &gradients_one);
     path = test_dir_path + "/gradients.npy";
-    save_npy_matrix(gradients, path);
+    save_npy_matrix(&gradients_one, path);
 
     char command[] = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/loss.py";
     system(command);

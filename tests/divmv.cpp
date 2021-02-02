@@ -1,6 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "divmv.h"
+#include "divmv.cuh"
 #include "cuda_helper.hpp"
 
 #include "catch2/catch.hpp"

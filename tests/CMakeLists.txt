@@ -9,7 +9,6 @@ set(TEST_FILES
         tests/dropout.cpp
         tests/elesq.cpp
         tests/feature_aggregation.cpp
-        tests/integration.cpp
         tests/invsqrt.cpp
         tests/linear.cpp
         tests/log_softmax.cpp

@@ -4,10 +4,10 @@
 #include <cuda_runtime.h>
 
 #include "adam.hpp"
-#include "axdy.h"
-#include "axpby.h"
-#include "elesq.h"
-#include "invsqrt.h"
+#include "axdy.cuh"
+#include "axpby.cuh"
+#include "elesq.cuh"
+#include "invsqrt.cuh"
 
 
 Adam::Adam(CudaHelper *helper, float learning_rate, std::vector<Matrix<float> *> parameters, std::vector<Matrix<float> *> gradients) {

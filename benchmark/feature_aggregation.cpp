@@ -29,7 +29,7 @@ void benchmark_feature_aggregation(Dataset dataset, benchmark::State &state, boo
     }
 
     CudaHelper cuda_helper;
-    FeatureAggregation feature_aggr(&cuda_helper, features.num_rows_, features.num_columns_, &adjacency, mean,  &adjacency_row_sum);
+    FeatureAggregation feature_aggr(&cuda_helper, features.num_rows_, features.num_columns_, &adjacency, mean, &adjacency_row_sum);
 
     if (!forward) {
         feature_aggr.forward(&features);
