@@ -1,5 +1,7 @@
 // Copyright 2021 Marcel Wagenländer
 
+// https://github.com/NVIDIA-developer-blog/code-samples/blob/master/series/cuda-cpp/transpose/transpose.cu
+
 const int TILE_DIM = 32;
 const int BLOCK_ROWS = 8;
 
