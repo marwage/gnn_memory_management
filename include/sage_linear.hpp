@@ -73,7 +73,10 @@ protected:
 public:
     SageLinearChunked();
     SageLinearChunked(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes);
+    SageLinearChunked(CudaHelper *helper, long num_in_features, long num_out_features,
+                      long chunk_size, long num_nodes, bool keep_allocation);
     void set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) override;
+    void set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes, bool keep_allocation);
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *features, std::vector<Matrix<float>> *aggr) override;
     SageLinearGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients) override;
     std::vector<Matrix<float> *> get_parameters() override;

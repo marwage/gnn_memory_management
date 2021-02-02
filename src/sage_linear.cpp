@@ -72,7 +72,16 @@ SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, l
     set(helper, num_in_features, num_out_features, chunk_size, num_nodes);
 }
 
+SageLinearChunked::SageLinearChunked(CudaHelper *helper, long num_in_features, long num_out_features,
+                                     long chunk_size, long num_nodes, bool keep_allocation) {
+    SageLinearChunked::set(helper, num_in_features, num_out_features, chunk_size, num_nodes, keep_allocation);
+}
+
 void SageLinearChunked::set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes) {
+    SageLinearChunked::set(helper, num_in_features, num_out_features, chunk_size, num_nodes, false);
+}
+
+void SageLinearChunked::set(CudaHelper *helper, long num_in_features, long num_out_features, long chunk_size, long num_nodes, bool keep_allocation) {
     name_ = "sage-linear_chunked";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
@@ -86,9 +95,9 @@ void SageLinearChunked::set(CudaHelper *helper, long num_in_features, long num_o
         last_chunk_size_ = chunk_size_;
     }
 
-    linear_self_.set(cuda_helper_, chunk_size, num_nodes, num_in_features_, num_out_features_);
-    linear_neigh_.set(cuda_helper_, chunk_size, num_nodes, num_in_features_, num_out_features_);
-    add_.set(cuda_helper_, chunk_size, num_nodes, num_out_features);
+    linear_self_.set(cuda_helper_, chunk_size, num_nodes, num_in_features_, num_out_features_, keep_allocation);
+    linear_neigh_.set(cuda_helper_, chunk_size, num_nodes, num_in_features_, num_out_features_, keep_allocation);
+    add_.set(cuda_helper_, chunk_size, num_nodes, num_out_features, keep_allocation);
 }
 
 std::vector<Matrix<float> *> SageLinearChunked::get_parameters() {
@@ -119,10 +128,6 @@ std::vector<Matrix<float>> *SageLinearChunked::forward(std::vector<Matrix<float>
     if (features->size() != aggr->size()) {
         throw "Features and aggregated features have a different number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&features->at(i));
-        to_column_major_inplace(&aggr->at(i));
-    }
 
     std::vector<Matrix<float>> *y_self = linear_self_.forward(features);
     std::vector<Matrix<float>> *y_neigh = linear_neigh_.forward(aggr);
@@ -135,10 +140,6 @@ SageLinearGradientsChunked *SageLinearChunked::backward(std::vector<Matrix<float
     if (y_->size() != incoming_gradients->size()) {
         throw "Output and incoming gradients have a different number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&incoming_gradients->at(i));
-    }
-
     input_gradients_.self_gradients = linear_self_.backward(incoming_gradients);
     input_gradients_.neighbourhood_gradients = linear_neigh_.backward(incoming_gradients);
 
@@ -200,10 +201,6 @@ std::vector<Matrix<float>> *SageLinearPipelined::forward(std::vector<Matrix<floa
     if (features->size() != aggr->size()) {
         throw "Features and aggregated features have a different number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&features->at(i));
-        to_column_major_inplace(&aggr->at(i));
-    }
 
     std::vector<Matrix<float>> *y_self = linear_self_.forward(features);
     std::vector<Matrix<float>> *y_neigh = linear_neigh_.forward(aggr);
@@ -215,9 +212,6 @@ std::vector<Matrix<float>> *SageLinearPipelined::forward(std::vector<Matrix<floa
 SageLinearGradientsChunked *SageLinearPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
     if (y_->size() != incoming_gradients->size()) {
         throw "Output and incoming gradients have a different number of chunks";
-    }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&incoming_gradients->at(i));
     }
 
     input_gradients_.self_gradients = linear_self_.backward(incoming_gradients);

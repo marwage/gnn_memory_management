@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#include "axpby.h"
+#include "axpby.cuh"
 
 
 __global__ void axpby(float alpha, float *x, float beta, float *y, int num_elements) {

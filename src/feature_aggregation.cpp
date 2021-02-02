@@ -2,43 +2,30 @@
 
 #include "feature_aggregation.hpp"
 #include "cuda_helper.hpp"
-#include "divmv.h"
+#include "divmv.cuh"
 #include "sparse_computation.hpp"
 
 #include <cmath>
 #include <string>
 
-
 FeatureAggregation::FeatureAggregation() {}
 
-FeatureAggregation::FeatureAggregation(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                                       long num_nodes, long num_features, Matrix<float> *sum) {
-    set(helper, adjacency, reduction, num_nodes, num_features, sum);
+FeatureAggregation::FeatureAggregation(CudaHelper *helper, long num_nodes, long num_features,
+                                       SparseMatrix<float> *adjacency, AggregationReduction reduction, Matrix<float> *adjacency_row_sum) {
+    set(helper, num_nodes, num_features, adjacency, reduction, adjacency_row_sum);
 }
 
-void FeatureAggregation::set(CudaHelper *helper, SparseMatrix<float> *adjacency, std::string reduction,
-                             long num_nodes, long num_features, Matrix<float> *sum) {
+void FeatureAggregation::set(CudaHelper *helper, long num_nodes, long num_features,
+                             SparseMatrix<float> *adjacency, AggregationReduction reduction, Matrix<float> *adjacency_row_sum) {
     name_ = "feature-aggregation";
     cuda_helper_ = helper;
     adjacency_ = adjacency;
     reduction_ = reduction;
-    if (reduction_.compare("mean") == 0) {
-        mean_ = true;
-    } else if (reduction_.compare("sum") == 0) {
-        mean_ = false;
-    } else {
-        throw "Reduction not supported";
-    }
 
     y_.set(num_nodes, num_features, false);
     gradients_.set(num_nodes, num_features, false);
 
-    if (mean_) {
-        sum_.set(num_nodes, 1, false);
-        sp_mat_sum_rows(cuda_helper_, adjacency_, &sum_);
-    }
-
-    adjacency_row_sum_ = sum;
+    adjacency_row_sum_ = adjacency_row_sum;
 }
 
 Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
@@ -48,7 +35,7 @@ Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
     check_cuda(cudaMalloc(&d_y, y_.size_ * sizeof(float)));
 
     float *d_sum;
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaMalloc(&d_sum, y_.num_rows_ * sizeof(float)));
     }
 
@@ -62,7 +49,7 @@ Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
 
     sp_mat_mat_multi_cuda(cuda_helper_, &d_adj, d_x, d_y, x->num_columns_, false);
 
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaMemcpy(d_sum, adjacency_row_sum_->values_, y_.num_rows_ * sizeof(float),
                               cudaMemcpyHostToDevice));
 
@@ -73,7 +60,7 @@ Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
                           cudaMemcpyDeviceToHost));
 
     // free GPU memory
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaFree(d_sum));
     }
     check_cuda(cudaFree(d_y));
@@ -83,13 +70,13 @@ Matrix<float> *FeatureAggregation::forward(Matrix<float> *x) {
 }
 
 Matrix<float> *FeatureAggregation::backward(Matrix<float> *incoming_gradients) {
-        to_column_major_inplace(incoming_gradients);
+    to_column_major_inplace(incoming_gradients);
 
     float *d_gradients;
     check_cuda(cudaMalloc(&d_gradients, gradients_.size_ * sizeof(float)));
 
     float *d_sum;
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaMalloc(&d_sum, incoming_gradients->num_rows_ * sizeof(float)));
     }
 
@@ -101,7 +88,7 @@ Matrix<float> *FeatureAggregation::backward(Matrix<float> *incoming_gradients) {
 
     check_cuda(cudaMemcpy(d_incoming_gradients, incoming_gradients->values_, incoming_gradients->size_ * sizeof(float), cudaMemcpyHostToDevice));
 
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaMemcpy(d_sum, adjacency_row_sum_->values_, incoming_gradients->num_rows_ * sizeof(float),
                               cudaMemcpyHostToDevice));
 
@@ -114,7 +101,7 @@ Matrix<float> *FeatureAggregation::backward(Matrix<float> *incoming_gradients) {
                           cudaMemcpyDeviceToHost));
 
     // free GPU memory
-    if (mean_) {
+    if (reduction_ == mean) {
         check_cuda(cudaFree(d_sum));
     }
     check_cuda(cudaFree(d_incoming_gradients));
@@ -131,6 +118,11 @@ FeatureAggregationChunked::FeatureAggregationChunked(CudaHelper *helper, std::ve
                                                      Matrix<float> *sum, std::string reduction,
                                                      long num_features, long chunk_size, long num_nodes) {
     set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes);
+}
+
+FeatureAggregationChunked::FeatureAggregationChunked(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                                                     std::string reduction, long num_features, long chunk_size, long num_nodes, bool keep_allocation) {
+    set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes, keep_allocation);
 }
 
 FeatureAggregationChunked::~FeatureAggregationChunked() {
@@ -188,6 +180,8 @@ void FeatureAggregationChunked::set(CudaHelper *helper, std::vector<SparseMatrix
 void FeatureAggregationChunked::allocate_gpu_memory() {
     check_cuda(cudaMalloc(&d_x_, y_.at(0).size_ * sizeof(float)));
     check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
+    long adj_max_nnz = max_nnz(adjacencies_);
+    d_adj_.set(chunk_size_, chunk_size_, adj_max_nnz);
     if (mean_) {
         check_cuda(cudaMalloc(&d_sum_, y_.at(0).num_rows_ * sizeof(float)));
     }
@@ -196,14 +190,17 @@ void FeatureAggregationChunked::allocate_gpu_memory() {
 void FeatureAggregationChunked::free_gpu_memory() {
     check_cuda(cudaFree(d_x_));
     check_cuda(cudaFree(d_y_));
+    d_adj_.free();
     if (mean_) {
         check_cuda(cudaFree(d_sum_));
     }
 }
 
 std::vector<Matrix<float>> *FeatureAggregationChunked::forward(std::vector<Matrix<float>> *x) {
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&x->at(i));
+    if (x->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&x->at(i));
+        }
     }
 
     if (!keep_allocation_) {
@@ -216,14 +213,13 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::forward(std::vector<Matri
         check_cuda(cudaMemset(d_y_, 0, y_.at(i).size_ * sizeof(float)));
 
         for (int j = 0; j < num_chunks_; ++j) {
-            SparseMatrixCuda<float> d_adj_i;
             SparseMatrix<float> *adj = &adjacencies_->at(i * num_chunks_ + j);
             if (adj->nnz_ > 0) {
-                malloc_memcpy_sp_mat(&d_adj_i, adj);
+                memcpy_sp_mat(&d_adj_, adj);
 
                 check_cuda(cudaMemcpy(d_x_, x->at(j).values_, x->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
 
-                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_x_, d_y_, x->at(j).num_columns_, true);
+                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_, d_x_, d_y_, x->at(j).num_columns_, true);
             }
         }
 
@@ -246,8 +242,10 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::forward(std::vector<Matri
 }
 
 std::vector<Matrix<float>> *FeatureAggregationChunked::backward(std::vector<Matrix<float>> *incoming_gradients) {
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&incoming_gradients->at(i));
+    if (incoming_gradients->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&incoming_gradients->at(i));
+        }
     }
 
     if (!keep_allocation_) {
@@ -260,10 +258,9 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::backward(std::vector<Matr
         check_cuda(cudaMemset(d_x_, 0, gradients_.at(i).size_ * sizeof(float)));
 
         for (int j = 0; j < num_chunks_; ++j) {
-            SparseMatrixCuda<float> d_adj_i;
             SparseMatrix<float> *adj = &adjacencies_->at(i * num_chunks_ + j);
             if (adj->nnz_ > 0) {
-                malloc_memcpy_sp_mat(&d_adj_i, &adjacencies_->at(i * num_chunks_ + j));
+                memcpy_sp_mat(&d_adj_, adj);
 
                 check_cuda(cudaMemcpy(d_y_, incoming_gradients->at(j).values_, incoming_gradients->at(j).size_ * sizeof(float), cudaMemcpyHostToDevice));
 
@@ -274,7 +271,7 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::backward(std::vector<Matr
                     div_mat_vec(d_y_, d_sum_, incoming_gradients->at(j).num_rows_, incoming_gradients->at(j).num_columns_);
                 }
 
-                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_i, d_y_, d_x_, incoming_gradients->at(j).num_columns_, true);
+                sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_, d_y_, d_x_, incoming_gradients->at(j).num_columns_, true);
             }
         }
 
@@ -312,8 +309,10 @@ void FeatureAggregationPipelined::set(CudaHelper *helper, std::vector<SparseMatr
 }
 
 std::vector<Matrix<float>> *FeatureAggregationPipelined::forward(std::vector<Matrix<float>> *x) {
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&x->at(i));
+    if (x->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&x->at(i));
+        }
     }
 
     check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
@@ -400,8 +399,10 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::forward(std::vector<Mat
 }
 
 std::vector<Matrix<float>> *FeatureAggregationPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
-    for (long i = 0; i < num_chunks_; ++i) {
-        to_column_major_inplace(&incoming_gradients->at(i));
+    if (incoming_gradients->at(0).is_row_major_) {
+        for (long i = 0; i < num_chunks_; ++i) {
+            to_column_major_inplace(&incoming_gradients->at(i));
+        }
     }
 
     check_cuda(cudaMalloc(&d_gradients_, gradients_.at(0).size_ * sizeof(float)));

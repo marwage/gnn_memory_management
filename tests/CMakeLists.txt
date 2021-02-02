@@ -9,7 +9,6 @@ set(TEST_FILES
         tests/dropout.cpp
         tests/elesq.cpp
         tests/feature_aggregation.cpp
-        tests/integration.cpp
         tests/invsqrt.cpp
         tests/linear.cpp
         tests/log_softmax.cpp
@@ -25,7 +24,8 @@ set(TEST_FILES
         tests/pipeline.cpp
         tests/add.cpp
         tests/cuda_helper.cpp
-        tests/cuda_version.cpp)
+        tests/cuda_version.cpp
+        tests/memory_model.cpp)
 
 set(HELPER_FILES
         tests/helper.cpp)

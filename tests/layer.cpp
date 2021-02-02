@@ -4,7 +4,6 @@
 #include "chunking.hpp"
 #include "helper.hpp"
 #include "tensors.hpp"
-#include "dropout.hpp" // TEMPORARY
 
 #include <string>
 
@@ -13,9 +12,8 @@ const std::string flickr_dir_path = "/mnt/data/flickr";
 const std::string test_dir_path = home + "/gpu_memory_reduction/alzheimer/data/tests";
 
 
-int test_layer(Layer *layer, std::string py_name) {
+int test_layer(Layer *layer) {
     std::string path;
-    CudaHelper cuda_helper;
 
     // input matrices
     path = flickr_dir_path + "/features.npy";
@@ -24,9 +22,6 @@ int test_layer(Layer *layer, std::string py_name) {
     incoming_gradients.set_random_values();
     path = test_dir_path + "/incoming_gradients.npy";
     save_npy_matrix(&incoming_gradients, path);
-
-    // layer
-    layer->set(&cuda_helper, features.num_rows_, features.num_columns_);
 
     // forward
     Matrix<float> *output = layer->forward(&features);
@@ -41,7 +36,7 @@ int test_layer(Layer *layer, std::string py_name) {
     save_npy_matrix(gradients, path);
 
     // test against Pytorch
-    std::string command = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/" + py_name + ".py";
+    std::string command = "/home/ubuntu/gpu_memory_reduction/pytorch-venv/bin/python3 /home/ubuntu/gpu_memory_reduction/alzheimer/tests/" + layer->get_name() + ".py";
     system(command.c_str());
 
     // read test result

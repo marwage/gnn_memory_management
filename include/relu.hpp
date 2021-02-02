@@ -12,23 +12,28 @@
 
 class Relu : public Layer {
 protected:
+    CudaHelper *cuda_helper_;
     float alpha_;
     float beta_;
+    bool is_row_major_;
     cudnnActivationDescriptor_t relu_desc_;
-    Matrix<float> *x_ = NULL;
+    Matrix<float> *x_;
+    Matrix<float> y_;
+    Matrix<float> gradients_;
 
 public:
     Relu();
     Relu(CudaHelper *helper, long num_nodes, long num_features);
-    void set(CudaHelper *helper, long num_nodes, long num_features) override;
-    Matrix<float> *forward(Matrix<float> *x) override;
-    Matrix<float> *backward(Matrix<float> *incoming_gradients) override;
+    void set(CudaHelper *helper, long num_nodes, long num_features);
+    Matrix<float> *forward(Matrix<float> *x);
+    Matrix<float> *backward(Matrix<float> *incoming_gradients);
 };
 
 class ReluChunked : public LayerChunked {
 protected:
     float alpha_;
     float beta_;
+    bool is_row_major_;
     cudnnActivationDescriptor_t relu_desc_;
     std::vector<Matrix<float>> *x_ = NULL;
 
@@ -64,6 +69,7 @@ public:
 class ReluPipelined : public LayerPipelined, public ReluChunked {
 protected:
     long num_steps_;
+    bool is_row_major_;
     std::vector<cudnnTensorDescriptor_t> x_desc_;
     std::vector<cudnnTensorDescriptor_t> y_desc_;
     std::vector<cudnnTensorDescriptor_t> dx_desc_;

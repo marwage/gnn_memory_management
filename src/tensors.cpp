@@ -427,6 +427,17 @@ template void to_row_major_inplace<float>(Matrix<float> *mat);
 template void to_row_major_inplace<int>(Matrix<int> *mat);
 
 template<typename T>
+void to_major_inplace(Matrix<T> *mat, bool to_row) {
+    if (to_row) {
+        to_row_major_inplace(mat);
+    } else {
+        to_column_major_inplace(mat);
+    }
+}
+template void to_major_inplace<float>(Matrix<float> *mat, bool to_row);
+template void to_major_inplace<int>(Matrix<int> *mat, bool to_row);
+
+template<typename T>
 void to_row_major(Matrix<T> *mat_row, Matrix<T> *mat) {
     if (!mat->is_row_major_) {
         T *a_T;

@@ -7,29 +7,25 @@
 #include "layer.hpp"
 #include "tensors.hpp"
 
-
-struct AddGradients {
-    Matrix<float> *a;
-    Matrix<float> *b;
-};
-
 struct AddGradientsChunked {
     std::vector<Matrix<float>> *a;
     std::vector<Matrix<float>> *b;
 };
 
 class Add {
-private:
+protected:
+    std::string name_;
     CudaHelper *cuda_helper_;
     Matrix<float> y_;
-    AddGradients gradients_;
+    std::vector<Matrix<float> *> gradients_;
 
 public:
-    std::string name_;
-
+    Add();
     Add(CudaHelper *cuda_helper, long num_nodes, long num_features);
+    void set(CudaHelper *cuda_helper, long num_nodes, long num_features);
+    std::string get_name();
     Matrix<float> *forward(Matrix<float> *a, Matrix<float> *b);
-    AddGradients *backward(Matrix<float> *incoming_gradients);
+    std::vector<Matrix<float> *> *backward(Matrix<float> *incoming_gradients);
 };
 
 class AddChunked {
@@ -53,6 +49,7 @@ public:
 
     AddChunked();
     AddChunked(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
+    AddChunked(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
     ~AddChunked();
     virtual void set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
     virtual void set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);

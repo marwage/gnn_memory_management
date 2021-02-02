@@ -16,6 +16,7 @@ private:
     long interval_;
     std::promise<void> signal_exit_;
     std::thread logging_thread_;
+    std::string log_string_;
     std::ofstream log_file_;
 
 public:

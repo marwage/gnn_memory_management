@@ -30,10 +30,10 @@ void Relu::set(CudaHelper *helper, long num_nodes, long num_features) {
 }
 
 Matrix<float> *Relu::forward(Matrix<float> *x) {
-    to_row_major_inplace(x);
     if (y_.num_rows_ != x->num_rows_ || y_.num_columns_ != x->num_columns_) {
         throw "Matrix shapes are unequal";
     }
+    is_row_major_ = x->is_row_major_;
     x_ = x;
 
     float *d_x;
@@ -60,7 +60,7 @@ Matrix<float> *Relu::forward(Matrix<float> *x) {
     check_cuda(cudaMemcpy(y_.values_, d_y, y_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
-    y_.is_row_major_ = true;
+    y_.is_row_major_ = is_row_major_;
 
     // free GPU memory
     check_cuda(cudaFree(d_x));
@@ -70,9 +70,11 @@ Matrix<float> *Relu::forward(Matrix<float> *x) {
 }
 
 Matrix<float> *Relu::backward(Matrix<float> *incoming_gradients) {
-    to_row_major_inplace(incoming_gradients);
-    to_row_major_inplace(&y_);
-    to_row_major_inplace(x_);
+    if (is_row_major_ != incoming_gradients->is_row_major_) {
+        to_major_inplace(incoming_gradients, is_row_major_);
+        to_major_inplace(&y_, is_row_major_);
+        to_major_inplace(x_, is_row_major_);
+    }
 
     float *d_y;
     check_cuda(cudaMalloc(&d_y, y_.size_ * sizeof(float)));
@@ -118,7 +120,7 @@ Matrix<float> *Relu::backward(Matrix<float> *incoming_gradients) {
                           gradients_.size_ * sizeof(float),
                           cudaMemcpyDeviceToHost));
 
-    gradients_.is_row_major_ = true;
+    gradients_.is_row_major_ = is_row_major_;
 
     check_cuda(cudaFree(d_x));
     check_cuda(cudaFree(d_dx));
@@ -150,7 +152,7 @@ void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long 
     set(helper, chunk_size, num_nodes, num_features, false);
 }
 
-void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation){
+void ReluChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
     name_ = "relu_chunked";
     chunk_size_ = chunk_size;
     cuda_helper_ = helper;
@@ -236,9 +238,7 @@ std::vector<Matrix<float>> *ReluChunked::forward(std::vector<Matrix<float>> *x) 
     if (num_chunks_ != (long) x->size()) {
         throw "Input has wrong number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_row_major_inplace(&x->at(i));
-    }
+    is_row_major_ = x->at(0).is_row_major_;
 
     if (!keep_allocation_) {
         allocate_gpu_memory_forward();
@@ -265,7 +265,7 @@ std::vector<Matrix<float>> *ReluChunked::forward(std::vector<Matrix<float>> *x) 
         check_cuda(cudaMemcpy(y_.at(i).values_, d_y_,
                               y_.at(i).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
-        y_.at(i).is_row_major_ = true;
+        y_.at(i).is_row_major_ = is_row_major_;
     }
 
     // free GPU memory
@@ -282,10 +282,10 @@ std::vector<Matrix<float>> *ReluChunked::backward(std::vector<Matrix<float>> *in
     if (num_chunks_ != (long) incoming_gradients->size()) {
         throw "Incoming gradients has wrong number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_row_major_inplace(&incoming_gradients->at(i));
-        to_row_major_inplace((&x_->at(i)));
-        to_row_major_inplace((&y_.at(i)));
+    if (is_row_major_ != incoming_gradients->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_major_inplace(&incoming_gradients->at(i), is_row_major_);
+        }
     }
 
     if (!keep_allocation_) {
@@ -315,7 +315,7 @@ std::vector<Matrix<float>> *ReluChunked::backward(std::vector<Matrix<float>> *in
         check_cuda(cudaMemcpy(gradients_.at(i).values_, d_dx_,
                               gradients_.at(i).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
-        gradients_.at(i).is_row_major_ = true;
+        gradients_.at(i).is_row_major_ = is_row_major_;
     }
 
     // free
@@ -361,7 +361,7 @@ void ReluPipelined::forward_in(long chunk, long buffer) {
 void ReluPipelined::forward_out(long chunk, long buffer) {
     check_cuda(cudaMemcpyAsync(y_.at(chunk).values_, d_y_.at(buffer), y_.at(chunk).size_ * sizeof(float),
                                cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
-    y_.at(chunk).is_row_major_ = true;
+    y_.at(chunk).is_row_major_ = is_row_major_;
 }
 
 void ReluPipelined::forward_compute(long chunk, long buffer) {
@@ -393,7 +393,7 @@ void ReluPipelined::backward_in(long chunk, long buffer) {
 void ReluPipelined::backward_out(long chunk, long buffer) {
     check_cuda(cudaMemcpyAsync(gradients_.at(chunk).values_, d_dx_.at(buffer), gradients_.at(chunk).size_ * sizeof(float),
                                cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
-    gradients_.at(chunk).is_row_major_ = true;
+    gradients_.at(chunk).is_row_major_ = is_row_major_;
 }
 
 void ReluPipelined::backward_compute(long chunk, long buffer) {
@@ -406,14 +406,11 @@ void ReluPipelined::backward_compute(long chunk, long buffer) {
 }
 
 std::vector<Matrix<float>> *ReluPipelined::forward(std::vector<Matrix<float>> *x) {
-    x_ = x;
-
     if ((long) x->size() != num_chunks_) {
         throw "Input has wrong number of chunks";
     }
-    for (long i = 0; i < num_chunks_; ++i) {
-        to_row_major_inplace(&x->at(i));
-    }
+    is_row_major_ = x->at(0).is_row_major_;
+    x_ = x;
 
     // allocate
     for (long j = 0; j < num_steps_; ++j) {
@@ -439,16 +436,15 @@ std::vector<Matrix<float>> *ReluPipelined::forward(std::vector<Matrix<float>> *x
 }
 
 std::vector<Matrix<float>> *ReluPipelined::backward(std::vector<Matrix<float>> *incoming_gradients) {
-    incoming_gradients_ = incoming_gradients;
-
     if ((long) incoming_gradients->size() != num_chunks_) {
         throw "Incoming gradients has wrong number of chunks";
     }
-    for (int i = 0; i < num_chunks_; ++i) {
-        to_row_major_inplace(&incoming_gradients->at(i));
-        to_row_major_inplace((&x_->at(i)));
-        to_row_major_inplace((&y_.at(i)));
+    if (is_row_major_ != incoming_gradients->at(0).is_row_major_) {
+        for (int i = 0; i < num_chunks_; ++i) {
+            to_major_inplace(&incoming_gradients->at(i), is_row_major_);
+        }
     }
+    incoming_gradients_ = incoming_gradients;
 
     // allocate
     for (long j = 0; j < num_steps_; ++j) {
