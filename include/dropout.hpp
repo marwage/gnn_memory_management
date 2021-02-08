@@ -34,6 +34,15 @@ public:
 };
 
 class DropoutChunked : public LayerChunked {
+private:
+    void *d_states_;
+    float *d_x_;
+    float *d_y_;
+    void *d_reserve_space_;
+    cudnnDropoutDescriptor_t dropout_desc_;
+    cudnnTensorDescriptor_t x_desc_;
+    cudnnTensorDescriptor_t y_desc_;
+
 protected:
     CudaHelper *cuda_helper_;
     float probability_;
@@ -47,18 +56,10 @@ protected:
     size_t reserve_space_size_;
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
-
     bool keep_allocation_;
-    void *d_states_;
-    float *d_x_;
-    float *d_y_;
-    void *d_reserve_space_;
-    cudnnDropoutDescriptor_t dropout_desc_;
-    cudnnTensorDescriptor_t x_desc_;
-    cudnnTensorDescriptor_t y_desc_;
 
-    void allocate_gpu_memory();
-    void free_gpu_memory();
+    virtual void allocate_gpu_memory();
+    virtual void free_gpu_memory();
 
 public:
     DropoutChunked();
@@ -67,6 +68,7 @@ public:
     ~DropoutChunked();
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) override;
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
+    void set_common(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };
@@ -78,21 +80,23 @@ protected:
     std::vector<cudnnDropoutDescriptor_t> dropout_desc_;
     std::vector<cudnnTensorDescriptor_t> x_desc_;
     std::vector<cudnnTensorDescriptor_t> y_desc_;
-    std::vector<cudnnTensorDescriptor_t> dx_desc_;
-    std::vector<cudnnTensorDescriptor_t> dy_desc_;
     std::vector<float *> d_x_;
     std::vector<float *> d_y_;
-    std::vector<float *> d_dx_;
-    std::vector<float *> d_dy_;
     std::vector<char *> d_states_;
     std::vector<char *> d_reserve_space_;
-    std::vector<Matrix<float>> *x_ = NULL;
-    std::vector<Matrix<float>> *incoming_gradients_ = NULL;
+    std::vector<Matrix<float>> *x_;
+    std::vector<Matrix<float>> *incoming_gradients_;
+
+    void allocate_gpu_memory() override;
+    void free_gpu_memory() override;
 
 public:
     DropoutPipelined();
+    ~DropoutPipelined();
     DropoutPipelined(CudaHelper *helper, long chunk_size, long num_nodes, long num_features);
+    DropoutPipelined(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
     void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) override;
+    void set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) override;
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
     void forward_in(long chunk, long buffer) override;

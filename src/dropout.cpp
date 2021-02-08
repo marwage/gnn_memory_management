@@ -181,6 +181,14 @@ void DropoutChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, lo
 }
 
 void DropoutChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
+    DropoutChunked::set_common(helper, chunk_size, num_nodes, num_features, keep_allocation);
+
+    if (keep_allocation_) {
+        allocate_gpu_memory();
+    }
+}
+
+void DropoutChunked::set_common(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
     name_ = "dropout_chunked";
     cuda_helper_ = helper;
     chunk_size_ = chunk_size;
@@ -207,9 +215,10 @@ void DropoutChunked::set(CudaHelper *helper, long chunk_size, long num_nodes, lo
         gradients_.at(i).set(current_chunk_size, num_features, true);
     }
 
-    if (keep_allocation_) {
-        allocate_gpu_memory();
-    }
+    d_states_ = NULL;
+    d_x_ = NULL;
+    d_y_ = NULL;
+    d_reserve_space_ = NULL;
 }
 
 void DropoutChunked::allocate_gpu_memory() {
@@ -323,13 +332,28 @@ std::vector<Matrix<float>> *DropoutChunked::backward(std::vector<Matrix<float>> 
 DropoutPipelined::DropoutPipelined() {}
 
 DropoutPipelined::DropoutPipelined(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
-    set(helper, chunk_size, num_nodes, num_features);
+    DropoutPipelined::set(helper, chunk_size, num_nodes, num_features);
+}
+
+DropoutPipelined::DropoutPipelined(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
+    DropoutPipelined::set(helper, chunk_size, num_nodes, num_features, keep_allocation);
+}
+
+DropoutPipelined::~DropoutPipelined() {
+    if (keep_allocation_) {
+        free_gpu_memory();
+    }
 }
 
 void DropoutPipelined::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features) {
-    DropoutChunked::set(helper, chunk_size, num_nodes, num_features);
+    DropoutPipelined::set(helper, chunk_size, num_nodes, num_features, false);
+}
+
+void DropoutPipelined::set(CudaHelper *helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
+    DropoutChunked::set_common(helper, chunk_size, num_nodes, num_features, keep_allocation);
 
     name_ = "dropout_pipelined";
+    keep_allocation_ = keep_allocation;
     num_steps_ = 2;
     check_cudnn(cudnnDropoutGetStatesSize(cuda_helper_->cudnn_handle, &state_size_));
 
@@ -339,11 +363,11 @@ void DropoutPipelined::set(CudaHelper *helper, long chunk_size, long num_nodes, 
     x_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
     d_y_ = std::vector<float *>(num_steps_);
     y_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
-    d_dx_ = std::vector<float *>(num_steps_);
-    dx_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
-    d_dy_ = std::vector<float *>(num_steps_);
-    dy_desc_ = std::vector<cudnnTensorDescriptor_t>(num_steps_);
     dropout_desc_ = std::vector<cudnnDropoutDescriptor_t>(num_steps_);
+
+    if (keep_allocation_) {
+        DropoutPipelined::allocate_gpu_memory();
+    }
 }
 
 void DropoutPipelined::forward_in(long chunk, long buffer) {
@@ -375,33 +399,29 @@ void DropoutPipelined::forward_compute(long chunk, long buffer) {
 }
 
 void DropoutPipelined::backward_in(long chunk, long buffer) {
-    check_cuda(cudaMemcpyAsync(d_dy_.at(buffer), incoming_gradients_->at(chunk).values_, incoming_gradients_->at(chunk).size_,
+    check_cuda(cudaMemcpyAsync(d_y_.at(buffer), incoming_gradients_->at(chunk).values_, incoming_gradients_->at(chunk).size_,
                                cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
     check_cuda(cudaMemcpyAsync(d_reserve_space_.at(buffer), reserve_space_.at(chunk), reserve_space_size_,
                                cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
-    check_cudnn(cudnnSetTensor4dDescriptor(dy_desc_.at(buffer), CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+    check_cudnn(cudnnSetTensor4dDescriptor(y_desc_.at(buffer), CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                            incoming_gradients_->at(chunk).num_rows_, 1, 1, incoming_gradients_->at(chunk).num_columns_));
-    check_cudnn(cudnnSetTensor4dDescriptor(dx_desc_.at(buffer), CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
+    check_cudnn(cudnnSetTensor4dDescriptor(x_desc_.at(buffer), CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
                                            incoming_gradients_->at(chunk).num_rows_, 1, 1, incoming_gradients_->at(chunk).num_columns_));
 }
 
 void DropoutPipelined::backward_out(long chunk, long buffer) {
-    check_cuda(cudaMemcpyAsync(gradients_.at(chunk).values_, d_dx_.at(buffer), gradients_.at(chunk).size_ * sizeof(float),
+    check_cuda(cudaMemcpyAsync(gradients_.at(chunk).values_, d_x_.at(buffer), gradients_.at(chunk).size_ * sizeof(float),
                                cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
     gradients_.at(chunk).is_row_major_ = is_row_major_;
 }
 
 void DropoutPipelined::backward_compute(long chunk, long buffer) {
     check_cudnn(cudnnDropoutBackward(cuda_helper_->cudnn_handle, dropout_desc_.at(buffer),
-                                     dy_desc_.at(buffer), d_dy_.at(buffer), dx_desc_.at(buffer), d_dx_.at(buffer),
+                                     y_desc_.at(buffer), d_y_.at(buffer), x_desc_.at(buffer), d_x_.at(buffer),
                                      d_reserve_space_.at(buffer), reserve_space_size_));
 }
 
-std::vector<Matrix<float>> *DropoutPipelined::forward(std::vector<Matrix<float>> *x) {
-    x_ = x;
-    is_row_major_ = x->at(0).is_row_major_;
-
-    // allocate
+void DropoutPipelined::allocate_gpu_memory() {
     for (long i = 0; i < num_steps_; ++i) {
         check_cuda(cudaMalloc(&d_states_.at(i), state_size_));
 
@@ -409,10 +429,10 @@ std::vector<Matrix<float>> *DropoutPipelined::forward(std::vector<Matrix<float>>
         check_cudnn(cudnnSetDropoutDescriptor(dropout_desc_.at(i), cuda_helper_->cudnn_handle, probability_,
                                               d_states_.at(i), state_size_, seed_));
 
-        check_cuda(cudaMalloc(&d_x_.at(i), x->at(0).size_ * sizeof(float)));
+        check_cuda(cudaMalloc(&d_x_.at(i), y_.at(0).size_ * sizeof(float)));
         check_cudnn(cudnnCreateTensorDescriptor(&x_desc_.at(i)));
         check_cudnn(cudnnSetTensor4dDescriptor(x_desc_.at(i), CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT,
-                                               x->at(0).num_rows_, 1, 1, x->at(0).num_columns_));
+                                               y_.at(0).num_rows_, 1, 1, y_.at(0).num_columns_));
 
         check_cuda(cudaMalloc(&d_y_.at(i), y_.at(0).size_ * sizeof(float)));
         check_cudnn(cudnnCreateTensorDescriptor(&y_desc_.at(i)));
@@ -420,10 +440,9 @@ std::vector<Matrix<float>> *DropoutPipelined::forward(std::vector<Matrix<float>>
         check_cudnn(cudnnDropoutGetReserveSpaceSize(x_desc_.at(i), &reserve_space_size_));
         check_cuda(cudaMalloc(&d_reserve_space_.at(i), reserve_space_size_));
     }
+}
 
-    pipeline(true, num_chunks_);
-
-    // free
+void DropoutPipelined::free_gpu_memory() {
     for (long i = 0; i < num_steps_; ++i) {
         check_cuda(cudaFree(d_states_.at(i)));
 
@@ -437,6 +456,21 @@ std::vector<Matrix<float>> *DropoutPipelined::forward(std::vector<Matrix<float>>
 
         check_cuda(cudaFree(d_reserve_space_.at(i)));
     }
+}
+
+std::vector<Matrix<float>> *DropoutPipelined::forward(std::vector<Matrix<float>> *x) {
+    x_ = x;
+    is_row_major_ = x->at(0).is_row_major_;
+
+    if (!keep_allocation_) {
+        allocate_gpu_memory();
+    }
+
+    pipeline(true, num_chunks_);
+
+    if (!keep_allocation_) {
+        free_gpu_memory();
+    }
 
     return &y_;
 }
@@ -449,36 +483,14 @@ std::vector<Matrix<float>> *DropoutPipelined::backward(std::vector<Matrix<float>
         }
     }
 
-    for (long i = 0; i < num_steps_; ++i) {
-        check_cuda(cudaMalloc(&d_states_.at(i), state_size_));
-
-        check_cudnn(cudnnCreateDropoutDescriptor(&dropout_desc_.at(i)));
-        check_cudnn(cudnnSetDropoutDescriptor(dropout_desc_.at(i), cuda_helper_->cudnn_handle, probability_,
-                                              d_states_.at(i), state_size_, seed_));
-
-        check_cuda(cudaMalloc(&d_dy_.at(i), incoming_gradients->at(0).size_ * sizeof(float)));
-        check_cudnn(cudnnCreateTensorDescriptor(&dy_desc_.at(i)));
-
-        check_cuda(cudaMalloc(&d_dx_.at(i), x_->at(0).size_ * sizeof(float)));
-        check_cudnn(cudnnCreateTensorDescriptor(&dx_desc_.at(i)));
-
-        check_cuda(cudaMalloc(&d_reserve_space_.at(i), reserve_space_size_));
+    if (!keep_allocation_) {
+        allocate_gpu_memory();
     }
 
     pipeline(false, num_chunks_);
 
-    for (long i = 0; i < num_steps_; ++i) {
-        check_cuda(cudaFree(d_states_.at(i)));
-
-        check_cudnn(cudnnDestroyDropoutDescriptor(dropout_desc_.at(i)));
-
-        check_cuda(cudaFree(d_dy_.at(i)));
-        check_cudnn(cudnnDestroyTensorDescriptor(dy_desc_.at(i)));
-
-        check_cuda(cudaFree(d_dx_.at(i)));
-        check_cudnn(cudnnDestroyTensorDescriptor(dx_desc_.at(i)));
-
-        check_cuda(cudaFree(d_reserve_space_.at(i)));
+    if (!keep_allocation_) {
+        free_gpu_memory();
     }
 
     return &gradients_;

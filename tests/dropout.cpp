@@ -43,6 +43,13 @@ TEST_CASE("Dropout, pipelined", "[dropout][pipelined]") {
     CHECK(test_layer_chunked(&dropout, "dropout", 1 << 8, false));
 }
 
+TEST_CASE("Dropout, pipelined, keep", "[dropout][pipelined][keep]") {
+    DropoutPipelined dropout;
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 15, true));
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 12, true));
+    CHECK(test_layer_chunked(&dropout, "dropout", 1 << 8, true));
+}
+
 TEST_CASE("Dropout, memory", "[dropout][memory]") {
     CudaHelper helper;
     size_t state_size;
