@@ -29,6 +29,10 @@ public:
 };
 
 class AddChunked {
+private:
+    float *d_a_;
+    float *d_b_;
+
 protected:
     long num_chunks_;
     long chunk_size_;
@@ -36,13 +40,10 @@ protected:
     CudaHelper *cuda_helper_;
     std::vector<Matrix<float>> y_;
     AddGradientsChunked gradients_;
-
     bool keep_allocation_;
-    float *d_a_;
-    float *d_b_;
 
-    void allocate_gpu_memory();
-    void free_gpu_memory();
+    virtual void allocate_gpu_memory();
+    virtual void free_gpu_memory();
 
 public:
     std::string name_;
@@ -53,6 +54,7 @@ public:
     ~AddChunked();
     virtual void set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
     virtual void set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
+    void set_common(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b);
     virtual AddGradientsChunked *backward(std::vector<Matrix<float>> *incoming_gradients);
 };
@@ -66,10 +68,16 @@ protected:
     std::vector<Matrix<float>> *a_;
     std::vector<Matrix<float>> *b_;
 
+    void allocate_gpu_memory() override;
+    void free_gpu_memory() override;
+
 public:
     AddPipelined();
     AddPipelined(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features);
+    AddPipelined(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation);
+    ~AddPipelined();
     void set(CudaHelper *cudaHelper, long chunkSize, long numNodes, long numFeatures) override;
+    void set(CudaHelper *cudaHelper, long chunkSize, long numNodes, long numFeatures, bool keep_allocation) override;
     void forward_in(long chunk, long buffer) override;
     void forward_out(long chunk, long buffer) override;
     void forward_compute(long chunk, long buffer) override;

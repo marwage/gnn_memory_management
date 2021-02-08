@@ -52,3 +52,8 @@ TEST_CASE("Add, pipelined", "[add][pipelined]") {
     AddPipelined add;
     CHECK(test_add_chunked(&add, false));
 }
+
+TEST_CASE("Add, pipelined, keep", "[add][pipelined][keep]") {
+    AddPipelined add;
+    CHECK(test_add_chunked(&add, true));
+}

@@ -45,15 +45,23 @@ AddChunked::AddChunked(CudaHelper *cuda_helper, long chunk_size, long num_nodes,
 
 AddChunked::~AddChunked() {
     if (keep_allocation_) {
-        free_gpu_memory();
+        AddChunked::free_gpu_memory();
     }
 }
 
 void AddChunked::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features) {
-    set(cuda_helper, chunk_size, num_nodes, num_features, false);
+    AddChunked::set(cuda_helper, chunk_size, num_nodes, num_features, false);
 }
 
 void AddChunked::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
+    AddChunked::set_common(cuda_helper, chunk_size, num_nodes, num_features, keep_allocation);
+
+    if (keep_allocation_) {
+        AddChunked::allocate_gpu_memory();
+    }
+}
+
+void AddChunked::set_common(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
     name_ = "add_chunked";
     cuda_helper_ = cuda_helper;
     chunk_size_ = chunk_size;
@@ -74,9 +82,8 @@ void AddChunked::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, l
         y_.at(i).set(current_chunk_size, num_features, false);
     }
 
-    if (keep_allocation_) {
-        allocate_gpu_memory();
-    }
+    d_a_ = NULL;
+    d_b_ = NULL;
 }
 
 void AddChunked::allocate_gpu_memory() {
@@ -139,17 +146,36 @@ AddGradientsChunked *AddChunked::backward(std::vector<Matrix<float>> *incoming_g
 AddPipelined::AddPipelined() {}
 
 AddPipelined::AddPipelined(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features) {
-    set(cuda_helper, chunk_size, num_nodes, num_features);
+    AddPipelined::set(cuda_helper, chunk_size, num_nodes, num_features);
+}
+
+AddPipelined::AddPipelined(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
+    AddPipelined::set(cuda_helper, chunk_size, num_nodes, num_features, keep_allocation);
+}
+
+AddPipelined::~AddPipelined() {
+    if (keep_allocation_) {
+        AddPipelined::free_gpu_memory();
+    }
 }
 
 void AddPipelined::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features) {
-    AddChunked::set(cuda_helper, chunk_size, num_nodes, num_features);
+    AddPipelined::set(cuda_helper, chunk_size, num_nodes, num_features, false);
+}
 
-    name_ = "add_pipelined";
+void AddPipelined::set(CudaHelper *cuda_helper, long chunk_size, long num_nodes, long num_features, bool keep_allocation) {
+    AddChunked::set_common(cuda_helper, chunk_size, num_nodes, num_features, keep_allocation);
+
+    name_ = "add_pipelining";
+    keep_allocation_ = keep_allocation;
     num_steps_ = 2;
     d_a_ = std::vector<float *>(num_steps_);
     d_b_ = std::vector<float *>(num_steps_);
     d_c_ = std::vector<float *>(num_steps_);
+
+    if (keep_allocation_) {
+        AddPipelined::allocate_gpu_memory();
+    }
 }
 
 void AddPipelined::forward_in(long chunk, long buffer) {
@@ -170,33 +196,43 @@ void AddPipelined::forward_compute(long chunk, long buffer) {
     mat_mat_add_cuda(cuda_helper_, d_a_.at(buffer), d_c_.at(buffer), a_->at(chunk).size_);
 }
 
-std::vector<Matrix<float>> *AddPipelined::forward(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b) {
-    a_ = a;
-    b_ = b;
+void AddPipelined::allocate_gpu_memory() {
+    for (long i = 0; i < num_steps_; ++i) {
+        check_cuda(cudaMalloc(&d_a_.at(i), y_.at(0).size_ * sizeof(float)));
+        check_cuda(cudaMalloc(&d_b_.at(i), y_.at(0).size_ * sizeof(float)));
+        check_cuda(cudaMalloc(&d_c_.at(i), y_.at(0).size_ * sizeof(float)));
+    }
+}
 
+void AddPipelined::free_gpu_memory() {
+    for (long i = 0; i < num_steps_; ++i) {
+        check_cuda(cudaFree(d_a_.at(i)));
+        check_cuda(cudaFree(d_b_.at(i)));
+        check_cuda(cudaFree(d_c_.at(i)));
+    }
+}
+
+std::vector<Matrix<float>> *AddPipelined::forward(std::vector<Matrix<float>> *a, std::vector<Matrix<float>> *b) {
     if (a->size() != b->size()) {
         throw "Inputs have unequal number of chunks";
     }
-
     if (a->at(0).is_row_major_ != b->at(0).is_row_major_) {
         for (long i = 0; i < num_chunks_; ++i) {
             to_column_major_inplace(&a->at(i));
             to_column_major_inplace(&b->at(i));
         }
     }
+    a_ = a;
+    b_ = b;
 
-    for (long i = 0; i < num_steps_; ++i) {
-        check_cuda(cudaMalloc(&d_a_.at(i), a->at(0).size_ * sizeof(float)));
-        check_cuda(cudaMalloc(&d_b_.at(i), b->at(0).size_ * sizeof(float)));
-        check_cuda(cudaMalloc(&d_c_.at(i), b->at(0).size_ * sizeof(float)));
+    if (!keep_allocation_) {
+        AddPipelined::allocate_gpu_memory();
     }
 
     pipeline(true, num_chunks_);
 
-    for (long i = 0; i < num_steps_; ++i) {
-        check_cuda(cudaFree(d_a_.at(i)));
-        check_cuda(cudaFree(d_b_.at(i)));
-        check_cuda(cudaFree(d_c_.at(i)));
+    if (!keep_allocation_) {
+        AddPipelined::free_gpu_memory();
     }
 
     return &y_;

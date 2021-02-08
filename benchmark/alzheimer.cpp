@@ -104,6 +104,7 @@ BENCHMARK(BM_Alzheimer_Chunked_Keep_Ivy)->RangeMultiplier(2)->Range(1 << 14, 1 <
 // some chunk size
 
 static void BM_Alzheimer_Chunked_Products_X(benchmark::State &state) {
+    std::cout << "Start BM_Alzheimer_Chunked_Products_X" << std::endl;
     benchmark_alzheimer_chunked(products, false, state);
 }
 BENCHMARK(BM_Alzheimer_Chunked_Products_X)->Arg(2097152);
