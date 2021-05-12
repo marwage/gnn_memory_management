@@ -1,2 +1,3 @@
-# alzheimer
-Lose memory on the GPU
+# Elizabeth
+
+Swap tensors between CPU and GPU memory for GNN training.
