@@ -1,6 +1,4 @@
 find_package(Catch2 REQUIRED)
-find_package(Python3 REQUIRED
-        COMPONENTS Interpreter Development)
 
 set(TEST_FILES
         tests/adam.cpp

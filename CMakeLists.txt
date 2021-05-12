@@ -18,6 +18,11 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 find_package(CUDA 10.2 REQUIRED)
 find_package(benchmark REQUIRED)
+find_package(Catch2 REQUIRED)
+
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+      set(CMAKE_CUDA_ARCHITECTURES 70)
+endif()
 
 set(SOURCE_FILES
         src/alzheimer.cpp
@@ -57,8 +62,7 @@ target_link_directories(${PROJECT_NAME}
         PRIVATE /usr/local/lib)
 target_include_directories(${PROJECT_NAME}
         PUBLIC ${PROJECT_SOURCE_DIR}/include
-        PUBLIC ${CUDA_INCLUDE_DIRS}
-        PUBLIC /usr/include/python3.6m)
+        PUBLIC ${CUDA_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME}
         cnpy
         cudnn
