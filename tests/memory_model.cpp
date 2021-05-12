@@ -11,6 +11,7 @@ long test_composition_memory_model(CompositionMemoryModel *model, Dataset datase
     long mib = 1 << 20;
 
     DatasetStats dataset_stats = get_dataset_stats(dataset);
+
     std::cout << "Dataset: " << get_dataset_name(dataset) << std::endl;
     std::cout << "Number of nodes: " << std::to_string(dataset_stats.num_nodes) << std::endl;
     std::cout << "Number of features: " << std::to_string(dataset_stats.num_features) << std::endl;
@@ -69,6 +70,7 @@ TEST_CASE("Memory model, GraphSAGE", "[model][graphsage]") {
 
     for (Dataset &dataset : datasets) {
         DatasetStats dataset_stats = get_dataset_stats(dataset);
+
         GraphSAGEMemoryModel model(num_layers, dataset_stats.num_nodes, dataset_stats.num_edges, dataset_stats.num_features,
                                    num_hidden_channels, dataset_stats.num_classes);
 

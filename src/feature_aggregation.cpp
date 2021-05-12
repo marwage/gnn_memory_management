@@ -138,6 +138,16 @@ void FeatureAggregationChunked::set(CudaHelper *helper, std::vector<SparseMatrix
 
 void FeatureAggregationChunked::set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
                                     std::string reduction, long num_features, long chunk_size, long num_nodes, bool keep_allocation) {
+    FeatureAggregationChunked::set_common(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes, keep_allocation);
+
+    if (keep_allocation) {
+        allocate_gpu_memory();
+    }
+}
+
+void FeatureAggregationChunked::set_common(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                                           std::string reduction, long num_features, long chunk_size, long num_nodes,
+                                           bool keep_allocation) {
     name_ = "feature-aggregation_chunked";
     cuda_helper_ = helper;
     keep_allocation_ = keep_allocation;
@@ -172,9 +182,9 @@ void FeatureAggregationChunked::set(CudaHelper *helper, std::vector<SparseMatrix
         gradients_.at(i).set(current_chunk_size, num_features, false);
     }
 
-    if (keep_allocation) {
-        allocate_gpu_memory();
-    }
+    d_x_ = NULL;
+    d_y_ = NULL;
+    d_sum_ = NULL;
 }
 
 void FeatureAggregationChunked::allocate_gpu_memory() {
@@ -286,6 +296,10 @@ std::vector<Matrix<float>> *FeatureAggregationChunked::backward(std::vector<Matr
     return &gradients_;
 }
 
+std::string FeatureAggregationChunked::get_name() {
+        return name_;
+}
+
 // PIPELINED --- PIPELINED --- PIPELINED
 
 FeatureAggregationPipelined::FeatureAggregationPipelined() {}
@@ -293,19 +307,54 @@ FeatureAggregationPipelined::FeatureAggregationPipelined() {}
 FeatureAggregationPipelined::FeatureAggregationPipelined(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies,
                                                          Matrix<float> *sum, std::string reduction, long num_features,
                                                          long chunk_size, long num_nodes) {
-    set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes);
+    FeatureAggregationPipelined::set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes);
+}
+
+FeatureAggregationPipelined::FeatureAggregationPipelined(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies,
+                                                         Matrix<float> *sum, std::string reduction, long num_features,
+                                                         long chunk_size, long num_nodes, bool keep_allocation) {
+    FeatureAggregationPipelined::set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes, keep_allocation);
 }
 
 void FeatureAggregationPipelined::set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
                                       std::string reduction, long num_features, long chunk_size, long num_nodes) {
-    FeatureAggregationChunked::set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes);
+    FeatureAggregationPipelined::set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes, false);
+}
 
-    name_ = "feature-aggregation_pipelined";
+void FeatureAggregationPipelined::set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                                      std::string reduction, long num_features, long chunk_size, long num_nodes,
+                                      bool keep_allocation) {
+    FeatureAggregationChunked::set(helper, adjacencies, sum, reduction, num_features, chunk_size, num_nodes, keep_allocation);
+
+    name_ = "feature-aggregation-pipelining";
     num_steps_ = 2;
     d_x_ = std::vector<float *>(num_steps_);
+    d_y_ = std::vector<float *>(num_steps_);
     d_adj_ = std::vector<SparseMatrixCuda<float>>(num_steps_);
-    d_incoming_gradients_ = std::vector<float *>(num_steps_);
-    d_sum_backward_ = std::vector<float *>(num_steps_);
+    d_sum_ = std::vector<float *>(num_steps_);
+}
+
+void FeatureAggregationPipelined::allocate_gpu_memory() {
+    long adj_max_nnz = max_nnz(adjacencies_);
+    for (int i = 0; i < num_steps_; ++i) {
+        check_cuda(cudaMalloc(&d_x_.at(i), y_.at(0).size_ * sizeof(float)));
+        check_cuda(cudaMalloc(&d_y_.at(i), y_.at(0).size_ * sizeof(float)));
+        d_adj_.at(i).set(chunk_size_, chunk_size_, adj_max_nnz);
+        if (mean_) {
+            check_cuda(cudaMalloc(&d_sum_.at(i), y_.at(0).num_rows_ * sizeof(float)));
+        }
+    }
+}
+
+void FeatureAggregationPipelined::free_gpu_memory() {
+    for (int i = 0; i < num_steps_; ++i) {
+        check_cuda(cudaFree(d_x_.at(i)));
+        check_cuda(cudaFree(d_y_.at(i)));
+        d_adj_.at(i).free();
+        if (mean_) {
+            check_cuda(cudaFree(d_sum_.at(i)));
+        }
+    }
 }
 
 std::vector<Matrix<float>> *FeatureAggregationPipelined::forward(std::vector<Matrix<float>> *x) {
@@ -315,23 +364,20 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::forward(std::vector<Mat
         }
     }
 
-    check_cuda(cudaMalloc(&d_y_, y_.at(0).size_ * sizeof(float)));
-    if (mean_) {
-        check_cuda(cudaMalloc(&d_sum_forward_, y_.at(0).num_rows_ * sizeof(float)));
-    }
-    long adj_max_nnz = max_nnz(adjacencies_);
-    for (int i = 0; i < num_steps_; ++i) {
-        d_adj_.at(i).set(chunk_size_, chunk_size_, adj_max_nnz);
-        check_cuda(cudaMalloc(&d_x_.at(i), x->at(0).size_ * sizeof(float)));
+    if (!keep_allocation_) {
+        FeatureAggregationPipelined::allocate_gpu_memory();
     }
 
+    // d_sum_ is d_sum_.at(0)
+    // d_y_ is d_y_.at(0)
     for (long row = 0; row < num_chunks_; ++row) {
-        check_cuda(cudaMemsetAsync(d_y_, 0, y_.at(row).size_ * sizeof(float),
+        check_cuda(cudaMemsetAsync(d_y_.at(0), 0, y_.at(row).size_ * sizeof(float),
                                    cuda_helper_->stream_in_));
 
         if (mean_) {
-            check_cuda(cudaMemcpyAsync(d_sum_forward_, &adjacency_row_sum_->values_[row * chunk_size_],
-                                       y_.at(row).num_rows_ * sizeof(float), cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
+            check_cuda(cudaMemcpyAsync(d_sum_.at(0), &adjacency_row_sum_->values_[row * chunk_size_],
+                                       y_.at(row).num_rows_ * sizeof(float), cudaMemcpyHostToDevice,
+                                       cuda_helper_->stream_in_));
         }
 
         for (long column = 0; column < num_chunks_ + 1; ++column) {
@@ -354,7 +400,7 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::forward(std::vector<Mat
                 }
 
                 if (column > 0 && adj_b->nnz_ > 0) {
-                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(1), d_x_.at(1), d_y_,
+                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(1), d_x_.at(1), d_y_.at(0),
                                           x->at(column_b).num_columns_, true);
                 }
             } else {
@@ -367,7 +413,7 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::forward(std::vector<Mat
                 }
 
                 if (adj_a->nnz_ > 0) {
-                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(0), d_x_.at(0), d_y_,
+                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(0), d_x_.at(0), d_y_.at(0),
                                           x->at(column_a).num_columns_, true);
                 }
             }
@@ -376,23 +422,18 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::forward(std::vector<Mat
         }
 
         if (mean_) {
-            div_mat_vec(d_y_, d_sum_forward_, y_.at(row).num_rows_, y_.at(row).num_columns_);
+            div_mat_vec(d_y_.at(0), d_sum_.at(0), y_.at(row).num_rows_, y_.at(row).num_columns_);
         }
 
-        check_cuda(cudaMemcpyAsync(y_.at(row).values_, d_y_, y_.at(row).size_ * sizeof(float),
+        check_cuda(cudaMemcpyAsync(y_.at(row).values_, d_y_.at(0), y_.at(row).size_ * sizeof(float),
                                    cudaMemcpyDeviceToHost, cuda_helper_->stream_out_));
+        y_.at(row).is_row_major_ = false;
     }
 
     check_cuda(cudaDeviceSynchronize());
 
-    // free
-    check_cuda(cudaFree(d_y_));
-    if (mean_) {
-        check_cuda(cudaFree(d_sum_forward_));
-    }
-    for (long i = 0; i < num_steps_; ++i) {
-        check_cuda(cudaFree(d_x_.at(i)));
-        d_adj_.at(i).free();
+    if (!keep_allocation_) {
+        FeatureAggregationPipelined::free_gpu_memory();
     }
 
     return &y_;
@@ -405,19 +446,14 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::backward(std::vector<Ma
         }
     }
 
-    check_cuda(cudaMalloc(&d_gradients_, gradients_.at(0).size_ * sizeof(float)));
-
-    long adj_max_nnz = max_nnz(adjacencies_);
-    for (long i = 0; i < num_steps_; ++i) {
-        d_adj_.at(i).set(chunk_size_, chunk_size_, adj_max_nnz);
-        check_cuda(cudaMalloc(&d_incoming_gradients_.at(i), incoming_gradients->at(0).size_ * sizeof(float)));
-        if (mean_) {
-            check_cuda(cudaMalloc(&d_sum_backward_.at(i), incoming_gradients->at(0).num_rows_ * sizeof(float)));
-        }
+    if (!keep_allocation_) {
+        FeatureAggregationPipelined::allocate_gpu_memory();
     }
 
+    // d_gradients is d_x_.at(0)
+    // d_incoming_gradients is d_y_
     for (long row = 0; row < num_chunks_; ++row) {
-        check_cuda(cudaMemsetAsync(d_gradients_, 0, gradients_.at(row).size_ * sizeof(float), cuda_helper_->stream_in_));
+        check_cuda(cudaMemsetAsync(d_x_.at(0), 0, gradients_.at(row).size_ * sizeof(float), cuda_helper_->stream_in_));
 
         for (long column = 0; column < num_chunks_ + 1; ++column) {
             long column_a = (column / 2) * 2;
@@ -434,12 +470,12 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::backward(std::vector<Ma
                 if (column_a < num_chunks_ && adj_a->nnz_ > 0) {
                     memcpy_sp_mat_async(&d_adj_.at(0), adj_a, cuda_helper_->stream_in_);
 
-                    check_cuda(cudaMemcpyAsync(d_incoming_gradients_.at(0), incoming_gradients->at(column_a).values_,
+                    check_cuda(cudaMemcpyAsync(d_y_.at(0), incoming_gradients->at(column_a).values_,
                                                incoming_gradients->at(column_a).size_ * sizeof(float), cudaMemcpyHostToDevice,
                                                cuda_helper_->stream_in_));
 
                     if (mean_) {
-                        check_cuda(cudaMemcpyAsync(d_sum_backward_.at(0), &adjacency_row_sum_->values_[column_a * chunk_size_],
+                        check_cuda(cudaMemcpyAsync(d_sum_.at(0), &adjacency_row_sum_->values_[column_a * chunk_size_],
                                                    incoming_gradients->at(column_a).num_rows_ * sizeof(float),
                                                    cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
                     }
@@ -447,11 +483,11 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::backward(std::vector<Ma
 
                 if (column > 0 && adj_b->nnz_ > 0) {
                     if (mean_) {
-                        div_mat_vec(d_incoming_gradients_.at(1), d_sum_backward_.at(1), incoming_gradients->at(column_b).num_rows_,
+                        div_mat_vec(d_y_.at(1), d_sum_.at(1), incoming_gradients->at(column_b).num_rows_,
                                     incoming_gradients->at(column_b).num_columns_);
                     }
 
-                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(1), d_incoming_gradients_.at(1), d_gradients_,
+                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(1), d_y_.at(1), d_x_.at(0),
                                           incoming_gradients->at(column_b).num_columns_, true);
                 }
             } else {
@@ -459,12 +495,12 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::backward(std::vector<Ma
                 if (column_b < num_chunks_ && adj_b->nnz_ > 0) {
                     memcpy_sp_mat_async(&d_adj_.at(1), adj_b, cuda_helper_->stream_in_);
 
-                    check_cuda(cudaMemcpyAsync(d_incoming_gradients_.at(1), incoming_gradients->at(column_b).values_,
+                    check_cuda(cudaMemcpyAsync(d_y_.at(1), incoming_gradients->at(column_b).values_,
                                                incoming_gradients->at(column_b).size_ * sizeof(float), cudaMemcpyHostToDevice,
                                                cuda_helper_->stream_in_));
 
                     if (mean_) {
-                        check_cuda(cudaMemcpyAsync(d_sum_backward_.at(1), &adjacency_row_sum_->values_[column_b * chunk_size_],
+                        check_cuda(cudaMemcpyAsync(d_sum_.at(1), &adjacency_row_sum_->values_[column_b * chunk_size_],
                                                    incoming_gradients->at(column_b).num_rows_ * sizeof(float),
                                                    cudaMemcpyHostToDevice, cuda_helper_->stream_in_));
                     }
@@ -472,11 +508,11 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::backward(std::vector<Ma
 
                 if (column > 0 && adj_a->nnz_ > 0) {
                     if (mean_) {
-                        div_mat_vec(d_incoming_gradients_.at(0), d_sum_backward_.at(0), incoming_gradients->at(column_a).num_rows_,
+                        div_mat_vec(d_y_.at(0), d_sum_.at(0), incoming_gradients->at(column_a).num_rows_,
                                     incoming_gradients->at(column_a).num_columns_);
                     }
 
-                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(0), d_incoming_gradients_.at(0), d_gradients_,
+                    sp_mat_mat_multi_cuda(cuda_helper_, &d_adj_.at(0), d_y_.at(0), d_x_.at(0),
                                           incoming_gradients->at(column_a).num_columns_, true);
                 }
             }
@@ -484,20 +520,15 @@ std::vector<Matrix<float>> *FeatureAggregationPipelined::backward(std::vector<Ma
             check_cuda(cudaDeviceSynchronize());
         }
 
-        check_cuda(cudaMemcpy(gradients_.at(row).values_, d_gradients_, gradients_.at(row).size_ * sizeof(float),
+        check_cuda(cudaMemcpy(gradients_.at(row).values_, d_x_.at(0), gradients_.at(row).size_ * sizeof(float),
                               cudaMemcpyDeviceToHost));
+        gradients_.at(row).is_row_major_ = false;
     }
 
     check_cuda(cudaDeviceSynchronize());
 
-    // free GPU memory
-    check_cuda(cudaFree(d_gradients_));
-    for (long i = 0; i < num_steps_; ++i) {
-        d_adj_.at(i).free();
-        check_cuda(cudaFree(d_incoming_gradients_.at(i)));
-        if (mean_) {
-            check_cuda(cudaFree(d_sum_backward_.at(i)));
-        }
+    if(!keep_allocation_) {
+        FeatureAggregationPipelined::free_gpu_memory();
     }
 
     return &gradients_;

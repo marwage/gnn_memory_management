@@ -99,7 +99,7 @@ void benchmark_feature_aggregation_chunked(FeatureAggregationChunked *feature_ag
         direction = "backward";
     }
 
-    GPUMemoryLogger memory_logger(feature_aggr->name_ + "_" + get_dataset_name(dataset) + "_" + direction + "_" + std::to_string(chunk_size));
+    GPUMemoryLogger memory_logger(feature_aggr->get_name() + "_" + get_dataset_name(dataset) + "_" + direction + "_" + std::to_string(chunk_size));
     memory_logger.start();
 
     for (auto _ : state) {

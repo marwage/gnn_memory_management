@@ -32,7 +32,14 @@ public:
 };
 
 class FeatureAggregationChunked {
+private:
+    float *d_x_;
+    float *d_y_;
+    float *d_sum_;
+    SparseMatrixCuda<float> d_adj_;
+
 protected:
+    std::string name_;
     CudaHelper *cuda_helper_;
     long chunk_size_;
     long last_chunk_size_;
@@ -42,19 +49,12 @@ protected:
     Matrix<float> *adjacency_row_sum_;
     std::vector<Matrix<float>> y_;
     std::vector<Matrix<float>> gradients_;
-
     bool keep_allocation_;
-    float *d_x_;
-    float *d_y_;
-    float *d_sum_;
-    SparseMatrixCuda<float> d_adj_;
 
-    void allocate_gpu_memory();
-    void free_gpu_memory();
+    virtual void allocate_gpu_memory();
+    virtual void free_gpu_memory();
 
 public:
-    std::string name_;
-
     FeatureAggregationChunked();
     FeatureAggregationChunked(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
                               std::string reduction, long num_features, long chunk_size, long num_nodes);
@@ -65,27 +65,34 @@ public:
                      std::string reduction, long num_features, long chunk_size, long num_nodes);
     virtual void set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
                      std::string reduction, long num_features, long chunk_size, long num_nodes, bool keep_allocation);
+    void set_common(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+             std::string reduction, long num_features, long chunk_size, long num_nodes, bool keep_allocation);
     virtual std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x);
     virtual std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients);
+    std::string get_name();
 };
 
 class FeatureAggregationPipelined : public FeatureAggregationChunked {
 protected:
     long num_steps_;
-    float *d_y_;
-    float *d_sum_forward_;
-    float *d_gradients_;
     std::vector<float *> d_x_;
+    std::vector<float *> d_y_;
     std::vector<SparseMatrixCuda<float>> d_adj_;
-    std::vector<float *> d_incoming_gradients_;
-    std::vector<float *> d_sum_backward_;
+    std::vector<float *> d_sum_;
+
+    void allocate_gpu_memory() override;
+    void free_gpu_memory() override;
 
 public:
     FeatureAggregationPipelined();
     FeatureAggregationPipelined(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
                                 std::string reduction, long num_features, long chunk_size, long num_nodes);
+    FeatureAggregationPipelined(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+                                std::string reduction, long num_features, long chunk_size, long num_nodes, bool keep_allocation);
     void set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
              std::string reduction, long num_features, long chunk_size, long num_nodes) override;
+    void set(CudaHelper *helper, std::vector<SparseMatrix<float>> *adjacencies, Matrix<float> *sum,
+             std::string reduction, long num_features, long chunk_size, long num_nodes, bool keep_allocation) override;
     std::vector<Matrix<float>> *forward(std::vector<Matrix<float>> *x) override;
     std::vector<Matrix<float>> *backward(std::vector<Matrix<float>> *incoming_gradients) override;
 };

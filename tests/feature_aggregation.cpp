@@ -139,3 +139,10 @@ TEST_CASE("Feature aggregation, pipelined", "[aggr][pipelined]") {
     CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14, false));
     CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13, false));
 }
+
+TEST_CASE("Feature aggregation, pipelining, keep", "[aggr][pipelined][keep]") {
+    FeatureAggregationPipelined graph_convolution;
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 15, true));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 14, true));
+    CHECK(test_graph_conv_chunked(&graph_convolution, 1 << 13, true));
+}
