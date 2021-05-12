@@ -3,7 +3,6 @@
 #include "helper.hpp"
 #include "chunking.hpp"
 
-#include <Python.h>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -55,42 +54,6 @@ void save_grads(SageLinearGradientsChunked *gradients, std::vector<Matrix<float>
     gradients_stitched.self_gradients = &self_gradients_one;
     gradients_stitched.neighbourhood_gradients = &neighbourhood_gradients_one;
     save_grads(&gradients_stitched, weight_gradients);
-}
-
-int run_python(std::string module_name, std::string function_name) {
-    std::string path_tests = "/home/ubuntu/gpu_memory_reduction/alzheimer/tests";
-    int return_value = 0;
-
-    PyObject *pName, *pModule, *pFunc, *pValue;
-    Py_Initialize();
-
-    PyRun_SimpleString(("import sys\nsys.path.append(\"" + path_tests + "\")\n").c_str());
-    pName = PyUnicode_DecodeFSDefault(module_name.c_str());
-    pModule = PyImport_Import(pName);
-    Py_DECREF(pName);
-    if (pModule != NULL) {
-        pFunc = PyObject_GetAttrString(pModule, function_name.c_str());
-        if (pFunc && PyCallable_Check(pFunc)) {
-            pValue = PyObject_CallObject(pFunc, NULL);
-            if (pValue != NULL) {
-                return_value = (int) PyLong_AsLong(pValue);
-                Py_DECREF(pValue);
-            }
-        } else {
-            if (PyErr_Occurred())
-                PyErr_Print();
-        }
-        Py_XDECREF(pFunc);
-        Py_DECREF(pModule);
-    } else {
-        PyErr_Print();
-    }
-    if (Py_FinalizeEx() < 0) {
-        std::cout << "Error in Py_FinalizeEx" << std::endl;
-    }
-
-    std::cout << "Return value " << return_value << std::endl;
-    return return_value;
 }
 
 int read_return_value(std::string path) {

@@ -19,8 +19,6 @@ def gen_data():
     path = dir_path + "/classes.npy"
     np.save(path, classes)
 
-    return # delete again
-
     features = np.random.randn(n, f)
     features = features.astype(np.float32)
     path = dir_path + "/features.npy"
