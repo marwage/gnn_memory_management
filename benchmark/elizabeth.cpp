@@ -1,6 +1,6 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "alzheimer.hpp"
+#include "elizabeth.hpp"
 #include "dataset.hpp"
 #include "gpu_memory_logger.hpp"
 

@@ -30,8 +30,7 @@ set(HELPER_FILES
 
 set(LIBS
         ${PROJECT_NAME}
-        Catch2::Catch2
-        ${Python3_LIBRARIES})
+        Catch2::Catch2)
 
 set(TEST_NAME tests)
 add_executable(${TEST_NAME}

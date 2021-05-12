@@ -1,7 +1,7 @@
 find_package(Catch2 REQUIRED)
 
 set(BENCHMARK_FILES
-        benchmark/alzheimer.cpp
+        benchmark/elizabeth.cpp
         benchmark/dropout.cpp
         benchmark/feature_aggregation.cpp
         benchmark/log_softmax.cpp

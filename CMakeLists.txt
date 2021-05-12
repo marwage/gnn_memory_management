@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(alzheimer VERSION 0.1
+project(Elizabeth VERSION 0.1
         LANGUAGES CXX CUDA C)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -25,7 +25,7 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
 endif()
 
 set(SOURCE_FILES
-        src/alzheimer.cpp
+        src/elizabeth.cpp
         src/tensors.cpp
         src/cuda_helper.cpp
         src/feature_aggregation.cpp

@@ -1,11 +1,11 @@
 // Copyright 2020 Marcel Wagenländer
 
-#include "alzheimer.hpp"
 #include "adam.hpp"
 #include "add.hpp"
 #include "chunking.hpp"
 #include "cuda_helper.hpp"
 #include "dropout.hpp"
+#include "elizabeth.hpp"
 #include "feature_aggregation.hpp"
 #include "log_softmax.hpp"
 #include "loss.hpp"
